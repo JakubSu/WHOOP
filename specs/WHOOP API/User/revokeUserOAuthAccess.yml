@@ -1,0 +1,92 @@
+info:
+  name: revokeUserOAuthAccess
+  type: http
+  seq: 3
+  tags:
+    - User
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/v2/user/access"
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauth_auth_url}}"
+    accessTokenUrl: "{{oauth_token_url}}"
+    refreshTokenUrl: "{{oauth_token_url}}"
+    callbackUrl: "{{oauth_callback_url}}"
+    credentials:
+      clientId: "{{oauth_client_id}}"
+      clientSecret: "{{oauth_client_secret}}"
+      placement: body
+    scope: "{{oauth_scopes}}"
+    state: "{{oauth_state}}"
+    tokenConfig:
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Successful request; no response body
+    request:
+      url: "{{baseUrl}}/v2/user/access"
+      method: DELETE
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ""
+  - name: 400 Response
+    description: Client error constructing the request
+    request:
+      url: "{{baseUrl}}/v2/user/access"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      body:
+        type: text
+        data: ""
+  - name: 401 Response
+    description: Invalid authorization
+    request:
+      url: "{{baseUrl}}/v2/user/access"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 429 Response
+    description: Request rejected due to rate limiting
+    request:
+      url: "{{baseUrl}}/v2/user/access"
+      method: DELETE
+    response:
+      status: 429
+      statusText: Too Many Requests
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Server error occurred while making request
+    request:
+      url: "{{baseUrl}}/v2/user/access"
+      method: DELETE
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

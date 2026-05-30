@@ -1,0 +1,67 @@
+info:
+  name: Generate test data for partner development
+  type: http
+  seq: 1
+  tags:
+    - Partner
+
+http:
+  method: POST
+  url: "{{baseUrl}}/v2/partner/development/add-test-data"
+  auth:
+    type: oauth2
+    flow: client_credentials
+    accessTokenUrl: "{{partner_token_url}}"
+    refreshTokenUrl: "{{partner_token_url}}"
+    credentials:
+      clientId: "{{partner_client_id}}"
+      clientSecret: "{{partner_client_secret}}"
+      placement: body
+    scope: "{{partner_scope}}"
+    tokenConfig:
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Test data generated successfully
+    request:
+      url: "{{baseUrl}}/v2/partner/development/add-test-data"
+      method: POST
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ""
+  - name: 404 Response
+    description: Not available in production environments
+    request:
+      url: "{{baseUrl}}/v2/partner/development/add-test-data"
+      method: POST
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Failed to generate test data
+    request:
+      url: "{{baseUrl}}/v2/partner/development/add-test-data"
+      method: POST
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

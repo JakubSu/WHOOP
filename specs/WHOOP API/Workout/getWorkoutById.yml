@@ -1,0 +1,172 @@
+info:
+  name: getWorkoutById
+  type: http
+  seq: 1
+  tags:
+    - Workout
+
+http:
+  method: GET
+  url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+  params:
+    - name: workoutId
+      value: ""
+      type: path
+      description: ID of the workout to retrieve
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauth_auth_url}}"
+    accessTokenUrl: "{{oauth_token_url}}"
+    refreshTokenUrl: "{{oauth_token_url}}"
+    callbackUrl: "{{oauth_callback_url}}"
+    credentials:
+      clientId: "{{oauth_client_id}}"
+      clientSecret: "{{oauth_client_secret}}"
+      placement: body
+    scope: "{{oauth_scopes}}"
+    state: "{{oauth_state}}"
+    tokenConfig:
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Successful request
+    request:
+      url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+      method: GET
+      params:
+        - name: workoutId
+          value: ""
+          type: path
+          description: ID of the workout to retrieve
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "ecfc6a15-4661-442f-a9a4-f160dd7afae8",
+            "v1_id": 1043,
+            "user_id": 9012,
+            "created_at": "2022-04-24T11:25:44.774Z",
+            "updated_at": "2022-04-24T14:25:44.774Z",
+            "start": "2022-04-24T02:25:44.774Z",
+            "end": "2022-04-24T10:25:44.774Z",
+            "timezone_offset": "-05:00",
+            "sport_name": "running",
+            "score_state": "SCORED",
+            "score": {
+              "strain": 8.2463,
+              "average_heart_rate": 123,
+              "max_heart_rate": 146,
+              "kilojoule": 1569.34033203125,
+              "percent_recorded": 100,
+              "distance_meter": 1772.77035916,
+              "altitude_gain_meter": 46.64384460449,
+              "altitude_change_meter": -0.781372010707855,
+              "zone_durations": {
+                "zone_zero_milli": 300000,
+                "zone_one_milli": 600000,
+                "zone_two_milli": 900000,
+                "zone_three_milli": 900000,
+                "zone_four_milli": 600000,
+                "zone_five_milli": 300000
+              }
+            },
+            "sport_id": 1
+          }
+  - name: 400 Response
+    description: Client error constructing the request
+    request:
+      url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+      method: GET
+      params:
+        - name: workoutId
+          value: ""
+          type: path
+          description: ID of the workout to retrieve
+    response:
+      status: 400
+      statusText: Bad Request
+      body:
+        type: text
+        data: ""
+  - name: 401 Response
+    description: Invalid authorization
+    request:
+      url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+      method: GET
+      params:
+        - name: workoutId
+          value: ""
+          type: path
+          description: ID of the workout to retrieve
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 404 Response
+    description: No resource found
+    request:
+      url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+      method: GET
+      params:
+        - name: workoutId
+          value: ""
+          type: path
+          description: ID of the workout to retrieve
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""
+  - name: 429 Response
+    description: Request rejected due to rate limiting
+    request:
+      url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+      method: GET
+      params:
+        - name: workoutId
+          value: ""
+          type: path
+          description: ID of the workout to retrieve
+    response:
+      status: 429
+      statusText: Too Many Requests
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Server error occurred while making request
+    request:
+      url: "{{baseUrl}}/v2/activity/workout/:workoutId"
+      method: GET
+      params:
+        - name: workoutId
+          value: ""
+          type: path
+          description: ID of the workout to retrieve
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

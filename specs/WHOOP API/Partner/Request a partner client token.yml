@@ -1,0 +1,76 @@
+info:
+  name: Request a partner client token
+  type: http
+  seq: 4
+  tags:
+    - Partner
+
+http:
+  method: POST
+  url: "{{baseUrl}}/v2/partner/token"
+  body:
+    type: json
+    data: |-
+      {
+        "client_id": "",
+        "client_secret": "",
+        "scope": "",
+        "grant_type": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Token issued successfully
+    request:
+      url: "{{baseUrl}}/v2/partner/token"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "client_id": "",
+            "client_secret": "",
+            "scope": "",
+            "grant_type": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "access_token": "",
+            "expires_in": 0,
+            "token_type": ""
+          }
+  - name: 401 Response
+    description: Invalid client credentials
+    request:
+      url: "{{baseUrl}}/v2/partner/token"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "client_id": "",
+            "client_secret": "",
+            "scope": "",
+            "grant_type": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""

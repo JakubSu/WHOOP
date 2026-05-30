@@ -1,0 +1,82 @@
+info:
+  name: Get a service request by ID
+  type: http
+  seq: 3
+  tags:
+    - Partner
+
+http:
+  method: GET
+  url: "{{baseUrl}}/v2/partner/service-request/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+      description: Unique identifier of the service request
+  auth:
+    type: oauth2
+    flow: client_credentials
+    accessTokenUrl: "{{partner_token_url}}"
+    refreshTokenUrl: "{{partner_token_url}}"
+    credentials:
+      clientId: "{{partner_client_id}}"
+      clientSecret: "{{partner_client_secret}}"
+      placement: body
+    scope: "{{partner_scope}}"
+    tokenConfig:
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Service request found
+    request:
+      url: "{{baseUrl}}/v2/partner/service-request/:id"
+      method: GET
+      params:
+        - name: id
+          value: ""
+          type: path
+          description: Unique identifier of the service request
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "status": "",
+            "intent": "",
+            "code": "",
+            "task_business_status": "",
+            "task_description": ""
+          }
+  - name: 404 Response
+    description: Service request not found or partner is not an owner
+    request:
+      url: "{{baseUrl}}/v2/partner/service-request/:id"
+      method: GET
+      params:
+        - name: id
+          value: ""
+          type: path
+          description: Unique identifier of the service request
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""

@@ -1,0 +1,26 @@
+name: PROD
+variables:
+  - name: baseUrl
+    value: https://api.prod.whoop.com/developer
+  - name: oauth_auth_url
+    value: https://api.prod.whoop.com/oauth/oauth2/auth
+  - name: oauth_token_url
+    value: https://api.prod.whoop.com/oauth/oauth2/token
+  - name: oauth_callback_url
+    value: ""
+  - name: oauth_client_id
+    value: ""
+  - name: oauth_client_secret
+    value: ""
+  - name: oauth_state
+    value: whoopdev
+  - name: oauth_scopes
+    value: read:recovery read:cycles read:workout read:sleep read:profile read:body_measurement offline
+  - name: partner_token_url
+    value: https://api.prod.whoop.com/developer/v2/partner/token
+  - name: partner_client_id
+    value: ""
+  - name: partner_client_secret
+    value: ""
+  - name: partner_scope
+    value: whoop-partner/token

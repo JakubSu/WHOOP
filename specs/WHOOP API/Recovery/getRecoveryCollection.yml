@@ -1,0 +1,236 @@
+info:
+  name: getRecoveryCollection
+  type: http
+  seq: 1
+  tags:
+    - Recovery
+
+http:
+  method: GET
+  url: "{{baseUrl}}/v2/recovery"
+  params:
+    - name: limit
+      value: "10"
+      type: query
+      description: Limit on the number of recoveries returned
+    - name: start
+      value: ""
+      type: query
+      description: Return recoveries that occurred after or during (inclusive) this time. If not specified, the response will not filter recoveries by a minimum time.
+      disabled: true
+    - name: end
+      value: ""
+      type: query
+      description: Return recoveries that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
+      disabled: true
+    - name: nextToken
+      value: ""
+      type: query
+      description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
+      disabled: true
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauth_auth_url}}"
+    accessTokenUrl: "{{oauth_token_url}}"
+    refreshTokenUrl: "{{oauth_token_url}}"
+    callbackUrl: "{{oauth_callback_url}}"
+    credentials:
+      clientId: "{{oauth_client_id}}"
+      clientSecret: "{{oauth_client_secret}}"
+      placement: body
+    scope: "{{oauth_scopes}}"
+    state: "{{oauth_state}}"
+    tokenConfig:
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Successful request
+    request:
+      url: "{{baseUrl}}/v2/recovery"
+      method: GET
+      params:
+        - name: limit
+          value: "10"
+          type: query
+          description: Limit on the number of recoveries returned
+        - name: start
+          value: ""
+          type: query
+          description: Return recoveries that occurred after or during (inclusive) this time. If not specified, the response will not filter recoveries by a minimum time.
+          disabled: true
+        - name: end
+          value: ""
+          type: query
+          description: Return recoveries that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
+          disabled: true
+        - name: nextToken
+          value: ""
+          type: query
+          description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "records": [
+              {
+                "cycle_id": 93845,
+                "sleep_id": "123e4567-e89b-12d3-a456-426614174000",
+                "user_id": 10129,
+                "created_at": "2022-04-24T11:25:44.774Z",
+                "updated_at": "2022-04-24T14:25:44.774Z",
+                "score_state": "SCORED",
+                "score": {
+                  "user_calibrating": false,
+                  "recovery_score": 44,
+                  "resting_heart_rate": 64,
+                  "hrv_rmssd_milli": 31.813562,
+                  "spo2_percentage": 95.6875,
+                  "skin_temp_celsius": 33.7
+                }
+              }
+            ],
+            "next_token": "MTIzOjEyMzEyMw"
+          }
+  - name: 400 Response
+    description: Client error constructing the request
+    request:
+      url: "{{baseUrl}}/v2/recovery"
+      method: GET
+      params:
+        - name: limit
+          value: "10"
+          type: query
+          description: Limit on the number of recoveries returned
+        - name: start
+          value: ""
+          type: query
+          description: Return recoveries that occurred after or during (inclusive) this time. If not specified, the response will not filter recoveries by a minimum time.
+          disabled: true
+        - name: end
+          value: ""
+          type: query
+          description: Return recoveries that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
+          disabled: true
+        - name: nextToken
+          value: ""
+          type: query
+          description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
+          disabled: true
+    response:
+      status: 400
+      statusText: Bad Request
+      body:
+        type: text
+        data: ""
+  - name: 401 Response
+    description: Invalid authorization
+    request:
+      url: "{{baseUrl}}/v2/recovery"
+      method: GET
+      params:
+        - name: limit
+          value: "10"
+          type: query
+          description: Limit on the number of recoveries returned
+        - name: start
+          value: ""
+          type: query
+          description: Return recoveries that occurred after or during (inclusive) this time. If not specified, the response will not filter recoveries by a minimum time.
+          disabled: true
+        - name: end
+          value: ""
+          type: query
+          description: Return recoveries that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
+          disabled: true
+        - name: nextToken
+          value: ""
+          type: query
+          description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
+          disabled: true
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 429 Response
+    description: Request rejected due to rate limiting
+    request:
+      url: "{{baseUrl}}/v2/recovery"
+      method: GET
+      params:
+        - name: limit
+          value: "10"
+          type: query
+          description: Limit on the number of recoveries returned
+        - name: start
+          value: ""
+          type: query
+          description: Return recoveries that occurred after or during (inclusive) this time. If not specified, the response will not filter recoveries by a minimum time.
+          disabled: true
+        - name: end
+          value: ""
+          type: query
+          description: Return recoveries that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
+          disabled: true
+        - name: nextToken
+          value: ""
+          type: query
+          description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
+          disabled: true
+    response:
+      status: 429
+      statusText: Too Many Requests
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Server error occurred while making request
+    request:
+      url: "{{baseUrl}}/v2/recovery"
+      method: GET
+      params:
+        - name: limit
+          value: "10"
+          type: query
+          description: Limit on the number of recoveries returned
+        - name: start
+          value: ""
+          type: query
+          description: Return recoveries that occurred after or during (inclusive) this time. If not specified, the response will not filter recoveries by a minimum time.
+          disabled: true
+        - name: end
+          value: ""
+          type: query
+          description: Return recoveries that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
+          disabled: true
+        - name: nextToken
+          value: ""
+          type: query
+          description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
+          disabled: true
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

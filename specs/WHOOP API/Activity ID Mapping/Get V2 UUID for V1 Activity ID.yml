@@ -1,0 +1,78 @@
+info:
+  name: Get V2 UUID for V1 Activity ID
+  type: http
+  seq: 1
+  tags:
+    - Activity ID Mapping
+
+http:
+  method: GET
+  url: "{{baseUrl}}/v1/activity-mapping/:activityV1Id"
+  params:
+    - name: activityV1Id
+      value: ""
+      type: path
+      description: V1 Activity ID
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Successfully retrieved mapping
+    request:
+      url: "{{baseUrl}}/v1/activity-mapping/:activityV1Id"
+      method: GET
+      params:
+        - name: activityV1Id
+          value: ""
+          type: path
+          description: V1 Activity ID
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "v2_activity_id": "ecfc6a15-4661-442f-a9a4-f160dd7afae8"
+          }
+  - name: 404 Response
+    description: Activity mapping not found
+    request:
+      url: "{{baseUrl}}/v1/activity-mapping/:activityV1Id"
+      method: GET
+      params:
+        - name: activityV1Id
+          value: ""
+          type: path
+          description: V1 Activity ID
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Server error
+    request:
+      url: "{{baseUrl}}/v1/activity-mapping/:activityV1Id"
+      method: GET
+      params:
+        - name: activityV1Id
+          value: ""
+          type: path
+          description: V1 Activity ID
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

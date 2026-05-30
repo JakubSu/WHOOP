@@ -1,0 +1,157 @@
+info:
+  name: getCycleById
+  type: http
+  seq: 1
+  tags:
+    - Cycle
+
+http:
+  method: GET
+  url: "{{baseUrl}}/v2/cycle/:cycleId"
+  params:
+    - name: cycleId
+      value: ""
+      type: path
+      description: ID of the cycle to retrieve
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauth_auth_url}}"
+    accessTokenUrl: "{{oauth_token_url}}"
+    refreshTokenUrl: "{{oauth_token_url}}"
+    callbackUrl: "{{oauth_callback_url}}"
+    credentials:
+      clientId: "{{oauth_client_id}}"
+      clientSecret: "{{oauth_client_secret}}"
+      placement: body
+    scope: "{{oauth_scopes}}"
+    state: "{{oauth_state}}"
+    tokenConfig:
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: false
+      autoRefreshToken: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Successful request
+    request:
+      url: "{{baseUrl}}/v2/cycle/:cycleId"
+      method: GET
+      params:
+        - name: cycleId
+          value: ""
+          type: path
+          description: ID of the cycle to retrieve
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": 93845,
+            "user_id": 10129,
+            "created_at": "2022-04-24T11:25:44.774Z",
+            "updated_at": "2022-04-24T14:25:44.774Z",
+            "start": "2022-04-24T02:25:44.774Z",
+            "end": "2022-04-24T10:25:44.774Z",
+            "timezone_offset": "-05:00",
+            "score_state": "SCORED",
+            "score": {
+              "strain": 5.2951527,
+              "kilojoule": 8288.297,
+              "average_heart_rate": 68,
+              "max_heart_rate": 141
+            }
+          }
+  - name: 400 Response
+    description: Client error constructing the request
+    request:
+      url: "{{baseUrl}}/v2/cycle/:cycleId"
+      method: GET
+      params:
+        - name: cycleId
+          value: ""
+          type: path
+          description: ID of the cycle to retrieve
+    response:
+      status: 400
+      statusText: Bad Request
+      body:
+        type: text
+        data: ""
+  - name: 401 Response
+    description: Invalid authorization
+    request:
+      url: "{{baseUrl}}/v2/cycle/:cycleId"
+      method: GET
+      params:
+        - name: cycleId
+          value: ""
+          type: path
+          description: ID of the cycle to retrieve
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 404 Response
+    description: No resource found
+    request:
+      url: "{{baseUrl}}/v2/cycle/:cycleId"
+      method: GET
+      params:
+        - name: cycleId
+          value: ""
+          type: path
+          description: ID of the cycle to retrieve
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""
+  - name: 429 Response
+    description: Request rejected due to rate limiting
+    request:
+      url: "{{baseUrl}}/v2/cycle/:cycleId"
+      method: GET
+      params:
+        - name: cycleId
+          value: ""
+          type: path
+          description: ID of the cycle to retrieve
+    response:
+      status: 429
+      statusText: Too Many Requests
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Server error occurred while making request
+    request:
+      url: "{{baseUrl}}/v2/cycle/:cycleId"
+      method: GET
+      params:
+        - name: cycleId
+          value: ""
+          type: path
+          description: ID of the cycle to retrieve
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""
