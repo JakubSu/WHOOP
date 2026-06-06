@@ -7,11 +7,11 @@ variables:
   - name: oauth_token_url
     value: https://api.prod.whoop.com/oauth/oauth2/token
   - name: oauth_callback_url
-    value: ""
+    value: http://localhost:3000/callback
   - name: oauth_client_id
-    value: ""
-  - name: oauth_client_secret
-    value: ""
+    value: b901177e-c28f-4aed-aa05-736558d1652e
+  - secret: true
+    name: oauth_client_secret
   - name: oauth_state
     value: whoopdev
   - name: oauth_scopes

@@ -4,4 +4,4 @@ info:
   seq: 1
 
 request:
-  auth: inherit
+  auth: none

@@ -28,25 +28,7 @@ http:
       type: query
       description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
       disabled: true
-  auth:
-    type: oauth2
-    flow: authorization_code
-    authorizationUrl: "{{oauth_auth_url}}"
-    accessTokenUrl: "{{oauth_token_url}}"
-    refreshTokenUrl: "{{oauth_token_url}}"
-    callbackUrl: "{{oauth_callback_url}}"
-    credentials:
-      clientId: "{{oauth_client_id}}"
-      clientSecret: "{{oauth_client_secret}}"
-      placement: body
-    scope: "{{oauth_scopes}}"
-    state: "{{oauth_state}}"
-    tokenConfig:
-      placement:
-        header: Bearer
-    settings:
-      autoFetchToken: false
-      autoRefreshToken: true
+  auth: inherit
 
 settings:
   encodeUrl: true
