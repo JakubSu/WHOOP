@@ -101,7 +101,7 @@ To use the collection:
 4. Set `oauth_client_id`, `oauth_client_secret`, and `oauth_callback_url`.
 5. Use OAuth 2.0 to fetch an access token.
 
-The collection is configured for WHOOP's OAuth 2.0 authorization code flow:
+The collection is configured at the collection level for WHOOP's OAuth 2.0 authorization code flow, so normal WHOOP API requests inherit the same auth setup:
 
 - Authorization URL: `https://api.prod.whoop.com/oauth/oauth2/auth`
 - Token URL: `https://api.prod.whoop.com/oauth/oauth2/token`
