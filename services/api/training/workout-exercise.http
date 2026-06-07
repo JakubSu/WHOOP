@@ -1,0 +1,36 @@
+@baseUrl = http://127.0.0.1:8000/api/v1
+@workoutExerciseId = 50f8f139-a387-4178-a1dd-d3c588ded3d9
+@workoutId = 13c53a4d-f6ca-42cd-adf4-e65f9c919868
+@exerciseId = cee85e2c-fd16-40f7-9e6e-9b8b3dd1095e
+
+### List workout exercises
+GET {{baseUrl}}/workout-exercises/
+
+### Create workout exercise
+POST {{baseUrl}}/workout-exercises/
+Content-Type: application/json
+
+{
+  "workout": "{{workoutId}}",
+  "exercise": "{{exerciseId}}",
+  "position": 1,
+  "sets": 3,
+  "reps": 10,
+  "rest_seconds": 60,
+  "notes": "First movement in the session"
+}
+
+### Get workout exercise
+GET {{baseUrl}}/workout-exercises/{{workoutExerciseId}}/
+
+### Update workout exercise
+PATCH {{baseUrl}}/workout-exercises/{{workoutExerciseId}}/
+Content-Type: application/json
+
+{
+  "sets": 4,
+  "reps": 8
+}
+
+### Delete workout exercise
+DELETE {{baseUrl}}/workout-exercises/{{workoutExerciseId}}/

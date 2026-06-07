@@ -1,0 +1,110 @@
+[
+  {
+    "user_id": "",
+    "name": "Back Squat",
+    "category": "strength",
+    "primary_muscle_group": "Quads",
+    "equipment": "Barbell",
+    "notes": "Compound lower-body lift.",
+    "default_sets": 4,
+    "default_reps": 5,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Bench Press",
+    "category": "strength",
+    "primary_muscle_group": "Chest",
+    "equipment": "Barbell",
+    "notes": "Compound upper-body press.",
+    "default_sets": 4,
+    "default_reps": 6,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Deadlift",
+    "category": "strength",
+    "primary_muscle_group": "Posterior Chain",
+    "equipment": "Barbell",
+    "notes": "Heavy full-body hinge.",
+    "default_sets": 3,
+    "default_reps": 5,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Pull-Up",
+    "category": "strength",
+    "primary_muscle_group": "Back",
+    "equipment": "Pull-Up Bar",
+    "notes": "Upper-body pulling staple.",
+    "default_sets": 4,
+    "default_reps": 8,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Push-Up",
+    "category": "strength",
+    "primary_muscle_group": "Chest",
+    "equipment": "Bodyweight",
+    "notes": "Bodyweight press variation.",
+    "default_sets": 3,
+    "default_reps": 15,
+    "is_favorite": true,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Rowing Intervals",
+    "category": "conditioning",
+    "primary_muscle_group": "Full Body",
+    "equipment": "Rower",
+    "notes": "Short interval conditioning block.",
+    "default_sets": 6,
+    "default_reps": 1,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Zone 2 Run",
+    "category": "cardio",
+    "primary_muscle_group": "Cardiovascular",
+    "equipment": "Treadmill",
+    "notes": "Steady-state aerobic work.",
+    "default_sets": 1,
+    "default_reps": 1,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Hip Mobility Flow",
+    "category": "mobility",
+    "primary_muscle_group": "Hips",
+    "equipment": "Bodyweight",
+    "notes": "Daily mobility sequence.",
+    "default_sets": 2,
+    "default_reps": 10,
+    "is_favorite": false,
+    "is_avoided": false
+  },
+  {
+    "user_id": "",
+    "name": "Breathing Walk",
+    "category": "recovery",
+    "primary_muscle_group": "Cardiovascular",
+    "equipment": "None",
+    "notes": "Easy recovery session.",
+    "default_sets": 1,
+    "default_reps": 1,
+    "is_favorite": false,
+    "is_avoided": false
+  }
+]

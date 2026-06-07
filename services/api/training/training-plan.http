@@ -1,0 +1,32 @@
+@baseUrl = http://127.0.0.1:8000/api/v1
+@trainingPlanId = 11111111-1111-1111-1111-111111111111
+
+### List training plans
+GET {{baseUrl}}/training-plans/
+
+### Create training plan
+POST {{baseUrl}}/training-plans/
+Content-Type: application/json
+
+{
+  "user_id": "demo-user",
+  "name": "Strength Block",
+  "goal": "Build strength",
+  "status": "active",
+  "notes": "Eight-week base plan"
+}
+
+### Get training plan
+GET {{baseUrl}}/training-plans/{{trainingPlanId}}/
+
+### Update training plan
+PATCH {{baseUrl}}/training-plans/{{trainingPlanId}}/
+Content-Type: application/json
+
+{
+  "notes": "Updated after coach review",
+  "status": "paused"
+}
+
+### Delete training plan
+DELETE {{baseUrl}}/training-plans/{{trainingPlanId}}/

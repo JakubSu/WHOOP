@@ -1,0 +1,34 @@
+@baseUrl = http://127.0.0.1:8000/api/v1
+
+@exerciseId = cee85e2c-fd16-40f7-9e6e-9b8b3dd1095e
+
+###
+GET {{baseUrl}}/exercises/
+
+###
+POST {{baseUrl}}/exercises/
+Content-Type: application/json
+
+{
+  "name": "Push-Up",
+  "category": "strength",
+  "primary_muscle_group": "chest",
+  "equipment": "bodyweight",
+  "default_sets": 3,
+  "default_reps": 10,
+  "is_favorite": true
+}
+
+###
+GET {{baseUrl}}/exercises/{{exerciseId}}/
+
+###
+PATCH {{baseUrl}}/exercises/{{exerciseId}}/
+Content-Type: application/json
+
+{
+  "notes": "Keep ribs down"
+}
+
+###
+DELETE {{baseUrl}}/exercises/{{exerciseId}}/
