@@ -21,12 +21,16 @@ class WorkoutExerciseServiceTests(TestCase):
                 "position": 1,
                 "sets": 3,
                 "reps": 12,
+                "distance": "400.50",
+                "intensity": "high",
             },
             user_id=self.user_id,
         )
 
         self.assertEqual(workout_exercise.workout, workout)
         self.assertEqual(workout_exercise.exercise, exercise)
+        self.assertEqual(str(workout_exercise.distance), "400.50")
+        self.assertEqual(workout_exercise.intensity, "high")
         self.assertEqual(WorkoutExercise.objects.count(), 1)
 
     def test_create_workout_with_training_plan(self) -> None:

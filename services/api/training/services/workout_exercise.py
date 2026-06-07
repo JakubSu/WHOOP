@@ -60,7 +60,9 @@ def _normalized_workout_exercise_payload(
         "sets",
         "reps",
         "duration_seconds",
+        "distance",
         "load",
+        "intensity",
         "rest_seconds",
         "notes",
     )

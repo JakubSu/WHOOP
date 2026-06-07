@@ -10,11 +10,18 @@ class ExerciseServiceTests(TestCase):
     def test_create_exercise(self) -> None:
         starting_count = Exercise.objects.count()
         exercise = services.create_exercise(
-            {"name": "Push-Up", "category": Exercise.Category.STRENGTH},
+            {
+                "name": "Push-Up",
+                "category": Exercise.Category.STRENGTH,
+                "secondary_muscle_groups": ["triceps", "core"],
+                "default_intensity": "moderate",
+            },
             user_id=self.user_id,
         )
         self.assertEqual(exercise.name, "Push-Up")
         self.assertEqual(exercise.user_id, self.user_id)
+        self.assertEqual(exercise.secondary_muscle_groups, ["triceps", "core"])
+        self.assertEqual(exercise.default_intensity, "moderate")
         self.assertEqual(Exercise.objects.count(), starting_count + 1)
 
     def test_favorite_clears_avoided(self) -> None:
