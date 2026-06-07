@@ -1,0 +1,23 @@
+@baseUrl = http://127.0.0.1:8000/api/v1
+@sessionCookie = sessionid=replace-me
+@csrfToken = replace-me
+@oauthCode = replace-me
+@oauthState = replace-me
+
+### Connect WHOOP
+GET {{baseUrl}}/whoop/connect/
+Cookie: {{sessionCookie}}
+
+### WHOOP OAuth callback
+GET {{baseUrl}}/whoop/callback/?code={{oauthCode}}&state={{oauthState}}
+Cookie: {{sessionCookie}}
+
+### Get WHOOP summary
+GET {{baseUrl}}/whoop/summary/
+Cookie: {{sessionCookie}}
+
+### Disconnect WHOOP
+POST {{baseUrl}}/whoop/disconnect/
+Cookie: {{sessionCookie}}
+X-CSRFToken: {{csrfToken}}
+
