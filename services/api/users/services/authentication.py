@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from django.contrib.auth import authenticate, get_user_model
 from django.db import IntegrityError
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -48,14 +48,12 @@ class AuthenticateUserService:
 class RefreshSessionService:
     def execute(self, *, refresh: str) -> dict[str, str]:
         serializer = TokenRefreshSerializer(data={"refresh": refresh})
-        if serializer.is_valid():
-            validated_data = cast(dict[str, Any], serializer.validated_data)
-            return {str(key): str(value) for key, value in validated_data.items()}
         try:
             serializer.is_valid(raise_exception=True)
-        except TokenError as exc:
+        except (InvalidToken, TokenError) as exc:
             raise ValueError("Refresh token is invalid or expired.") from exc
-        raise ValueError("Refresh token is invalid or expired.")
+        validated_data = cast(dict[str, Any], serializer.validated_data)
+        return {str(key): str(value) for key, value in validated_data.items()}
 
 
 class LogoutUserService:

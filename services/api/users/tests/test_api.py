@@ -69,10 +69,13 @@ class UsersApiTests(TestCase):
         client = APIClient()
         client.force_authenticate(user)
 
-        response = client.patch(
-            reverse("user-me"),
-            {"display_name": "Updated"},
-            format="json",
+        response = cast(
+            Any,
+            client.patch(
+                reverse("user-me"),
+                {"display_name": "Updated"},
+                format="json",
+            ),
         )
 
         self.assertEqual(response.status_code, 200)
@@ -93,17 +96,23 @@ class UsersApiTests(TestCase):
         user = User.objects.get(email="athlete@example.com")
         client = APIClient()
         client.force_authenticate(user)
-        logout_response = client.post(
-            reverse("user-logout"),
-            {"refresh": refresh_token},
-            format="json",
+        logout_response = cast(
+            Any,
+            client.post(
+                reverse("user-logout"),
+                {"refresh": refresh_token},
+                format="json",
+            ),
         )
         self.assertEqual(logout_response.status_code, 204)
 
-        refresh_response = self.client.post(
-            reverse("user-token-refresh"),
-            {"refresh": refresh_token},
-            format="json",
+        refresh_response = cast(
+            Any,
+            self.client.post(
+                reverse("user-token-refresh"),
+                {"refresh": refresh_token},
+                format="json",
+            ),
         )
 
         self.assertEqual(refresh_response.status_code, 400)
