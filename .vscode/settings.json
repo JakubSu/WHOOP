@@ -1,0 +1,11 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:WHOOP}/services/api/db.sqlite3",
+            "name": "whoop-local"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
