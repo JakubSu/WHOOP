@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users Context Tester</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 252, 247, 0.92);
+      --text: #201911;
+      --muted: #74695f;
+      --line: #d7cabd;
+      --accent: #b5522f;
+      --accent-strong: #8f3d20;
+      --accent-soft: rgba(181, 82, 47, 0.12);
+      --ok-bg: #e0f1e7;
+      --ok-text: #1e6641;
+      --warn-bg: #fff0d6;
+      --warn-text: #8c5a00;
+      --error-bg: #fbe3e0;
+      --error-text: #8c2d23;
+      --shadow: 0 22px 60px rgba(32, 25, 17, 0.08);
+      --radius: 22px;
+      --mono: "Consolas", "SFMono-Regular", monospace;
+      --sans: Georgia, "Segoe UI", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top right, rgba(181, 82, 47, 0.16), transparent 24rem),
+        radial-gradient(circle at bottom left, rgba(31, 74, 61, 0.12), transparent 22rem),
+        linear-gradient(180deg, #fbf7f0 0%, var(--bg) 100%);
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+
+    .hero,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -3rem -4rem auto;
+      width: 15rem;
+      height: 15rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(181, 82, 47, 0.22), rgba(181, 82, 47, 0));
+      pointer-events: none;
+    }
+
+    .hero p,
+    .help {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 8px 13px;
+      margin-bottom: 12px;
+      font-size: 0.84rem;
+      background: var(--warn-bg);
+      color: var(--warn-text);
+    }
+
+    .status.ok {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+    }
+
+    .status.error {
+      background: var(--error-bg);
+      color: var(--error-text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 20px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 2.15rem;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.42;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 12px 24px rgba(181, 82, 47, 0.18);
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #e8ddd1;
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    button.secondary:hover {
+      background: #ddd0c2;
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      box-shadow: none;
+    }
+
+    button.ghost:hover {
+      background: var(--accent-soft);
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    code {
+      font-family: var(--mono);
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f7eee4;
+      border: 1px solid #ebdac7;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      .grid,
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 18px 12px 36px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="status" id="flowStatus">Waiting to start</div>
+      <h1>Users Context Tester</h1>
+      <p>
+        This page stays completely inside the app boundary. It exercises registration, login,
+        token refresh, profile reads and updates, an authenticated probe, and logout against
+        the dedicated <code>users</code> context without touching WHOOP.
+      </p>
+      <div class="note">
+        Run this page with Live Server and point it at <code>http://127.0.0.1:8000/api/v1</code>.
+        The API must already be running with CORS enabled for your Live Server origin.
+      </div>
+    </section>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="card">
+          <h2>1. Runtime Setup</h2>
+          <div class="row">
+            <div>
+              <label for="apiBase">API Base</label>
+              <input id="apiBase" value="http://127.0.0.1:8000/api/v1" />
+            </div>
+            <div>
+              <label for="pageUrl">This Page URL</label>
+              <input id="pageUrl" />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="saveConfigBtn" class="secondary">Save Config</button>
+            <button id="clearStateBtn" class="ghost">Clear Local State</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>2. Register or Login</h2>
+          <div class="row">
+            <div>
+              <label for="email">Email</label>
+              <input id="email" value="athlete@example.com" />
+            </div>
+            <div>
+              <label for="displayName">Display Name</label>
+              <input id="displayName" value="Athlete" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="password">Password</label>
+              <input id="password" type="password" value="strong-password-123" />
+            </div>
+            <div>
+              <label for="userId">Current User ID</label>
+              <input id="userId" readonly />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="registerBtn">Register</button>
+            <button id="loginBtn">Login</button>
+            <button id="refreshBtn" class="secondary">Refresh Token</button>
+            <button id="logoutBtn" class="secondary">Logout</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>3. Profile and Auth Checks</h2>
+          <p class="help">
+            These buttons let us confirm the app is respecting authentication, profile persistence,
+            and token refresh behavior independently of any external integration.
+          </p>
+          <div class="row">
+            <div>
+              <label for="profileDisplayName">Profile Display Name</label>
+              <input id="profileDisplayName" placeholder="Load or edit your display name" />
+            </div>
+            <div>
+              <label for="whoopUserId">WHOOP User ID</label>
+              <input id="whoopUserId" readonly />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="meBtn">Load Profile</button>
+            <button id="updateProfileBtn" class="secondary">Update Profile</button>
+            <button id="probeAnonBtn" class="ghost">Probe Anonymous Access</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>4. Token State</h2>
+          <h3>Access Token</h3>
+          <textarea id="accessToken" spellcheck="false"></textarea>
+          <h3 style="margin-top:16px;">Refresh Token</h3>
+          <textarea id="refreshToken" spellcheck="false"></textarea>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <h2>Current Profile</h2>
+          <pre id="profileOutput">No profile loaded yet.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Last API Response</h2>
+          <pre id="responseOutput">No requests yet.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Event Log</h2>
+          <pre id="logOutput">Ready.</pre>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const storageKey = "users-context-tester-state";
+
+    const state = {
+      access: "",
+      refresh: "",
+      userId: "",
+      profile: null,
+    };
+
+    const elements = {
+      apiBase: document.getElementById("apiBase"),
+      pageUrl: document.getElementById("pageUrl"),
+      email: document.getElementById("email"),
+      displayName: document.getElementById("displayName"),
+      password: document.getElementById("password"),
+      userId: document.getElementById("userId"),
+      profileDisplayName: document.getElementById("profileDisplayName"),
+      whoopUserId: document.getElementById("whoopUserId"),
+      accessToken: document.getElementById("accessToken"),
+      refreshToken: document.getElementById("refreshToken"),
+      profileOutput: document.getElementById("profileOutput"),
+      responseOutput: document.getElementById("responseOutput"),
+      logOutput: document.getElementById("logOutput"),
+      flowStatus: document.getElementById("flowStatus"),
+    };
+
+    function pretty(value) {
+      if (typeof value === "string") return value;
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    function log(message, data) {
+      const timestamp = new Date().toLocaleTimeString();
+      const suffix = data === undefined ? "" : "\n" + pretty(data);
+      elements.logOutput.textContent = `[${timestamp}] ${message}${suffix}\n\n${elements.logOutput.textContent}`.trim();
+    }
+
+    function showResponse(title, value) {
+      elements.responseOutput.textContent = `${title}\n\n${pretty(value)}`;
+    }
+
+    function setStatus(label, tone = "default") {
+      elements.flowStatus.textContent = label;
+      elements.flowStatus.className =
+        tone === "ok" ? "status ok" :
+        tone === "error" ? "status error" :
+        "status";
+    }
+
+    function persist() {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          apiBase: elements.apiBase.value.trim(),
+          pageUrl: elements.pageUrl.value.trim(),
+          email: elements.email.value.trim(),
+          displayName: elements.displayName.value.trim(),
+          access: state.access,
+          refresh: state.refresh,
+          userId: state.userId,
+          profile: state.profile,
+        })
+      );
+    }
+
+    function syncInputs() {
+      elements.userId.value = state.userId;
+      elements.accessToken.value = state.access;
+      elements.refreshToken.value = state.refresh;
+      elements.profileOutput.textContent = state.profile ? pretty(state.profile) : "No profile loaded yet.";
+      elements.profileDisplayName.value = state.profile?.display_name || elements.displayName.value.trim();
+      elements.whoopUserId.value = state.profile?.whoop_user_id || "";
+      persist();
+    }
+
+    function hydrate() {
+      elements.pageUrl.value = window.location.href.split("?")[0];
+
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        syncInputs();
+        return;
+      }
+
+      try {
+        const saved = JSON.parse(raw);
+        elements.apiBase.value = saved.apiBase || elements.apiBase.value;
+        elements.pageUrl.value = saved.pageUrl || elements.pageUrl.value;
+        elements.email.value = saved.email || elements.email.value;
+        elements.displayName.value = saved.displayName || elements.displayName.value;
+        state.access = saved.access || "";
+        state.refresh = saved.refresh || "";
+        state.userId = saved.userId || "";
+        state.profile = saved.profile || null;
+      } catch (error) {
+        console.warn("Failed to restore local state", error);
+      }
+
+      syncInputs();
+    }
+
+    function clearState() {
+      state.access = "";
+      state.refresh = "";
+      state.userId = "";
+      state.profile = null;
+      elements.responseOutput.textContent = "No requests yet.";
+      localStorage.removeItem(storageKey);
+      syncInputs();
+      setStatus("Local state cleared");
+      log("Cleared local tester state");
+    }
+
+    function getApiBase() {
+      return elements.apiBase.value.trim().replace(/\/$/, "");
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      if (options.json !== undefined) {
+        headers.set("Content-Type", "application/json");
+      }
+      if (state.access && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${state.access}`);
+      }
+
+      const response = await fetch(`${getApiBase()}${path}`, {
+        method: options.method || "GET",
+        headers,
+        body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+
+      showResponse(`${options.method || "GET"} ${path}`, payload || response.status);
+
+      if (!response.ok) {
+        const detail = payload && typeof payload === "object"
+          ? payload.detail || pretty(payload)
+          : payload;
+        throw new Error(`${response.status} ${response.statusText}: ${detail}`);
+      }
+
+      return payload;
+    }
+
+    function applyAuthSession(session) {
+      state.access = session.access || "";
+      state.refresh = session.refresh || state.refresh;
+      state.profile = session.user || state.profile;
+      state.userId = session.user?.id || state.userId;
+      if (state.profile?.display_name) {
+        elements.displayName.value = state.profile.display_name;
+      }
+      syncInputs();
+    }
+
+    async function registerUser() {
+      log("Registering user");
+      const payload = await apiFetch("/users/register/", {
+        method: "POST",
+        json: {
+          email: elements.email.value.trim(),
+          password: elements.password.value,
+          display_name: elements.displayName.value.trim(),
+        },
+      });
+      applyAuthSession(payload);
+      setStatus("Registered and authenticated", "ok");
+      log("Registration complete", payload.user);
+    }
+
+    async function loginUser() {
+      log("Logging in user");
+      const payload = await apiFetch("/users/login/", {
+        method: "POST",
+        json: {
+          email: elements.email.value.trim(),
+          password: elements.password.value,
+        },
+      });
+      applyAuthSession(payload);
+      setStatus("Logged in", "ok");
+      log("Login complete", payload.user);
+    }
+
+    async function refreshSession() {
+      if (!state.refresh) {
+        throw new Error("A refresh token is required before you can test refresh.");
+      }
+
+      log("Refreshing access token");
+      const payload = await apiFetch("/users/token/refresh/", {
+        method: "POST",
+        json: { refresh: state.refresh },
+      });
+      state.access = payload.access || "";
+      if (payload.refresh) {
+        state.refresh = payload.refresh;
+      }
+      syncInputs();
+      setStatus("Access token refreshed", "ok");
+      log("Token refresh complete", payload);
+    }
+
+    async function loadProfile() {
+      log("Loading current profile");
+      const payload = await apiFetch("/users/me/");
+      state.profile = payload;
+      state.userId = payload.id || "";
+      if (payload.display_name !== undefined) {
+        elements.displayName.value = payload.display_name;
+      }
+      syncInputs();
+      setStatus("Profile loaded", "ok");
+      log("Profile loaded", payload);
+    }
+
+    async function updateProfile() {
+      log("Updating profile");
+      const payload = await apiFetch("/users/me/", {
+        method: "PATCH",
+        json: {
+          display_name: elements.profileDisplayName.value,
+        },
+      });
+      state.profile = payload;
+      if (payload.display_name !== undefined) {
+        elements.displayName.value = payload.display_name;
+      }
+      syncInputs();
+      setStatus("Profile updated", "ok");
+      log("Profile update complete", payload);
+    }
+
+    async function logoutUser() {
+      if (!state.refresh) {
+        throw new Error("A refresh token is required before logout can revoke the session.");
+      }
+
+      log("Logging out user");
+      await apiFetch("/users/logout/", {
+        method: "POST",
+        json: { refresh: state.refresh },
+      });
+      state.access = "";
+      state.refresh = "";
+      state.userId = "";
+      state.profile = null;
+      syncInputs();
+      setStatus("Logged out");
+      log("Logout complete");
+    }
+
+    async function probeAnonymousAccess() {
+      log("Probing /users/me/ without credentials");
+      const previousToken = state.access;
+      state.access = "";
+      syncInputs();
+
+      try {
+        await apiFetch("/users/me/");
+        setStatus("Anonymous probe unexpectedly succeeded", "error");
+        log("Unexpected result: /users/me/ allowed anonymous access");
+      } catch (error) {
+        setStatus("Anonymous access correctly rejected", "ok");
+        log("Anonymous access rejected as expected", error instanceof Error ? error.message : String(error));
+      } finally {
+        state.access = previousToken;
+        syncInputs();
+      }
+    }
+
+    async function runAction(action) {
+      try {
+        await action();
+      } catch (error) {
+        setStatus("Action failed", "error");
+        log("Error", error instanceof Error ? error.message : String(error));
+        console.error(error);
+      }
+    }
+
+    document.getElementById("saveConfigBtn").addEventListener("click", () => {
+      persist();
+      setStatus("Config saved", "ok");
+      log("Saved local configuration", {
+        apiBase: getApiBase(),
+        pageUrl: elements.pageUrl.value.trim(),
+      });
+    });
+
+    document.getElementById("clearStateBtn").addEventListener("click", clearState);
+    document.getElementById("registerBtn").addEventListener("click", () => runAction(registerUser));
+    document.getElementById("loginBtn").addEventListener("click", () => runAction(loginUser));
+    document.getElementById("refreshBtn").addEventListener("click", () => runAction(refreshSession));
+    document.getElementById("logoutBtn").addEventListener("click", () => runAction(logoutUser));
+    document.getElementById("meBtn").addEventListener("click", () => runAction(loadProfile));
+    document.getElementById("updateProfileBtn").addEventListener("click", () => runAction(updateProfile));
+    document.getElementById("probeAnonBtn").addEventListener("click", () => runAction(probeAnonymousAccess));
+
+    hydrate();
+    if (state.access) {
+      setStatus("Session restored", "ok");
+      log("Restored saved local session");
+    }
+  </script>
+</body>
+</html>

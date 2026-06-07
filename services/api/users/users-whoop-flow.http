@@ -1,0 +1,67 @@
+@baseUrl = http://127.0.0.1:8000/api/v1
+@email = athlete@example.com
+@password = strong-password-123
+@displayName = Athlete
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgwODU1MzA3LCJpYXQiOjE3ODA4NTQ0MDcsImp0aSI6ImZlM2U0OTE1MDEzNzQzYjViZWE3NTEyN2Y3ZmQ3ZTU4IiwidXNlcl9pZCI6ImE1NTlhNzViLThjNTUtNGE0MS1hMmM4LWJkMTViOWMyZDhhMyJ9.n2BxZjb7pKNveEv4WQubV_66D2VQPmyMBhfBeXevvAY
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc4MTQ1Nzc4OCwiaWF0IjoxNzgwODUyOTg4LCJqdGkiOiJlOGFlOTNmYTlhZjY0NzljYTlmZDlmYWY4MWFmMWQxMSIsInVzZXJfaWQiOiJhNTU5YTc1Yi04YzU1LTRhNDEtYTJjOC1iZDE1YjljMmQ4YTMifQ.8vl3UYS4rrzvfm2vRqYz5WZTUOuOX3XMuzyQWMIVdnw
+@oauthCode = replace-after-whoop-authorize
+@oauthState = replace-after-connect-url
+
+### Register user
+POST {{baseUrl}}/users/register/
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "display_name": "{{displayName}}"
+}
+
+### Login
+POST {{baseUrl}}/users/login/
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Refresh token
+POST {{baseUrl}}/users/token/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
+
+### Current user profile
+GET {{baseUrl}}/users/me/
+Authorization: Bearer {{accessToken}}
+
+### WHOOP connect URL
+# Copy the access token from login into @accessToken before running this request.
+# Open the returned connect_url in a browser to authorize with WHOOP.
+# Copy the returned state into @oauthState.
+GET {{baseUrl}}/whoop/connect-url/
+Authorization: Bearer {{accessToken}}
+
+### WHOOP OAuth callback
+# After authorizing with WHOOP in the browser, paste the returned code into @oauthCode.
+GET {{baseUrl}}/whoop/callback/?code={{oauthCode}}&state={{oauthState}}
+
+### WHOOP summary
+GET {{baseUrl}}/whoop/summary/
+Authorization: Bearer {{accessToken}}
+
+### WHOOP disconnect
+POST {{baseUrl}}/whoop/disconnect/
+Authorization: Bearer {{accessToken}}
+
+### Logout
+POST {{baseUrl}}/users/logout/
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "refresh": "{{refreshToken}}"
+}
