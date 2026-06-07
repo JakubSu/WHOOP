@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHOOP SPA OAuth Tester</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --panel: rgba(255, 255, 255, 0.9);
+      --text: #211d18;
+      --muted: #6c655d;
+      --line: #d9cebf;
+      --accent: #0f7b6c;
+      --accent-strong: #0a5e53;
+      --ok-bg: #def4ec;
+      --ok-text: #0c5a4f;
+      --warn-bg: #fff1d4;
+      --warn-text: #865900;
+      --shadow: 0 18px 50px rgba(33, 29, 24, 0.08);
+      --radius: 22px;
+      --mono: "Consolas", "SFMono-Regular", monospace;
+      --sans: "Segoe UI", "Aptos", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(15, 123, 108, 0.12), transparent 24rem),
+        linear-gradient(180deg, #faf6ef 0%, var(--bg) 100%);
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+    .hero, .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .hero {
+      padding: 26px;
+      margin-bottom: 20px;
+    }
+    .hero p, .help {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+    .card {
+      padding: 18px;
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.84rem;
+      margin-bottom: 12px;
+      background: var(--warn-bg);
+      color: var(--warn-text);
+    }
+    .status.ok {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+    }
+    .warning {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border: 1px solid #efd08a;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h2 { font-size: 1.05rem; margin-bottom: 12px; }
+    h3 { font-size: 0.95rem; margin-bottom: 10px; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 0.84rem;
+    }
+    input:focus, textarea:focus {
+      outline: 2px solid rgba(15, 123, 108, 0.18);
+      border-color: var(--accent);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      transition: background 120ms ease, transform 120ms ease;
+    }
+    button:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+    }
+    button.secondary {
+      background: #e7ddd0;
+      color: var(--text);
+    }
+    button.secondary:hover {
+      background: #dbcdbd;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+    code {
+      font-family: var(--mono);
+    }
+    @media (max-width: 900px) {
+      .grid, .row {
+        grid-template-columns: 1fr;
+      }
+      main {
+        padding: 18px 12px 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="status" id="flowStatus">Waiting to start</div>
+      <h1>WHOOP SPA OAuth Tester</h1>
+      <p>
+        This page follows the standard SPA OAuth pattern. It first calls the authenticated
+        <code>/api/v1/whoop/connect-url/</code> endpoint using your JWT, receives a WHOOP authorization URL from the backend,
+        and then redirects the browser there. WHOOP returns to the public backend callback, and the backend redirects the browser
+        back here when the connection is complete.
+      </p>
+      <div class="warning">
+        Set <code>WHOOP_REDIRECT_URI</code> to <code>http://127.0.0.1:8000/api/v1/whoop/callback/</code> and
+        <code>WHOOP_FRONTEND_SUCCESS_URL</code> to this page URL, for example <code>http://127.0.0.1:5500/test.html?whoop=connected</code>.
+      </div>
+    </section>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="card">
+          <h2>1. Runtime Setup</h2>
+          <div class="row">
+            <div>
+              <label for="apiBase">API Base</label>
+              <input id="apiBase" value="http://127.0.0.1:8000/api/v1" />
+            </div>
+            <div>
+              <label for="pageUrl">This Page URL</label>
+              <input id="pageUrl" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="successUrl">Expected Success URL</label>
+              <input id="successUrl" />
+            </div>
+            <div>
+              <label for="oauthState">Last OAuth State</label>
+              <input id="oauthState" readonly />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="saveConfigBtn" class="secondary">Save Config</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>2. User Session</h2>
+          <div class="row">
+            <div>
+              <label for="email">Email</label>
+              <input id="email" value="athlete@example.com" />
+            </div>
+            <div>
+              <label for="displayName">Display Name</label>
+              <input id="displayName" value="Athlete" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="password">Password</label>
+              <input id="password" type="password" value="strong-password-123" />
+            </div>
+            <div>
+              <label for="userId">Current User ID</label>
+              <input id="userId" readonly />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="registerBtn">Register</button>
+            <button id="loginBtn">Login</button>
+            <button id="refreshBtn" class="secondary">Refresh Access Token</button>
+            <button id="meBtn" class="secondary">Load Profile</button>
+            <button id="logoutBtn" class="secondary">Logout</button>
+          </div>
+          <h3 style="margin-top:16px;">Access Token</h3>
+          <textarea id="accessToken" spellcheck="false"></textarea>
+          <h3 style="margin-top:16px;">Refresh Token</h3>
+          <textarea id="refreshToken" spellcheck="false"></textarea>
+        </section>
+
+        <section class="card">
+          <h2>3. WHOOP Flow</h2>
+          <p class="help">
+            Clicking connect calls <code>/whoop/connect-url/</code> with your JWT, stores the returned state for visibility,
+            and then redirects the browser to the WHOOP authorization URL returned by the backend.
+          </p>
+          <div class="actions">
+            <button id="connectBtn">Start WHOOP Connect</button>
+            <button id="summaryBtn" class="secondary">Load WHOOP Summary</button>
+            <button id="disconnectBtn" class="secondary">Disconnect WHOOP</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <h2>Profile</h2>
+          <pre id="profileOutput">No profile loaded yet.</pre>
+        </section>
+
+        <section class="card">
+          <h2>WHOOP Summary</h2>
+          <pre id="summaryOutput">No WHOOP summary loaded yet.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Event Log</h2>
+          <pre id="logOutput">Ready.</pre>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const storageKey = "whoop-spa-oauth-state";
+
+    const state = {
+      access: "",
+      refresh: "",
+      userId: "",
+      profile: null,
+      oauthState: "",
+    };
+
+    const elements = {
+      apiBase: document.getElementById("apiBase"),
+      pageUrl: document.getElementById("pageUrl"),
+      successUrl: document.getElementById("successUrl"),
+      email: document.getElementById("email"),
+      displayName: document.getElementById("displayName"),
+      password: document.getElementById("password"),
+      userId: document.getElementById("userId"),
+      accessToken: document.getElementById("accessToken"),
+      refreshToken: document.getElementById("refreshToken"),
+      oauthState: document.getElementById("oauthState"),
+      profileOutput: document.getElementById("profileOutput"),
+      summaryOutput: document.getElementById("summaryOutput"),
+      logOutput: document.getElementById("logOutput"),
+      flowStatus: document.getElementById("flowStatus"),
+    };
+
+    function pretty(value) {
+      if (typeof value === "string") return value;
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    function log(message, data) {
+      const timestamp = new Date().toLocaleTimeString();
+      const suffix = data === undefined ? "" : "\n" + pretty(data);
+      elements.logOutput.textContent = `[${timestamp}] ${message}${suffix}\n\n${elements.logOutput.textContent}`.trim();
+    }
+
+    function setStatus(label, ok = false) {
+      elements.flowStatus.textContent = label;
+      elements.flowStatus.className = ok ? "status ok" : "status";
+    }
+
+    function persist() {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          apiBase: elements.apiBase.value.trim(),
+          pageUrl: elements.pageUrl.value.trim(),
+          successUrl: elements.successUrl.value.trim(),
+          email: elements.email.value.trim(),
+          displayName: elements.displayName.value.trim(),
+          access: state.access,
+          refresh: state.refresh,
+          userId: state.userId,
+          profile: state.profile,
+          oauthState: state.oauthState,
+        })
+      );
+    }
+
+    function syncInputs() {
+      elements.userId.value = state.userId;
+      elements.accessToken.value = state.access;
+      elements.refreshToken.value = state.refresh;
+      elements.oauthState.value = state.oauthState;
+      elements.profileOutput.textContent = state.profile ? pretty(state.profile) : "No profile loaded yet.";
+      persist();
+    }
+
+    function hydrate() {
+      elements.pageUrl.value = window.location.href.split("?")[0];
+      elements.successUrl.value = `${elements.pageUrl.value}?whoop=connected`;
+
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        syncInputs();
+        return;
+      }
+
+      try {
+        const saved = JSON.parse(raw);
+        elements.apiBase.value = saved.apiBase || elements.apiBase.value;
+        elements.pageUrl.value = saved.pageUrl || elements.pageUrl.value;
+        elements.successUrl.value = saved.successUrl || elements.successUrl.value;
+        elements.email.value = saved.email || elements.email.value;
+        elements.displayName.value = saved.displayName || elements.displayName.value;
+        state.access = saved.access || "";
+        state.refresh = saved.refresh || "";
+        state.userId = saved.userId || "";
+        state.profile = saved.profile || null;
+        state.oauthState = saved.oauthState || "";
+      } catch (error) {
+        console.warn("Failed to restore local state", error);
+      }
+
+      syncInputs();
+    }
+
+    function getApiBase() {
+      return elements.apiBase.value.trim().replace(/\/$/, "");
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      if (options.json !== undefined) {
+        headers.set("Content-Type", "application/json");
+      }
+      if (state.access && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${state.access}`);
+      }
+
+      const response = await fetch(`${getApiBase()}${path}`, {
+        method: options.method || "GET",
+        headers,
+        body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+
+      if (!response.ok) {
+        const detail = payload && typeof payload === "object" ? payload.detail || pretty(payload) : payload;
+        throw new Error(`${response.status} ${response.statusText}: ${detail}`);
+      }
+
+      return payload;
+    }
+
+    function applyAuthSession(session) {
+      state.access = session.access || "";
+      state.refresh = session.refresh || state.refresh;
+      state.profile = session.user || state.profile;
+      state.userId = session.user?.id || state.userId;
+      syncInputs();
+    }
+
+    async function registerUser() {
+      log("Registering user");
+      const payload = await apiFetch("/users/register/", {
+        method: "POST",
+        json: {
+          email: elements.email.value.trim(),
+          password: elements.password.value,
+          display_name: elements.displayName.value.trim(),
+        },
+      });
+      applyAuthSession(payload);
+      setStatus("Registered and authenticated", true);
+      log("Registration complete", payload.user);
+    }
+
+    async function loginUser() {
+      log("Logging in user");
+      const payload = await apiFetch("/users/login/", {
+        method: "POST",
+        json: {
+          email: elements.email.value.trim(),
+          password: elements.password.value,
+        },
+      });
+      applyAuthSession(payload);
+      setStatus("Logged in", true);
+      log("Login complete", payload.user);
+    }
+
+    async function refreshSession() {
+      log("Refreshing access token");
+      const payload = await apiFetch("/users/token/refresh/", {
+        method: "POST",
+        json: { refresh: state.refresh },
+      });
+      state.access = payload.access || "";
+      if (payload.refresh) {
+        state.refresh = payload.refresh;
+      }
+      syncInputs();
+      setStatus("Access token refreshed", true);
+      log("Token refresh complete");
+    }
+
+    async function loadProfile() {
+      log("Loading current profile");
+      const payload = await apiFetch("/users/me/");
+      state.profile = payload;
+      state.userId = payload.id || "";
+      syncInputs();
+      setStatus("Profile loaded", true);
+      log("Profile loaded", payload);
+    }
+
+    async function logoutUser() {
+      log("Logging out user");
+      await apiFetch("/users/logout/", {
+        method: "POST",
+        json: { refresh: state.refresh },
+      });
+      state.access = "";
+      state.refresh = "";
+      state.userId = "";
+      state.profile = null;
+      state.oauthState = "";
+      syncInputs();
+      elements.summaryOutput.textContent = "No WHOOP summary loaded yet.";
+      setStatus("Logged out");
+      log("Logout complete");
+    }
+
+    async function startWhoopConnect() {
+      if (!state.access) {
+        throw new Error("Login first so the page has an access token.");
+      }
+
+      log("Requesting WHOOP connect URL from the backend");
+      const payload = await apiFetch("/whoop/connect-url/");
+      state.oauthState = payload.state || "";
+      syncInputs();
+      setStatus("Redirecting to WHOOP");
+      log("Backend returned WHOOP authorization URL", payload);
+      window.location.assign(payload.connect_url);
+    }
+
+    async function loadWhoopSummary() {
+      log("Loading WHOOP summary");
+      const payload = await apiFetch("/whoop/summary/");
+      elements.summaryOutput.textContent = pretty(payload);
+      setStatus("WHOOP summary loaded", true);
+      log("WHOOP summary loaded", payload);
+    }
+
+    async function disconnectWhoop() {
+      log("Disconnecting WHOOP");
+      await apiFetch("/whoop/disconnect/", { method: "POST" });
+      elements.summaryOutput.textContent = "WHOOP disconnected.";
+      setStatus("WHOOP disconnected");
+      log("WHOOP disconnected");
+    }
+
+    async function runAction(action) {
+      try {
+        await action();
+      } catch (error) {
+        setStatus("Action failed");
+        log("Error", error instanceof Error ? error.message : String(error));
+        console.error(error);
+      }
+    }
+
+    document.getElementById("saveConfigBtn").addEventListener("click", () => {
+      persist();
+      log("Saved local configuration", {
+        apiBase: getApiBase(),
+        pageUrl: elements.pageUrl.value.trim(),
+        successUrl: elements.successUrl.value.trim(),
+      });
+    });
+
+    document.getElementById("registerBtn").addEventListener("click", () => runAction(registerUser));
+    document.getElementById("loginBtn").addEventListener("click", () => runAction(loginUser));
+    document.getElementById("refreshBtn").addEventListener("click", () => runAction(refreshSession));
+    document.getElementById("meBtn").addEventListener("click", () => runAction(loadProfile));
+    document.getElementById("logoutBtn").addEventListener("click", () => runAction(logoutUser));
+    document.getElementById("connectBtn").addEventListener("click", () => runAction(startWhoopConnect));
+    document.getElementById("summaryBtn").addEventListener("click", () => runAction(loadWhoopSummary));
+    document.getElementById("disconnectBtn").addEventListener("click", () => runAction(disconnectWhoop));
+
+    hydrate();
+
+    const whoopStatus = new URLSearchParams(window.location.search).get("whoop");
+    if (whoopStatus === "connected") {
+      setStatus("Returned from WHOOP callback", true);
+      log("The browser returned from the public WHOOP callback.");
+    } else if (state.access) {
+      setStatus("Session restored", true);
+    }
+  </script>
+</body>
+</html>

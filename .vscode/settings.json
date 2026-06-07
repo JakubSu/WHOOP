@@ -1,4 +1,6 @@
 {
+    "python.defaultInterpreterPath": "C:\\Users\\kubas\\miniconda3\\envs\\whoop-api\\python.exe",
+    "python.terminal.useEnvFile": true,
     "sqltools.connections": [
         {
             "previewLimit": 50,

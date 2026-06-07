@@ -7,24 +7,24 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/v2/activity/workout"
+  url: "{{baseUrl}}/v2/activity/workout?limit=25"
   params:
     - name: limit
-      value: "10"
+      value: "25"
       type: query
       description: Limit on the number of workouts returned
     - name: start
-      value: ""
+      value: 2026-03-06T13:49:43Z
       type: query
       description: Return workouts that occurred after or during (inclusive) this time. If not specified, the response will not filter workouts by a minimum time.
       disabled: true
     - name: end
-      value: ""
+      value: 2026-04-06T13:49:43Z
       type: query
       description: Return workouts that intersect this time or ended before (exclusive) this time. If not specified, `end` will be set to `now`.
       disabled: true
     - name: nextToken
-      value: ""
+      value: eyIkIjoib0AxIiwibyI6MjV9
       type: query
       description: Optional next token from the previous response to get the next page. If not provided, the first page in the collection is returned
       disabled: true
