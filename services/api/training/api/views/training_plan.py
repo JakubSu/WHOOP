@@ -10,33 +10,33 @@ from training.api.views.helpers import validated_data_as_dict
 
 
 class TrainingPlanCollectionAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request: Request) -> Response:
-        training_plans = services.list_training_plans()
+        training_plans = services.list_training_plans(str(request.user.id))
         return Response(TrainingPlanSerializer(training_plans, many=True).data)
 
     def post(self, request: Request) -> Response:
         serializer = TrainingPlanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            training_plan = services.create_training_plan(validated_data_as_dict(serializer))
+            training_plan = services.create_training_plan(validated_data_as_dict(serializer), user_id=str(request.user.id))
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(TrainingPlanSerializer(training_plan).data, status=status.HTTP_201_CREATED)
 
 
 class TrainingPlanDetailAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request: Request, pk: str) -> Response:
-        training_plan = services.get_training_plan(pk)
+        training_plan = services.get_training_plan(pk, str(request.user.id))
         if training_plan is None:
             raise NotFound()
         return Response(TrainingPlanSerializer(training_plan).data)
 
     def patch(self, request: Request, pk: str) -> Response:
-        training_plan = services.get_training_plan(pk)
+        training_plan = services.get_training_plan(pk, str(request.user.id))
         if training_plan is None:
             raise NotFound()
 
@@ -49,7 +49,7 @@ class TrainingPlanDetailAPIView(APIView):
         return Response(TrainingPlanSerializer(updated).data)
 
     def put(self, request: Request, pk: str) -> Response:
-        training_plan = services.get_training_plan(pk)
+        training_plan = services.get_training_plan(pk, str(request.user.id))
         if training_plan is None:
             raise NotFound()
 
@@ -62,7 +62,7 @@ class TrainingPlanDetailAPIView(APIView):
         return Response(TrainingPlanSerializer(updated).data)
 
     def delete(self, request: Request, pk: str) -> Response:
-        training_plan = services.get_training_plan(pk)
+        training_plan = services.get_training_plan(pk, str(request.user.id))
         if training_plan is None:
             raise NotFound()
         services.delete_training_plan(training_plan)

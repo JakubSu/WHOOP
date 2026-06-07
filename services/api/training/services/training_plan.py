@@ -3,19 +3,20 @@ from typing import Any
 from training.models import TrainingPlan
 
 
-def list_training_plans() -> list[TrainingPlan]:
-    return list(TrainingPlan.objects.all())
+def list_training_plans(user_id: str) -> list[TrainingPlan]:
+    return list(TrainingPlan.objects.filter(user_id=user_id))
 
 
-def get_training_plan(training_plan_id: str) -> TrainingPlan | None:
+def get_training_plan(training_plan_id: str, user_id: str) -> TrainingPlan | None:
     try:
-        return TrainingPlan.objects.get(pk=training_plan_id)
+        return TrainingPlan.objects.get(pk=training_plan_id, user_id=user_id)
     except TrainingPlan.DoesNotExist:
         return None
 
 
-def create_training_plan(data: dict[str, Any]) -> TrainingPlan:
+def create_training_plan(data: dict[str, Any], *, user_id: str) -> TrainingPlan:
     payload = _normalized_training_plan_payload(data)
+    payload["user_id"] = user_id
     return TrainingPlan.objects.create(**payload)
 
 
@@ -37,7 +38,6 @@ def _normalized_training_plan_payload(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     fields = (
-        "user_id",
         "name",
         "goal",
         "start_date",

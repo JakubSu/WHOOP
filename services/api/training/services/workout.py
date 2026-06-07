@@ -5,24 +5,27 @@ from django.utils import timezone
 from training.models import TrainingPlan, Workout
 
 
-def list_workouts() -> list[Workout]:
-    return list(Workout.objects.all())
+def list_workouts(user_id: str) -> list[Workout]:
+    return list(Workout.objects.filter(user_id=user_id))
 
 
-def get_workout(workout_id: str) -> Workout | None:
+def get_workout(workout_id: str, user_id: str) -> Workout | None:
     try:
-        return Workout.objects.get(pk=workout_id)
+        return Workout.objects.get(pk=workout_id, user_id=user_id)
     except Workout.DoesNotExist:
         return None
 
 
-def create_workout(data: dict[str, Any]) -> Workout:
-    payload = _normalized_workout_payload(data)
+def create_workout(data: dict[str, Any], *, user_id: str) -> Workout:
+    payload = _normalized_workout_payload(data, user_id=user_id)
+    payload["user_id"] = user_id
     return Workout.objects.create(**payload)
 
 
-def update_workout(workout: Workout, data: dict[str, Any]) -> Workout:
-    payload = _normalized_workout_payload(data, existing=workout)
+def update_workout(workout: Workout, data: dict[str, Any], *, user_id: str) -> Workout:
+    if workout.user_id != user_id:
+        raise ValueError("Workout was not found.")
+    payload = _normalized_workout_payload(data, existing=workout, user_id=user_id)
     for field, value in payload.items():
         setattr(workout, field, value)
     workout.save()
@@ -33,15 +36,19 @@ def delete_workout(workout: Workout) -> None:
     workout.delete()
 
 
-def _normalized_workout_payload(data: dict[str, Any], existing: Workout | None = None) -> dict[str, Any]:
+def _normalized_workout_payload(
+    data: dict[str, Any],
+    existing: Workout | None = None,
+    *,
+    user_id: str,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     if "training_plan" in data:
-        payload["training_plan"] = _get_training_plan(data["training_plan"])
+        payload["training_plan"] = _get_training_plan(data["training_plan"], user_id=user_id)
     elif existing is not None:
         payload["training_plan"] = existing.training_plan
 
     fields = (
-        "user_id",
         "scheduled_date",
         "name",
         "workout_type",
@@ -68,14 +75,16 @@ def _normalized_workout_payload(data: dict[str, Any], existing: Workout | None =
     return payload
 
 
-def _get_training_plan(training_plan_value: TrainingPlan | str | None) -> TrainingPlan | None:
+def _get_training_plan(training_plan_value: TrainingPlan | str | None, *, user_id: str) -> TrainingPlan | None:
     if not training_plan_value:
         return None
 
     if isinstance(training_plan_value, TrainingPlan):
+        if training_plan_value.user_id != user_id:
+            raise ValueError("Training plan was not found.")
         return training_plan_value
 
     try:
-        return TrainingPlan.objects.get(pk=training_plan_value)
+        return TrainingPlan.objects.get(pk=training_plan_value, user_id=user_id)
     except TrainingPlan.DoesNotExist as exc:
         raise ValueError("Training plan was not found.") from exc

@@ -11,17 +11,17 @@ from training.api.views.helpers import validated_data_as_dict
 
 
 class WorkoutExerciseCollectionAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request: Request) -> Response:
-        workout_exercises = services.list_workout_exercises()
+        workout_exercises = services.list_workout_exercises(str(request.user.id))
         return Response(WorkoutExerciseSerializer(workout_exercises, many=True).data)
 
     def post(self, request: Request) -> Response:
         serializer = WorkoutExerciseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            workout_exercise = services.create_workout_exercise(validated_data_as_dict(serializer))
+            workout_exercise = services.create_workout_exercise(validated_data_as_dict(serializer), user_id=str(request.user.id))
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         except IntegrityError as exc:
@@ -30,23 +30,27 @@ class WorkoutExerciseCollectionAPIView(APIView):
 
 
 class WorkoutExerciseDetailAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request: Request, pk: str) -> Response:
-        workout_exercise = services.get_workout_exercise(pk)
+        workout_exercise = services.get_workout_exercise(pk, str(request.user.id))
         if workout_exercise is None:
             raise NotFound()
         return Response(WorkoutExerciseSerializer(workout_exercise).data)
 
     def patch(self, request: Request, pk: str) -> Response:
-        workout_exercise = services.get_workout_exercise(pk)
+        workout_exercise = services.get_workout_exercise(pk, str(request.user.id))
         if workout_exercise is None:
             raise NotFound()
 
         serializer = WorkoutExerciseSerializer(workout_exercise, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         try:
-            updated = services.update_workout_exercise(workout_exercise, validated_data_as_dict(serializer))
+            updated = services.update_workout_exercise(
+                workout_exercise,
+                validated_data_as_dict(serializer),
+                user_id=str(request.user.id),
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         except IntegrityError as exc:
@@ -54,14 +58,18 @@ class WorkoutExerciseDetailAPIView(APIView):
         return Response(WorkoutExerciseSerializer(updated).data)
 
     def put(self, request: Request, pk: str) -> Response:
-        workout_exercise = services.get_workout_exercise(pk)
+        workout_exercise = services.get_workout_exercise(pk, str(request.user.id))
         if workout_exercise is None:
             raise NotFound()
 
         serializer = WorkoutExerciseSerializer(workout_exercise, data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            updated = services.update_workout_exercise(workout_exercise, validated_data_as_dict(serializer))
+            updated = services.update_workout_exercise(
+                workout_exercise,
+                validated_data_as_dict(serializer),
+                user_id=str(request.user.id),
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         except IntegrityError as exc:
@@ -69,8 +77,11 @@ class WorkoutExerciseDetailAPIView(APIView):
         return Response(WorkoutExerciseSerializer(updated).data)
 
     def delete(self, request: Request, pk: str) -> Response:
-        workout_exercise = services.get_workout_exercise(pk)
+        workout_exercise = services.get_workout_exercise(pk, str(request.user.id))
         if workout_exercise is None:
             raise NotFound()
-        services.delete_workout_exercise(workout_exercise)
+        try:
+            services.delete_workout_exercise(workout_exercise, user_id=str(request.user.id))
+        except ValueError as exc:
+            raise NotFound(str(exc)) from exc
         return Response(status=status.HTTP_204_NO_CONTENT)

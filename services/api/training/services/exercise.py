@@ -1,25 +1,30 @@
 from typing import Any
 
+from django.db.models import Q
+
 from training.models import Exercise
 
 
-def list_exercises() -> list[Exercise]:
-    return list(Exercise.objects.all())
+def list_exercises(user_id: str) -> list[Exercise]:
+    return list(Exercise.objects.filter(Q(user_id=user_id) | Q(user_id="")))
 
 
-def get_exercise(exercise_id: str) -> Exercise | None:
+def get_exercise(exercise_id: str, user_id: str) -> Exercise | None:
     try:
-        return Exercise.objects.get(pk=exercise_id)
+        return Exercise.objects.get(Q(user_id=user_id) | Q(user_id=""), pk=exercise_id)
     except Exercise.DoesNotExist:
         return None
 
 
-def create_exercise(data: dict[str, Any]) -> Exercise:
+def create_exercise(data: dict[str, Any], *, user_id: str) -> Exercise:
     payload = _normalized_payload(data)
+    payload["user_id"] = user_id
     return Exercise.objects.create(**payload)
 
 
-def update_exercise(exercise: Exercise, data: dict[str, Any]) -> Exercise:
+def update_exercise(exercise: Exercise, data: dict[str, Any], *, user_id: str) -> Exercise:
+    if exercise.user_id != user_id:
+        raise ValueError("Exercise was not found.")
     payload = _normalized_payload(data, existing=exercise)
     for field, value in payload.items():
         setattr(exercise, field, value)
@@ -27,14 +32,15 @@ def update_exercise(exercise: Exercise, data: dict[str, Any]) -> Exercise:
     return exercise
 
 
-def delete_exercise(exercise: Exercise) -> None:
+def delete_exercise(exercise: Exercise, *, user_id: str) -> None:
+    if exercise.user_id != user_id:
+        raise ValueError("Exercise was not found.")
     exercise.delete()
 
 
 def _normalized_payload(data: dict[str, Any], existing: Exercise | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     fields = (
-        "user_id",
         "name",
         "category",
         "primary_muscle_group",
