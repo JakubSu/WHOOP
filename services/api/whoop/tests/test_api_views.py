@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from typing import Any, cast
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -12,7 +12,9 @@ from rest_framework.test import APIClient
 class WhoopApiViewTests(TestCase):
     def setUp(self) -> None:
         User = cast(Any, get_user_model())
-        self.user = User.objects.create_user(email="api@example.com", password="password")
+        self.user = User.objects.create_user(
+            email="api@example.com", password="password"
+        )
         client = APIClient()
         client.force_authenticate(self.user)
         self.client = client
@@ -39,14 +41,18 @@ class WhoopApiViewTests(TestCase):
         service.execute.assert_called_once_with(user_id=str(self.user.id))
 
     @patch("whoop.api.views.services.create_complete_connection_service")
+    @override_settings(WHOOP_FRONTEND_SUCCESS_URL="")
     def test_callback_completes_connection(self, factory: MagicMock) -> None:
         service = MagicMock()
         factory.return_value = service
 
         client = APIClient()
-        response = client.get(
-            reverse("whoop-callback"),
-            {"code": "code-123", "state": "secure-state"},
+        response = cast(
+            Any,
+            client.get(
+                reverse("whoop-callback"),
+                {"code": "code-123", "state": "secure-state"},
+            ),
         )
 
         self.assertEqual(response.status_code, 200)
@@ -56,7 +62,9 @@ class WhoopApiViewTests(TestCase):
     @patch("whoop.api.views.services.create_complete_connection_service")
     def test_callback_rejects_invalid_state(self, factory: MagicMock) -> None:
         service = MagicMock()
-        service.execute.side_effect = ValueError("Invalid or expired WHOOP OAuth state.")
+        service.execute.side_effect = ValueError(
+            "Invalid or expired WHOOP OAuth state."
+        )
         factory.return_value = service
 
         client = APIClient()

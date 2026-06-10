@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training Context Tester</title>
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --panel: rgba(255, 252, 247, 0.94);
+      --text: #201a15;
+      --muted: #716861;
+      --line: #d8cdc2;
+      --accent: #14695f;
+      --accent-strong: #0f524a;
+      --accent-soft: rgba(20, 105, 95, 0.14);
+      --secondary: #e8ddd2;
+      --ok-bg: #e0f2ea;
+      --ok-text: #185d45;
+      --warn-bg: #fff1d8;
+      --warn-text: #8b5a00;
+      --error-bg: #f9e2df;
+      --error-text: #8a2a22;
+      --radius: 22px;
+      --shadow: 0 20px 55px rgba(32, 26, 21, 0.08);
+      --mono: "Consolas", "SFMono-Regular", monospace;
+      --sans: "Segoe UI", "Aptos", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top right, rgba(20, 105, 95, 0.12), transparent 26rem),
+        radial-gradient(circle at bottom left, rgba(195, 113, 40, 0.12), transparent 22rem),
+        linear-gradient(180deg, #fbf8f3 0%, var(--bg) 100%);
+    }
+
+    main {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 26px 16px 42px;
+    }
+
+    .hero,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .hero p,
+    .help {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 8px 13px;
+      margin-bottom: 12px;
+      font-size: 0.84rem;
+      background: var(--warn-bg);
+      color: var(--warn-text);
+    }
+
+    .status.ok {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+    }
+
+    .status.error {
+      background: var(--error-bg);
+      color: var(--error-text);
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .entity-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 1.02rem;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 170px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.48;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 15px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: var(--secondary);
+      color: var(--text);
+    }
+
+    button.secondary:hover {
+      background: #dbcec2;
+    }
+
+    .meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.46;
+    }
+
+    code {
+      font-family: var(--mono);
+    }
+
+    .outputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .snapshot-grid textarea {
+      min-height: 360px;
+    }
+
+    .diff-panel {
+      min-height: 220px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1050px) {
+      .top-grid,
+      .entity-grid,
+      .snapshot-grid,
+      .outputs,
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 18px 12px 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="status" id="flowStatus">Waiting to start</div>
+      <h1>Training Context Tester</h1>
+      <p>
+        This page exercises all four training entities against the real API:
+        <code>Exercise</code>, <code>TrainingPlan</code>, <code>Workout</code>, and
+        <code>WorkoutExercise</code>. It includes a small auth block so you can log in,
+        refresh tokens, and then run CRUD requests without leaving the page.
+      </p>
+      <p class="help">
+        Payload editors support placeholders like <code>{{exerciseId}}</code>,
+        <code>{{trainingPlanId}}</code>, <code>{{workoutId}}</code>, and
+        <code>{{workoutExerciseId}}</code>. The page automatically updates those from the
+        latest successful create or fetch response.
+      </p>
+    </section>
+
+    <div class="top-grid">
+      <section class="card">
+        <h2>1. Runtime and Auth</h2>
+        <div class="row">
+          <div>
+            <label for="apiBase">API Base</label>
+            <input id="apiBase" value="http://127.0.0.1:8000/api/v1" />
+          </div>
+          <div>
+            <label for="pageUrl">This Page URL</label>
+            <input id="pageUrl" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <div>
+            <label for="email">Email</label>
+            <input id="email" value="athlete@example.com" />
+          </div>
+          <div>
+            <label for="displayName">Display Name</label>
+            <input id="displayName" value="Athlete" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <div>
+            <label for="password">Password</label>
+            <input id="password" type="password" value="strong-password-123" />
+          </div>
+          <div>
+            <label for="userId">Current User ID</label>
+            <input id="userId" readonly />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="registerBtn">Register</button>
+          <button id="loginBtn">Login</button>
+          <button id="refreshBtn" class="secondary">Refresh</button>
+          <button id="meBtn" class="secondary">Load Profile</button>
+          <button id="logoutBtn" class="secondary">Logout</button>
+          <button id="saveConfigBtn" class="secondary">Save Local State</button>
+          <button id="clearStateBtn" class="secondary">Clear Local State</button>
+        </div>
+        <h3 style="margin-top:16px;">Access Token</h3>
+        <textarea id="accessToken" spellcheck="false"></textarea>
+        <h3 style="margin-top:16px;">Refresh Token</h3>
+        <textarea id="refreshToken" spellcheck="false"></textarea>
+      </section>
+
+      <section class="card">
+        <h2>2. Latest Entity IDs</h2>
+        <div class="row">
+          <div>
+            <label for="latestExerciseId">Exercise ID</label>
+            <input id="latestExerciseId" readonly />
+          </div>
+          <div>
+            <label for="latestTrainingPlanId">Training Plan ID</label>
+            <input id="latestTrainingPlanId" readonly />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <div>
+            <label for="latestWorkoutId">Workout ID</label>
+            <input id="latestWorkoutId" readonly />
+          </div>
+          <div>
+            <label for="latestWorkoutExerciseId">Workout Exercise ID</label>
+            <input id="latestWorkoutExerciseId" readonly />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="fillTemplatesBtn" class="secondary">Refresh Placeholders</button>
+          <button id="listAllBtn" class="secondary">List All Entities</button>
+        </div>
+        <p class="meta">
+          Successful create and detail responses update these values automatically.
+        </p>
+      </section>
+    </div>
+
+    <div class="entity-grid">
+      <section class="card">
+        <h2>Exercises</h2>
+        <div class="row">
+          <div>
+            <label for="exerciseId">Entity ID</label>
+            <input id="exerciseId" placeholder="Uses the latest exercise ID if blank" />
+          </div>
+          <div>
+            <label for="exerciseEndpoint">Endpoint</label>
+            <input id="exerciseEndpoint" value="/exercises/" readonly />
+          </div>
+        </div>
+        <h3 style="margin-top:14px;">Payload</h3>
+        <textarea id="exercisePayload" spellcheck="false">{
+  "name": "Push-Up",
+  "category": "strength",
+  "primary_muscle_group": "chest",
+  "secondary_muscle_groups": ["triceps", "core"],
+  "equipment": "bodyweight",
+  "default_intensity": "moderate",
+  "default_sets": 3,
+  "default_reps": 10,
+  "is_favorite": true,
+  "notes": "Stable starter exercise"
+}</textarea>
+        <div class="actions">
+          <button data-entity="exercise" data-action="list">List</button>
+          <button data-entity="exercise" data-action="create">Create</button>
+          <button data-entity="exercise" data-action="get" class="secondary">Get</button>
+          <button data-entity="exercise" data-action="patch" class="secondary">Patch</button>
+          <button data-entity="exercise" data-action="delete" class="secondary">Delete</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Training Plans</h2>
+        <div class="row">
+          <div>
+            <label for="trainingPlanId">Entity ID</label>
+            <input id="trainingPlanId" placeholder="Uses the latest training plan ID if blank" />
+          </div>
+          <div>
+            <label for="trainingPlanEndpoint">Endpoint</label>
+            <input id="trainingPlanEndpoint" value="/training-plans/" readonly />
+          </div>
+        </div>
+        <h3 style="margin-top:14px;">Payload</h3>
+        <textarea id="trainingPlanPayload" spellcheck="false">{
+  "name": "Strength Block",
+  "goal": "Build strength",
+  "status": "active",
+  "start_date": "2026-06-08",
+  "end_date": "2026-08-03",
+  "notes": "Eight-week base plan"
+}</textarea>
+        <div class="actions">
+          <button data-entity="trainingPlan" data-action="list">List</button>
+          <button data-entity="trainingPlan" data-action="create">Create</button>
+          <button data-entity="trainingPlan" data-action="get" class="secondary">Get</button>
+          <button data-entity="trainingPlan" data-action="patch" class="secondary">Patch</button>
+          <button data-entity="trainingPlan" data-action="delete" class="secondary">Delete</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Workouts</h2>
+        <div class="row">
+          <div>
+            <label for="workoutId">Entity ID</label>
+            <input id="workoutId" placeholder="Uses the latest workout ID if blank" />
+          </div>
+          <div>
+            <label for="workoutEndpoint">Endpoint</label>
+            <input id="workoutEndpoint" value="/workouts/" readonly />
+          </div>
+        </div>
+        <h3 style="margin-top:14px;">Payload</h3>
+        <textarea id="workoutPayload" spellcheck="false">{
+  "training_plan": "{{trainingPlanId}}",
+  "scheduled_date": "2026-06-09",
+  "name": "Upper Body Strength",
+  "workout_type": "strength",
+  "status": "planned",
+  "planned_intensity": "moderate",
+  "planned_duration_minutes": 45,
+  "notes": "First draft workout"
+}</textarea>
+        <div class="actions">
+          <button data-entity="workout" data-action="list">List</button>
+          <button data-entity="workout" data-action="create">Create</button>
+          <button data-entity="workout" data-action="get" class="secondary">Get</button>
+          <button data-entity="workout" data-action="patch" class="secondary">Patch</button>
+          <button data-entity="workout" data-action="delete" class="secondary">Delete</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Workout Exercises</h2>
+        <div class="row">
+          <div>
+            <label for="workoutExerciseId">Entity ID</label>
+            <input id="workoutExerciseId" placeholder="Uses the latest workout exercise ID if blank" />
+          </div>
+          <div>
+            <label for="workoutExerciseEndpoint">Endpoint</label>
+            <input id="workoutExerciseEndpoint" value="/workout-exercises/" readonly />
+          </div>
+        </div>
+        <h3 style="margin-top:14px;">Payload</h3>
+        <textarea id="workoutExercisePayload" spellcheck="false">{
+  "workout": "{{workoutId}}",
+  "exercise": "{{exerciseId}}",
+  "position": 1,
+  "sets": 3,
+  "reps": 10,
+  "duration_seconds": 0,
+  "distance": "0.00",
+  "load": "0.00",
+  "intensity": "moderate",
+  "rest_seconds": 60,
+  "notes": "First movement in the session"
+}</textarea>
+        <div class="actions">
+          <button data-entity="workoutExercise" data-action="list">List</button>
+          <button data-entity="workoutExercise" data-action="create">Create</button>
+          <button data-entity="workoutExercise" data-action="get" class="secondary">Get</button>
+          <button data-entity="workoutExercise" data-action="patch" class="secondary">Patch</button>
+          <button data-entity="workoutExercise" data-action="delete" class="secondary">Delete</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-bottom:20px;">
+      <h2>Workout Snapshots</h2>
+      <p class="help">
+        Load a baseline snapshot, edit the full snapshot payload, then patch or replace it.
+        The diff panel compares individual workout and exercise changes from the baseline to
+        the latest saved snapshot.
+      </p>
+      <div class="row">
+        <div>
+          <label for="workoutSnapshotId">Workout Snapshot ID</label>
+          <input id="workoutSnapshotId" placeholder="Uses the latest workout ID if blank" />
+        </div>
+        <div>
+          <label for="workoutSnapshotEndpoint">Endpoint</label>
+          <input id="workoutSnapshotEndpoint" value="/workout-snapshots/" readonly />
+        </div>
+      </div>
+      <div class="pill-row">
+        <span class="pill" id="snapshotVersionPill">No baseline loaded</span>
+        <span class="pill" id="snapshotExerciseCountPill">0 exercises</span>
+      </div>
+      <div class="snapshot-grid" style="margin-top:14px;">
+        <div>
+          <h3>Editable Snapshot Payload</h3>
+          <textarea id="workoutSnapshotPayload" spellcheck="false">{
+  "training_plan": "{{trainingPlanId}}",
+  "scheduled_date": "2026-06-09",
+  "name": "Upper Body Snapshot",
+  "workout_type": "strength",
+  "status": "planned",
+  "planned_intensity": "moderate",
+  "planned_duration_minutes": 45,
+  "notes": "Full snapshot create payload",
+  "exercises": [
+    {
+      "snapshot_exercise_key": "bench-slot-a",
+      "exercise": "{{exerciseId}}",
+      "position": 1,
+      "sets": 4,
+      "reps": 8,
+      "duration_seconds": 0,
+      "distance": "0.00",
+      "load": "80.00",
+      "intensity": "moderate",
+      "rest_seconds": 120,
+      "notes": "Main lift"
+    },
+    {
+      "snapshot_exercise_key": "bench-slot-b",
+      "exercise": "{{exerciseId}}",
+      "position": 2,
+      "sets": 3,
+      "reps": 12,
+      "duration_seconds": 0,
+      "distance": "0.00",
+      "load": "55.00",
+      "intensity": "easy",
+      "rest_seconds": 90,
+      "notes": "Duplicate exercise support"
+    }
+  ]
+}</textarea>
+          <div class="actions">
+            <button id="snapshotListBtn">List</button>
+            <button id="snapshotCreateBtn">Create</button>
+            <button id="snapshotLoadBtn" class="secondary">Load Baseline</button>
+            <button id="snapshotPatchBtn" class="secondary">Patch and Diff</button>
+            <button id="snapshotPutBtn" class="secondary">Put and Diff</button>
+            <button id="snapshotDeleteBtn" class="secondary">Delete</button>
+            <button id="snapshotUseLastBtn" class="secondary">Use Last Response</button>
+          </div>
+        </div>
+        <div>
+          <h3>Baseline Snapshot</h3>
+          <textarea id="workoutSnapshotBaseline" readonly spellcheck="false">No baseline loaded.</textarea>
+          <h3 style="margin-top:14px;">Snapshot Diff</h3>
+          <div id="workoutSnapshotDiff" class="diff-panel">No diff yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="outputs">
+      <section class="card">
+        <h2>Last Response</h2>
+        <pre id="responseOutput">No requests yet.</pre>
+      </section>
+      <section class="card">
+        <h2>Event Log</h2>
+        <pre id="logOutput">Ready.</pre>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const storageKey = "training-context-tester-state";
+
+    const state = {
+      access: "",
+      refresh: "",
+      userId: "",
+      lastResponse: null,
+      workoutSnapshotBaseline: null,
+      latestIds: {
+        exerciseId: "",
+        trainingPlanId: "",
+        workoutId: "",
+        workoutExerciseId: "",
+      },
+    };
+
+    const entityConfig = {
+      exercise: {
+        label: "Exercise",
+        collection: "/exercises/",
+        idInput: "exerciseId",
+        payloadInput: "exercisePayload",
+        latestKey: "exerciseId",
+      },
+      trainingPlan: {
+        label: "Training Plan",
+        collection: "/training-plans/",
+        idInput: "trainingPlanId",
+        payloadInput: "trainingPlanPayload",
+        latestKey: "trainingPlanId",
+      },
+      workout: {
+        label: "Workout",
+        collection: "/workouts/",
+        idInput: "workoutId",
+        payloadInput: "workoutPayload",
+        latestKey: "workoutId",
+      },
+      workoutExercise: {
+        label: "Workout Exercise",
+        collection: "/workout-exercises/",
+        idInput: "workoutExerciseId",
+        payloadInput: "workoutExercisePayload",
+        latestKey: "workoutExerciseId",
+      },
+    };
+
+    const elements = {
+      apiBase: document.getElementById("apiBase"),
+      pageUrl: document.getElementById("pageUrl"),
+      email: document.getElementById("email"),
+      displayName: document.getElementById("displayName"),
+      password: document.getElementById("password"),
+      userId: document.getElementById("userId"),
+      accessToken: document.getElementById("accessToken"),
+      refreshToken: document.getElementById("refreshToken"),
+      latestExerciseId: document.getElementById("latestExerciseId"),
+      latestTrainingPlanId: document.getElementById("latestTrainingPlanId"),
+      latestWorkoutId: document.getElementById("latestWorkoutId"),
+      latestWorkoutExerciseId: document.getElementById("latestWorkoutExerciseId"),
+      workoutSnapshotId: document.getElementById("workoutSnapshotId"),
+      workoutSnapshotPayload: document.getElementById("workoutSnapshotPayload"),
+      workoutSnapshotBaseline: document.getElementById("workoutSnapshotBaseline"),
+      workoutSnapshotDiff: document.getElementById("workoutSnapshotDiff"),
+      snapshotVersionPill: document.getElementById("snapshotVersionPill"),
+      snapshotExerciseCountPill: document.getElementById("snapshotExerciseCountPill"),
+      responseOutput: document.getElementById("responseOutput"),
+      logOutput: document.getElementById("logOutput"),
+      flowStatus: document.getElementById("flowStatus"),
+    };
+
+    function pretty(value) {
+      if (typeof value === "string") return value;
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    function log(message, data) {
+      const timestamp = new Date().toLocaleTimeString();
+      const suffix = data === undefined ? "" : "\n" + pretty(data);
+      elements.logOutput.textContent = `[${timestamp}] ${message}${suffix}\n\n${elements.logOutput.textContent}`.trim();
+    }
+
+    function setStatus(label, tone = "default") {
+      elements.flowStatus.textContent = label;
+      elements.flowStatus.className =
+        tone === "ok" ? "status ok" :
+        tone === "error" ? "status error" :
+        "status";
+    }
+
+    function showResponse(title, value) {
+      state.lastResponse = value;
+      elements.responseOutput.textContent = `${title}\n\n${pretty(value)}`;
+    }
+
+    function persist() {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          apiBase: elements.apiBase.value.trim(),
+          pageUrl: elements.pageUrl.value.trim(),
+          email: elements.email.value.trim(),
+          displayName: elements.displayName.value.trim(),
+          access: state.access,
+          refresh: state.refresh,
+          userId: state.userId,
+          latestIds: state.latestIds,
+          workoutSnapshotBaseline: state.workoutSnapshotBaseline,
+          workoutSnapshotPayload: elements.workoutSnapshotPayload.value,
+          payloads: Object.fromEntries(
+            Object.values(entityConfig).map((config) => [
+              config.payloadInput,
+              document.getElementById(config.payloadInput).value,
+            ])
+          ),
+        })
+      );
+    }
+
+    function syncInputs() {
+      elements.userId.value = state.userId;
+      elements.accessToken.value = state.access;
+      elements.refreshToken.value = state.refresh;
+      elements.latestExerciseId.value = state.latestIds.exerciseId;
+      elements.latestTrainingPlanId.value = state.latestIds.trainingPlanId;
+      elements.latestWorkoutId.value = state.latestIds.workoutId;
+      elements.latestWorkoutExerciseId.value = state.latestIds.workoutExerciseId;
+      if (!elements.workoutSnapshotId.dataset.userEdited) {
+        elements.workoutSnapshotId.value = state.latestIds.workoutId || "";
+      }
+      renderSnapshotBaseline();
+      for (const config of Object.values(entityConfig)) {
+        const idInput = document.getElementById(config.idInput);
+        if (!idInput.dataset.userEdited) {
+          idInput.value = state.latestIds[config.latestKey] || "";
+        }
+      }
+      persist();
+    }
+
+    function hydrate() {
+      elements.pageUrl.value = window.location.href.split("?")[0];
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        syncInputs();
+        return;
+      }
+
+      try {
+        const saved = JSON.parse(raw);
+        elements.apiBase.value = saved.apiBase || elements.apiBase.value;
+        elements.pageUrl.value = saved.pageUrl || elements.pageUrl.value;
+        elements.email.value = saved.email || elements.email.value;
+        elements.displayName.value = saved.displayName || elements.displayName.value;
+        state.access = saved.access || "";
+        state.refresh = saved.refresh || "";
+        state.userId = saved.userId || "";
+        state.workoutSnapshotBaseline = saved.workoutSnapshotBaseline || null;
+        state.latestIds = { ...state.latestIds, ...(saved.latestIds || {}) };
+        if (saved.workoutSnapshotPayload) {
+          elements.workoutSnapshotPayload.value = saved.workoutSnapshotPayload;
+        }
+        for (const config of Object.values(entityConfig)) {
+          if (saved.payloads && saved.payloads[config.payloadInput]) {
+            document.getElementById(config.payloadInput).value = saved.payloads[config.payloadInput];
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to restore local state", error);
+      }
+
+      syncInputs();
+    }
+
+    function clearLocalState() {
+      state.access = "";
+      state.refresh = "";
+      state.userId = "";
+      state.lastResponse = null;
+      state.workoutSnapshotBaseline = null;
+      state.latestIds = {
+        exerciseId: "",
+        trainingPlanId: "",
+        workoutId: "",
+        workoutExerciseId: "",
+      };
+      localStorage.removeItem(storageKey);
+      elements.responseOutput.textContent = "No requests yet.";
+      syncInputs();
+      setStatus("Local state cleared");
+      log("Cleared local tester state");
+    }
+
+    function getApiBase() {
+      return elements.apiBase.value.trim().replace(/\/$/, "");
+    }
+
+    function placeholderMap() {
+      return {
+        "{{exerciseId}}": state.latestIds.exerciseId,
+        "{{trainingPlanId}}": state.latestIds.trainingPlanId,
+        "{{workoutId}}": state.latestIds.workoutId,
+        "{{workoutSnapshotId}}": state.latestIds.workoutId,
+        "{{workoutExerciseId}}": state.latestIds.workoutExerciseId,
+      };
+    }
+
+    function applyPlaceholders(text) {
+      let next = text;
+      for (const [token, value] of Object.entries(placeholderMap())) {
+        next = next.split(token).join(value || "");
+      }
+      return next;
+    }
+
+    function parseSnapshotPayload() {
+      return JSON.parse(applyPlaceholders(elements.workoutSnapshotPayload.value));
+    }
+
+    function snapshotId() {
+      const id = elements.workoutSnapshotId.value.trim() || state.latestIds.workoutId;
+      if (!id) {
+        throw new Error("Workout Snapshot ID is required for this action.");
+      }
+      return id;
+    }
+
+    function snapshotDetailPath() {
+      return `/workout-snapshots/${snapshotId()}/`;
+    }
+
+    function updateLatestFromSnapshot(snapshot) {
+      if (!snapshot || typeof snapshot !== "object") {
+        return;
+      }
+      if (snapshot.id) {
+        state.latestIds.workoutId = snapshot.id;
+        elements.workoutSnapshotId.value = snapshot.id;
+        elements.workoutSnapshotId.dataset.userEdited = "";
+      }
+      const firstExercise = Array.isArray(snapshot.exercises) ? snapshot.exercises[0] : null;
+      if (firstExercise?.workout_exercise_id) {
+        state.latestIds.workoutExerciseId = firstExercise.workout_exercise_id;
+      }
+      syncInputs();
+    }
+
+    function renderSnapshotBaseline() {
+      if (!state.workoutSnapshotBaseline) {
+        elements.workoutSnapshotBaseline.textContent = "No baseline loaded.";
+        elements.snapshotVersionPill.textContent = "No baseline loaded";
+        elements.snapshotExerciseCountPill.textContent = "0 exercises";
+        return;
+      }
+
+      elements.workoutSnapshotBaseline.textContent = pretty(state.workoutSnapshotBaseline);
+      elements.snapshotVersionPill.textContent = `Version: ${state.workoutSnapshotBaseline.version || "none"}`;
+      elements.snapshotExerciseCountPill.textContent =
+        `${state.workoutSnapshotBaseline.exercises?.length || 0} exercises`;
+    }
+
+    function exerciseIdFromSnapshotExercise(item) {
+      if (!item) return "";
+      if (typeof item.exercise === "string") return item.exercise;
+      return item.exercise?.id || "";
+    }
+
+    function snapshotToWritePayload(snapshot, { includeExpectedVersion = true } = {}) {
+      const payload = {
+        training_plan: snapshot.training_plan,
+        scheduled_date: snapshot.scheduled_date,
+        name: snapshot.name,
+        workout_type: snapshot.workout_type,
+        status: snapshot.status,
+        planned_intensity: snapshot.planned_intensity,
+        planned_duration_minutes: snapshot.planned_duration_minutes,
+        completed_at: snapshot.completed_at,
+        actual_strain: snapshot.actual_strain,
+        notes: snapshot.notes,
+        exercises: (snapshot.exercises || []).map((item) => ({
+          workout_exercise_id: item.workout_exercise_id,
+          snapshot_exercise_key: item.snapshot_exercise_key || item.workout_exercise_id,
+          exercise: exerciseIdFromSnapshotExercise(item),
+          position: item.position,
+          sets: item.sets,
+          reps: item.reps,
+          duration_seconds: item.duration_seconds,
+          distance: item.distance,
+          load: item.load,
+          intensity: item.intensity,
+          rest_seconds: item.rest_seconds,
+          notes: item.notes,
+        })),
+      };
+
+      if (includeExpectedVersion && snapshot.version) {
+        payload.expected_version = snapshot.version;
+      }
+      return payload;
+    }
+
+    function normalizeExerciseIdentity(item) {
+      if (item.workout_exercise_id) {
+        return `workout_exercise_id:${item.workout_exercise_id}`;
+      }
+      return `snapshot_exercise_key:${item.snapshot_exercise_key}`;
+    }
+
+    function exerciseDisplayName(item) {
+      if (typeof item.exercise === "string") {
+        return item.exercise;
+      }
+      return item.exercise?.name || item.exercise?.id || item.snapshot_exercise_key || "exercise";
+    }
+
+    function exerciseComparable(item) {
+      return {
+        exercise_id: exerciseIdFromSnapshotExercise(item),
+        sets: item.sets || 0,
+        reps: item.reps || 0,
+        duration_seconds: item.duration_seconds || 0,
+        distance: String(item.distance || "0.00"),
+        load: String(item.load || "0.00"),
+        intensity: item.intensity || "",
+        rest_seconds: item.rest_seconds || 0,
+        notes: item.notes || "",
+      };
+    }
+
+    function diffFields(before, after, fields) {
+      const changes = [];
+      for (const field of fields) {
+        const beforeValue = before?.[field] ?? null;
+        const afterValue = after?.[field] ?? null;
+        if (String(beforeValue) !== String(afterValue)) {
+          changes.push(`${field}: ${pretty(beforeValue)} -> ${pretty(afterValue)}`);
+        }
+      }
+      return changes;
+    }
+
+    function buildSnapshotDiff(before, after) {
+      if (!before || !after) {
+        return "Load a baseline and then save a modified snapshot to see a diff.";
+      }
+
+      const lines = [];
+      const workoutChanges = diffFields(before, after, [
+        "training_plan",
+        "scheduled_date",
+        "name",
+        "workout_type",
+        "status",
+        "planned_intensity",
+        "planned_duration_minutes",
+        "completed_at",
+        "actual_strain",
+        "notes",
+      ]);
+
+      lines.push("Workout fields");
+      lines.push(workoutChanges.length ? workoutChanges.map((line) => `  - ${line}`).join("\n") : "  - No changes");
+
+      const beforeMap = new Map((before.exercises || []).map((item) => [normalizeExerciseIdentity(item), item]));
+      const afterMap = new Map((after.exercises || []).map((item) => [normalizeExerciseIdentity(item), item]));
+      const added = [];
+      const removed = [];
+      const modified = [];
+      const reordered = [];
+
+      for (const [identity, item] of afterMap.entries()) {
+        if (!beforeMap.has(identity)) {
+          added.push(item);
+        }
+      }
+      for (const [identity, item] of beforeMap.entries()) {
+        if (!afterMap.has(identity)) {
+          removed.push(item);
+        }
+      }
+      for (const [identity, beforeItem] of beforeMap.entries()) {
+        const afterItem = afterMap.get(identity);
+        if (!afterItem) continue;
+
+        const fieldChanges = diffFields(exerciseComparable(beforeItem), exerciseComparable(afterItem), [
+          "exercise_id",
+          "sets",
+          "reps",
+          "duration_seconds",
+          "distance",
+          "load",
+          "intensity",
+          "rest_seconds",
+          "notes",
+        ]);
+        if (fieldChanges.length) {
+          modified.push({ identity, item: afterItem, changes: fieldChanges });
+        }
+        if (beforeItem.position !== afterItem.position) {
+          reordered.push({ identity, item: afterItem, before: beforeItem.position, after: afterItem.position });
+        }
+      }
+
+      lines.push("\nAdded exercises");
+      lines.push(added.length ? added.map((item) => `  + ${exerciseDisplayName(item)} [${normalizeExerciseIdentity(item)}] at position ${item.position}`).join("\n") : "  - None");
+      lines.push("\nRemoved exercises");
+      lines.push(removed.length ? removed.map((item) => `  - ${exerciseDisplayName(item)} [${normalizeExerciseIdentity(item)}] from position ${item.position}`).join("\n") : "  - None");
+      lines.push("\nModified exercises");
+      lines.push(
+        modified.length
+          ? modified.map(({ identity, item, changes }) => `  * ${exerciseDisplayName(item)} [${identity}]\n${changes.map((change) => `    - ${change}`).join("\n")}`).join("\n")
+          : "  - None"
+      );
+      lines.push("\nReordered exercises");
+      lines.push(
+        reordered.length
+          ? reordered.map(({ identity, item, before: beforePosition, after: afterPosition }) => `  ~ ${exerciseDisplayName(item)} [${identity}]: ${beforePosition} -> ${afterPosition}`).join("\n")
+          : "  - None"
+      );
+
+      return lines.join("\n");
+    }
+
+    function setSnapshotBaseline(snapshot, { updatePayload = true } = {}) {
+      state.workoutSnapshotBaseline = snapshot;
+      updateLatestFromSnapshot(snapshot);
+      if (updatePayload) {
+        elements.workoutSnapshotPayload.value = pretty(snapshotToWritePayload(snapshot));
+      }
+      renderSnapshotBaseline();
+      persist();
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      if (options.json !== undefined) {
+        headers.set("Content-Type", "application/json");
+      }
+      if (state.access && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${state.access}`);
+      }
+
+      const response = await fetch(`${getApiBase()}${path}`, {
+        method: options.method || "GET",
+        headers,
+        body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+
+      showResponse(`${options.method || "GET"} ${path}`, payload || response.status);
+
+      if (!response.ok) {
+        const detail = payload && typeof payload === "object"
+          ? payload.detail || pretty(payload)
+          : payload;
+        throw new Error(`${response.status} ${response.statusText}: ${detail}`);
+      }
+
+      return payload;
+    }
+
+    function applyAuthSession(session) {
+      state.access = session.access || "";
+      state.refresh = session.refresh || state.refresh;
+      state.userId = session.user?.id || state.userId;
+      if (session.user?.display_name) {
+        elements.displayName.value = session.user.display_name;
+      }
+      syncInputs();
+    }
+
+    async function registerUser() {
+      log("Registering user");
+      const payload = await apiFetch("/users/register/", {
+        method: "POST",
+        json: {
+          email: elements.email.value.trim(),
+          password: elements.password.value,
+          display_name: elements.displayName.value.trim(),
+        },
+      });
+      applyAuthSession(payload);
+      setStatus("Registered and authenticated", "ok");
+      log("Registration complete", payload.user);
+    }
+
+    async function loginUser() {
+      log("Logging in user");
+      const payload = await apiFetch("/users/login/", {
+        method: "POST",
+        json: {
+          email: elements.email.value.trim(),
+          password: elements.password.value,
+        },
+      });
+      applyAuthSession(payload);
+      setStatus("Logged in", "ok");
+      log("Login complete", payload.user);
+    }
+
+    async function refreshSession() {
+      if (!state.refresh) {
+        throw new Error("A refresh token is required before refresh can be tested.");
+      }
+      log("Refreshing token");
+      const payload = await apiFetch("/users/token/refresh/", {
+        method: "POST",
+        json: { refresh: state.refresh },
+      });
+      state.access = payload.access || "";
+      if (payload.refresh) {
+        state.refresh = payload.refresh;
+      }
+      syncInputs();
+      setStatus("Access token refreshed", "ok");
+      log("Token refresh complete", payload);
+    }
+
+    async function loadProfile() {
+      log("Loading current profile");
+      const payload = await apiFetch("/users/me/");
+      state.userId = payload.id || "";
+      if (payload.display_name !== undefined) {
+        elements.displayName.value = payload.display_name;
+      }
+      syncInputs();
+      setStatus("Profile loaded", "ok");
+      log("Profile loaded", payload);
+    }
+
+    async function logoutUser() {
+      if (!state.refresh) {
+        throw new Error("A refresh token is required before logout can revoke the session.");
+      }
+      log("Logging out");
+      await apiFetch("/users/logout/", {
+        method: "POST",
+        json: { refresh: state.refresh },
+      });
+      state.access = "";
+      state.refresh = "";
+      state.userId = "";
+      syncInputs();
+      setStatus("Logged out");
+      log("Logout complete");
+    }
+
+    function updateLatestId(entity, payload) {
+      const config = entityConfig[entity];
+      if (!config || !payload || typeof payload !== "object" || !payload.id) {
+        return;
+      }
+      state.latestIds[config.latestKey] = payload.id;
+      const idInput = document.getElementById(config.idInput);
+      idInput.value = payload.id;
+      idInput.dataset.userEdited = "";
+      syncInputs();
+    }
+
+    function parsePayload(entity) {
+      const config = entityConfig[entity];
+      const textarea = document.getElementById(config.payloadInput);
+      const resolved = applyPlaceholders(textarea.value);
+      return JSON.parse(resolved);
+    }
+
+    function entityPath(entity, action) {
+      const config = entityConfig[entity];
+      if (action === "list" || action === "create") {
+        return config.collection;
+      }
+      const idInput = document.getElementById(config.idInput);
+      const entityId = idInput.value.trim() || state.latestIds[config.latestKey];
+      if (!entityId) {
+        throw new Error(`${config.label} ID is required for this action.`);
+      }
+      return `${config.collection}${entityId}/`;
+    }
+
+    async function runEntityAction(entity, action) {
+      const config = entityConfig[entity];
+      log(`${config.label}: ${action}`);
+      let payload;
+      let response;
+
+      if (action === "list") {
+        response = await apiFetch(entityPath(entity, action));
+      } else if (action === "get") {
+        response = await apiFetch(entityPath(entity, action));
+      } else if (action === "delete") {
+        response = await apiFetch(entityPath(entity, action), { method: "DELETE" });
+      } else {
+        payload = parsePayload(entity);
+        response = await apiFetch(entityPath(entity, action), {
+          method: action === "create" ? "POST" : "PATCH",
+          json: payload,
+        });
+      }
+
+      if (Array.isArray(response) && response.length === 1 && response[0]?.id) {
+        updateLatestId(entity, response[0]);
+      } else if (response && typeof response === "object" && response.id) {
+        updateLatestId(entity, response);
+      }
+
+      setStatus(`${config.label} ${action} succeeded`, "ok");
+      log(`${config.label}: ${action} succeeded`, response);
+    }
+
+    async function listAllEntities() {
+      await runEntityAction("exercise", "list");
+      await runEntityAction("trainingPlan", "list");
+      await runEntityAction("workout", "list");
+      await runEntityAction("workoutExercise", "list");
+      await listWorkoutSnapshots();
+    }
+
+    async function listWorkoutSnapshots() {
+      log("Workout Snapshot: list");
+      const response = await apiFetch("/workout-snapshots/");
+      if (Array.isArray(response) && response.length) {
+        updateLatestFromSnapshot(response[0]);
+      }
+      setStatus("Workout Snapshot list succeeded", "ok");
+      log("Workout Snapshot: list succeeded", response);
+    }
+
+    async function createWorkoutSnapshot() {
+      log("Workout Snapshot: create");
+      const payload = parseSnapshotPayload();
+      delete payload.expected_version;
+      const response = await apiFetch("/workout-snapshots/", {
+        method: "POST",
+        json: payload,
+      });
+      setSnapshotBaseline(response);
+      elements.workoutSnapshotDiff.textContent = "Created snapshot and set it as the baseline.";
+      setStatus("Workout Snapshot create succeeded", "ok");
+      log("Workout Snapshot: create succeeded", response);
+    }
+
+    async function loadWorkoutSnapshotBaseline() {
+      log("Workout Snapshot: load baseline");
+      const response = await apiFetch(snapshotDetailPath());
+      setSnapshotBaseline(response);
+      elements.workoutSnapshotDiff.textContent = "Baseline loaded. Edit the payload, then patch or put to see changes.";
+      setStatus("Workout Snapshot baseline loaded", "ok");
+      log("Workout Snapshot: baseline loaded", response);
+    }
+
+    async function updateWorkoutSnapshot(method) {
+      log(`Workout Snapshot: ${method}`);
+      const before = state.workoutSnapshotBaseline;
+      const payload = parseSnapshotPayload();
+      if (before?.version && !payload.expected_version) {
+        payload.expected_version = before.version;
+      }
+
+      const response = await apiFetch(snapshotDetailPath(), {
+        method,
+        json: payload,
+      });
+      elements.workoutSnapshotDiff.textContent = buildSnapshotDiff(before, response);
+      setSnapshotBaseline(response, { updatePayload: true });
+      setStatus(`Workout Snapshot ${method} succeeded`, "ok");
+      log(`Workout Snapshot: ${method} succeeded`, response);
+    }
+
+    async function deleteWorkoutSnapshot() {
+      log("Workout Snapshot: delete");
+      await apiFetch(snapshotDetailPath(), { method: "DELETE" });
+      state.workoutSnapshotBaseline = null;
+      elements.workoutSnapshotDiff.textContent = "Snapshot deleted.";
+      renderSnapshotBaseline();
+      setStatus("Workout Snapshot delete succeeded", "ok");
+      log("Workout Snapshot: delete succeeded");
+    }
+
+    function useLastResponseAsSnapshotPayload() {
+      const response = state.lastResponse;
+      const snapshot = Array.isArray(response) ? response[0] : response;
+      if (!snapshot || typeof snapshot !== "object" || !snapshot.exercises) {
+        throw new Error("The last response does not look like a workout snapshot.");
+      }
+      elements.workoutSnapshotPayload.value = pretty(snapshotToWritePayload(snapshot));
+      updateLatestFromSnapshot(snapshot);
+      persist();
+      setStatus("Loaded last snapshot response into editor", "ok");
+      log("Loaded last snapshot response into editor");
+    }
+
+    async function runAction(action) {
+      try {
+        await action();
+      } catch (error) {
+        setStatus("Action failed", "error");
+        log("Error", error instanceof Error ? error.message : String(error));
+        console.error(error);
+      }
+    }
+
+    document.getElementById("saveConfigBtn").addEventListener("click", () => {
+      persist();
+      setStatus("Saved local state", "ok");
+      log("Saved local tester state");
+    });
+    document.getElementById("clearStateBtn").addEventListener("click", clearLocalState);
+    document.getElementById("fillTemplatesBtn").addEventListener("click", () => {
+      syncInputs();
+      setStatus("Placeholder values refreshed", "ok");
+      log("Refreshed placeholder values", state.latestIds);
+    });
+    document.getElementById("listAllBtn").addEventListener("click", () => runAction(listAllEntities));
+    document.getElementById("snapshotListBtn").addEventListener("click", () => runAction(listWorkoutSnapshots));
+    document.getElementById("snapshotCreateBtn").addEventListener("click", () => runAction(createWorkoutSnapshot));
+    document.getElementById("snapshotLoadBtn").addEventListener("click", () => runAction(loadWorkoutSnapshotBaseline));
+    document.getElementById("snapshotPatchBtn").addEventListener("click", () => runAction(() => updateWorkoutSnapshot("PATCH")));
+    document.getElementById("snapshotPutBtn").addEventListener("click", () => runAction(() => updateWorkoutSnapshot("PUT")));
+    document.getElementById("snapshotDeleteBtn").addEventListener("click", () => runAction(deleteWorkoutSnapshot));
+    document.getElementById("snapshotUseLastBtn").addEventListener("click", () => runAction(async () => useLastResponseAsSnapshotPayload()));
+
+    document.getElementById("registerBtn").addEventListener("click", () => runAction(registerUser));
+    document.getElementById("loginBtn").addEventListener("click", () => runAction(loginUser));
+    document.getElementById("refreshBtn").addEventListener("click", () => runAction(refreshSession));
+    document.getElementById("meBtn").addEventListener("click", () => runAction(loadProfile));
+    document.getElementById("logoutBtn").addEventListener("click", () => runAction(logoutUser));
+
+    for (const inputId of ["exerciseId", "trainingPlanId", "workoutId", "workoutExerciseId", "workoutSnapshotId"]) {
+      const input = document.getElementById(inputId);
+      input.addEventListener("input", () => {
+        input.dataset.userEdited = input.value.trim() ? "true" : "";
+      });
+    }
+
+    document.querySelectorAll("[data-entity][data-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        runAction(() => runEntityAction(button.dataset.entity, button.dataset.action));
+      });
+    });
+
+    hydrate();
+    if (state.access) {
+      setStatus("Session restored", "ok");
+      log("Restored saved local session");
+    }
+  </script>
+</body>
+</html>

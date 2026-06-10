@@ -26,6 +26,14 @@ from training.services.workout_exercise import (
     list_workout_exercises,
     update_workout_exercise,
 )
+from training.services.workout_snapshot import (
+    StaleWorkoutSnapshotVersion,
+    create_workout_snapshot,
+    delete_workout_snapshot,
+    get_workout_snapshot,
+    list_workout_snapshots,
+    update_workout_snapshot,
+)
 
 __all__ = [
     "create_exercise",
@@ -48,4 +56,10 @@ __all__ = [
     "get_workout_exercise",
     "list_workout_exercises",
     "update_workout_exercise",
+    "StaleWorkoutSnapshotVersion",
+    "create_workout_snapshot",
+    "delete_workout_snapshot",
+    "get_workout_snapshot",
+    "list_workout_snapshots",
+    "update_workout_snapshot",
 ]
