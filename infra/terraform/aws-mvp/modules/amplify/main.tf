@@ -28,7 +28,7 @@ resource "aws_iam_role_policy_attachment" "amplify" {
 resource "aws_amplify_app" "this" {
   name                        = local.app_name
   repository                  = var.repository
-  oauth_token                 = var.oauth_token
+  access_token                = var.oauth_token
   iam_service_role_arn        = aws_iam_role.amplify.arn
   platform                    = var.platform
   enable_branch_auto_deletion = var.auto_branch_deletion_enabled
