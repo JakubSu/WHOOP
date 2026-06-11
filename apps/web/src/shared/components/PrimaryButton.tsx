@@ -1,0 +1,27 @@
+import { LoaderCircle } from 'lucide-react'
+import { type ButtonHTMLAttributes, type ReactNode } from 'react'
+
+type PrimaryButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  children: ReactNode
+  isLoading?: boolean
+}
+
+export function PrimaryButton({
+  children,
+  isLoading = false,
+  disabled,
+  ...props
+}: PrimaryButtonProps) {
+  return (
+    <button className="primary-button" disabled={disabled || isLoading} {...props}>
+      {isLoading ? (
+        <>
+          <LoaderCircle className="spin" aria-hidden="true" size={18} />
+          Working
+        </>
+      ) : (
+        children
+      )}
+    </button>
+  )
+}

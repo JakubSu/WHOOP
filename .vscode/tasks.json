@@ -52,6 +52,24 @@
         }
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Web: Run Vite",
+      "type": "npm",
+      "script": "dev",
+      "path": "apps/web",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Local:\\s+http://localhost:5173/"
+        }
+      }
     }
   ]
 }

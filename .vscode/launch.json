@@ -13,6 +13,14 @@
         "DJANGO_SETTINGS_MODULE": "config.settings",
         "PYTHONPATH": "${workspaceFolder}/services/api"
       }
+    },
+    {
+      "name": "Web: Launch React App",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/apps/web",
+      "preLaunchTask": "Web: Run Vite"
     }
   ]
 }
