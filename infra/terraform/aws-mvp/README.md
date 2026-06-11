@@ -29,4 +29,4 @@ This stack provisions the AWS MVP described in the architecture spec:
 - The backend module writes `/var/www/backend/.env` with mode `0600` and ownership restricted to the `django` system user.
 - The OpenAI key is stored in AWS Secrets Manager using Terraform's write-only `secret_string_wo` path, so the secret value is not persisted in Terraform state.
 - The Amplify branch URL is passed into the backend bootstrap so `CORS_ALLOWED_ORIGINS`, `WHOOP_FRONTEND_ALLOWED_ORIGINS`, and `WHOOP_FRONTEND_SUCCESS_URL` stay aligned.
-- This stack assumes application deployment onto the EC2 instance is handled separately from infrastructure provisioning.
+- Backend application deployment is handled by `infra/scripts/deploy_backend.ps1`, which uploads `services/api`, preserves the server `.env` and `db.sqlite3`, and bootstraps Gunicorn + Nginx on first deploy.

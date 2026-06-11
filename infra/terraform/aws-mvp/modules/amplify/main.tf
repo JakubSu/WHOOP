@@ -2,10 +2,34 @@ locals {
   app_name = "${var.project_name}-${var.environment}-web"
 }
 
+data "aws_iam_policy_document" "amplify_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["amplify.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "amplify" {
+  name               = "${local.app_name}-service-role"
+  assume_role_policy = data.aws_iam_policy_document.amplify_assume_role.json
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "amplify" {
+  role       = aws_iam_role.amplify.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+}
+
 resource "aws_amplify_app" "this" {
   name                        = local.app_name
   repository                  = var.repository
   oauth_token                 = var.oauth_token
+  iam_service_role_arn        = aws_iam_role.amplify.arn
   platform                    = var.platform
   enable_branch_auto_deletion = var.auto_branch_deletion_enabled
   environment_variables       = var.amplify_environment_variables

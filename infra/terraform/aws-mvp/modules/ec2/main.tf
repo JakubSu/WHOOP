@@ -194,7 +194,7 @@ resource "aws_iam_role_policy_attachment" "dlm" {
 }
 
 resource "aws_dlm_lifecycle_policy" "root_volume_snapshots" {
-  description        = "Daily snapshots for the ${var.instance_name} root volume."
+  description        = "Daily root volume snapshots"
   execution_role_arn = aws_iam_role.dlm.arn
   state              = "ENABLED"
 
