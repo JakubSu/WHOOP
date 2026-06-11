@@ -51,27 +51,52 @@ variable "auto_branch_deletion_enabled" {
   default     = true
 }
 
-variable "lightsail_availability_zone" {
-  description = "Optional Lightsail availability zone. Leave null to use the first available zone in the AWS region."
+variable "ec2_availability_zone" {
+  description = "Optional EC2 availability zone. Leave null to use the first available zone in the AWS region."
   type        = string
   default     = null
 }
 
-variable "lightsail_blueprint_id" {
-  description = "Lightsail blueprint ID for the backend instance."
+variable "ec2_instance_type" {
+  description = "EC2 instance type for the backend host."
   type        = string
-  default     = "ubuntu_24_04"
+  default     = "t3.micro"
 }
 
-variable "lightsail_bundle_id" {
-  description = "Lightsail bundle ID tuned for low-cost MVP usage."
+variable "ec2_key_pair_name" {
+  description = "Existing EC2 key pair name for administrative SSH access."
   type        = string
-  default     = "micro_1_0"
+  default     = null
 }
 
-variable "lightsail_ssh_key_pair_name" {
-  description = "Existing Lightsail SSH key pair name."
+variable "ec2_vpc_cidr_block" {
+  description = "CIDR block for the dedicated backend VPC."
   type        = string
+  default     = "10.42.0.0/16"
+}
+
+variable "ec2_subnet_cidr_block" {
+  description = "CIDR block for the public backend subnet."
+  type        = string
+  default     = "10.42.1.0/24"
+}
+
+variable "ec2_root_volume_size_gb" {
+  description = "Root EBS volume size for the backend instance in GiB."
+  type        = number
+  default     = 16
+}
+
+variable "ec2_snapshot_retention_count" {
+  description = "How many daily snapshots to retain for the backend root volume."
+  type        = number
+  default     = 7
+}
+
+variable "ec2_snapshot_time_utc" {
+  description = "UTC time for the daily EBS snapshot policy in HH:MM format."
+  type        = string
+  default     = null
 }
 
 variable "allowed_ssh_cidr_blocks" {
@@ -79,16 +104,35 @@ variable "allowed_ssh_cidr_blocks" {
   type        = list(string)
 }
 
-variable "lightsail_snapshot_time_of_day" {
-  description = "UTC time for the daily automatic Lightsail snapshot in HH:MM format."
+variable "lightsail_ssh_key_pair_name" {
+  description = "Deprecated compatibility variable for the previous Lightsail-based module."
   type        = string
-  default     = "03:00"
+  default     = null
+}
+
+variable "lightsail_snapshot_time_of_day" {
+  description = "Deprecated compatibility variable for the previous Lightsail-based module."
+  type        = string
+  default     = null
+}
+
+variable "secrets_manager_recovery_window_in_days" {
+  description = "Recovery window for deleting the Secrets Manager secret."
+  type        = number
+  default     = 7
 }
 
 variable "openai_api_key" {
-  description = "Production OpenAI API key written to the backend .env file during instance bootstrap."
+  description = "Production OpenAI API key written to AWS Secrets Manager without persisting the value in Terraform state."
   type        = string
   sensitive   = true
+  ephemeral   = true
+}
+
+variable "openai_api_key_version" {
+  description = "Monotonic version number for rotating the write-only OpenAI API key secret."
+  type        = number
+  default     = 1
 }
 
 variable "openai_model" {

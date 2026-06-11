@@ -3,12 +3,12 @@ locals {
 }
 
 resource "aws_amplify_app" "this" {
-  name                         = local.app_name
-  repository                   = var.repository
-  oauth_token                  = var.oauth_token
-  platform                     = var.platform
-  enable_branch_auto_deletion  = var.auto_branch_deletion_enabled
-  environment_variables        = var.amplify_environment_variables
+  name                        = local.app_name
+  repository                  = var.repository
+  oauth_token                 = var.oauth_token
+  platform                    = var.platform
+  enable_branch_auto_deletion = var.auto_branch_deletion_enabled
+  environment_variables       = var.amplify_environment_variables
 
   build_spec = <<-EOT
     version: 1

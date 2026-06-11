@@ -1,9 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
+export DEBIAN_FRONTEND=noninteractive
+
 APP_DIRECTORY="${app_directory}"
 APP_USER="${django_user}"
 ENV_FILE="${app_directory}/.env"
+AWS_REGION="${aws_region}"
+OPENAI_SECRET_ARN="${openai_secret_arn}"
+
+apt-get update
+apt-get install -y awscli jq
 
 if ! id -u "$APP_USER" >/dev/null 2>&1; then
   useradd --system --home-dir "$APP_DIRECTORY" --shell /usr/sbin/nologin "$APP_USER"
@@ -12,7 +19,7 @@ fi
 mkdir -p "$APP_DIRECTORY"
 chown "$APP_USER:$APP_USER" "$APP_DIRECTORY"
 
-OPENAI_API_KEY="$(printf '%s' '${openai_api_key_b64}' | base64 --decode)"
+OPENAI_API_KEY="$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$OPENAI_SECRET_ARN" --query SecretString --output text)"
 
 {
   printf 'AI_LLM_PROVIDER=%s\n' 'openai'

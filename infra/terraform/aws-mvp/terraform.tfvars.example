@@ -1,13 +1,12 @@
-aws_region                   = "us-east-1"
-project_name                 = "whoop-ai-coach"
-environment                  = "prod"
-github_repository            = "https://github.com/JakubSu/WHOOP"
-github_oauth_token           = "replace-me"
-amplify_branch_name          = "main"
-lightsail_ssh_key_pair_name  = "your-lightsail-keypair"
-allowed_ssh_cidr_blocks      = ["203.0.113.10/32"]
-openai_api_key               = "replace-me"
-lightsail_snapshot_time_of_day = "03:00"
+aws_region            = "us-east-1"
+project_name          = "whoop-ai-coach"
+environment           = "prod"
+github_repository     = "https://github.com/JakubSu/WHOOP"
+github_oauth_token    = "replace-me"
+amplify_branch_name   = "main"
+ec2_key_pair_name     = "your-ec2-keypair"
+allowed_ssh_cidr_blocks = ["203.0.113.10/32"]
+openai_api_key_version  = 1
 
 amplify_environment_variables = {
   NODE_ENV = "production"

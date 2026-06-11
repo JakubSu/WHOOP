@@ -8,7 +8,12 @@ output "amplify_default_url" {
   value       = local.amplify_branch_url
 }
 
-output "lightsail_public_ip_address" {
-  description = "Public IPv4 address of the Lightsail backend instance."
+output "ec2_public_ip_address" {
+  description = "Public IPv4 address of the EC2 backend instance."
   value       = module.backend.public_ip_address
+}
+
+output "openai_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the backend OpenAI API key."
+  value       = aws_secretsmanager_secret.openai_api_key.arn
 }
