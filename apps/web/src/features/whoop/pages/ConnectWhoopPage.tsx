@@ -17,7 +17,10 @@ export function ConnectWhoopPage() {
     setConnectUrl(null)
 
     try {
-      const { connect_url } = await connectWhoop.mutateAsync()
+      const successUrl = new URL('/connect-whoop/success', window.location.origin)
+      const { connect_url } = await connectWhoop.mutateAsync({
+        successUrl: successUrl.toString(),
+      })
 
       const url = new URL(connect_url)
       if (url.protocol !== 'https:') {

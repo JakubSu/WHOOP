@@ -289,6 +289,462 @@ a:hover {
   background: #f4f6ef;
 }
 
+.training-shell {
+  min-height: 100vh;
+  padding: 1.5rem;
+  color: #111111;
+  background:
+    linear-gradient(180deg, #f7f7f2 0%, #e9ece4 100%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(17, 17, 17, 0.04) 0,
+      rgba(17, 17, 17, 0.04) 1px,
+      transparent 1px,
+      transparent 42px
+    );
+}
+
+.training-surface {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 27rem);
+  min-height: calc(100vh - 3rem);
+  margin: 0 auto;
+  border: 2px solid #111111;
+  border-radius: 28px;
+  padding: 1rem;
+  background: #ffffff;
+  box-shadow: 0 22px 70px rgba(17, 17, 17, 0.14);
+}
+
+.training-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.metrics-group {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  align-items: start;
+  gap: 0.65rem;
+}
+
+.powered-by {
+  grid-column: 1 / -1;
+  color: #555555;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.metric-ring {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+}
+
+.metric-ring__dial {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.metric-ring__dial::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: inherit;
+  background: #ffffff;
+}
+
+.metric-ring__dial span {
+  z-index: 1;
+  grid-area: 1 / 1;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.metric-ring__label {
+  color: #555555;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.profile-button {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 2px solid #111111;
+  border-radius: 999px;
+  color: #111111;
+  background: #ffffff;
+  font-weight: 900;
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.profile-popover {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 12rem;
+  border: 2px solid #111111;
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(17, 17, 17, 0.16);
+}
+
+.profile-popover__identity {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.profile-popover__identity strong {
+  overflow-wrap: anywhere;
+  font-size: 0.94rem;
+}
+
+.profile-popover__identity span {
+  overflow-wrap: anywhere;
+  color: #666666;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.profile-popover__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.6rem;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  color: #111111;
+  background: #f5fff9;
+  font-weight: 900;
+}
+
+.profile-popover__action:hover:not(:disabled) {
+  background: #e4f8ea;
+}
+
+.profile-popover__action:disabled {
+  opacity: 0.68;
+}
+
+.training-content {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.workout-content {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+}
+
+.section-heading {
+  margin-bottom: 0.9rem;
+}
+
+.section-heading h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.muted,
+.empty-state {
+  margin: 0;
+  color: #626262;
+  font-weight: 700;
+}
+
+.empty-state {
+  padding: 1rem;
+  border: 1px dashed rgba(17, 17, 17, 0.24);
+  border-radius: 8px;
+}
+
+.scrollable-stack {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.1rem 0.15rem 0.25rem;
+}
+
+.workout-row,
+.exercise-card {
+  width: 100%;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  padding: 0.95rem;
+  color: #111111;
+  background: #ffffff;
+}
+
+.workout-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  text-align: left;
+}
+
+.workout-row span,
+.exercise-card {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.workout-row strong,
+.exercise-card strong {
+  overflow-wrap: anywhere;
+  font-size: 1.02rem;
+}
+
+.workout-row small,
+.exercise-card span,
+.exercise-card small {
+  color: #666666;
+  font-weight: 700;
+}
+
+.workout-row:hover {
+  background: #f5fff9;
+}
+
+.recommendation-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.recommendation-panel__summary {
+  margin: 0;
+  color: #333333;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.recommendation-card {
+  display: grid;
+  gap: 0.75rem;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  padding: 0.95rem;
+  background: #ffffff;
+}
+
+.recommendation-card--neutral {
+  background: #fffef8;
+}
+
+.recommendation-card--positive {
+  border-color: #11a64b;
+  background: #f5fff9;
+}
+
+.recommendation-card--negative {
+  border-color: #ff2f3d;
+  background: #fff7f7;
+}
+
+.recommendation-card__header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.recommendation-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recommendation-card__header strong {
+  overflow-wrap: anywhere;
+  color: #111111;
+  font-size: 1.08rem;
+  line-height: 1.15;
+}
+
+.recommendation-badge {
+  width: fit-content;
+  border: 1px solid #111111;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  color: #111111;
+  background: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.recommendation-badge.positive {
+  color: #0f7a3a;
+  border-color: #11a64b;
+}
+
+.recommendation-badge.negative {
+  color: #d71f2a;
+  border-color: #ff2f3d;
+}
+
+.recommendation-status {
+  width: fit-content;
+  border: 1px solid #111111;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  color: #111111;
+  background: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.recommendation-status.accepted {
+  color: #0f7a3a;
+  border-color: #11a64b;
+}
+
+.recommendation-status.rejected,
+.recommendation-status.failed {
+  color: #d71f2a;
+  border-color: #ff2f3d;
+}
+
+.recommendation-status.stale {
+  color: #866300;
+  border-color: #c99600;
+}
+
+.recommendation-change-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.recommendation-change {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 0.65fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.recommendation-change span {
+  color: #555555;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.recommendation-card del,
+.recommendation-card ins {
+  overflow-wrap: anywhere;
+  font-weight: 900;
+  text-decoration-thickness: 2px;
+}
+
+.recommendation-card del {
+  color: #d71f2a;
+}
+
+.recommendation-card ins {
+  color: #0f7a3a;
+  text-decoration: none;
+}
+
+.recommendation-swap {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.recommendation-reason,
+.recommendation-fallback {
+  margin: 0;
+  color: #555555;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.recommendation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.reject-button {
+  display: inline-flex;
+  min-height: 3.15rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 2px solid #ff2f3d;
+  border-radius: 8px;
+  color: #d71f2a;
+  background: #ffffff;
+  font-weight: 900;
+}
+
+.reject-button:disabled {
+  opacity: 0.6;
+}
+
+.whoop-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(17, 17, 17, 0.38);
+}
+
+.whoop-modal {
+  display: grid;
+  gap: 0.9rem;
+  width: min(100%, 25rem);
+  border: 2px solid #111111;
+  border-radius: 16px;
+  padding: 1.25rem;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(17, 17, 17, 0.2);
+}
+
+.whoop-modal h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+
+.whoop-modal__copy {
+  margin: 0;
+  color: #555555;
+  font-weight: 700;
+}
+
+.whoop-modal__actions {
+  display: grid;
+  gap: 0.7rem;
+}
+
 .spinner,
 .spin {
   animation: spin 900ms linear infinite;
@@ -338,5 +794,23 @@ a:hover {
 
   .auth-intro h1 {
     font-size: 2.5rem;
+  }
+
+  .training-shell {
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .training-surface {
+    width: 100%;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .recommendation-change {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
   }
 }

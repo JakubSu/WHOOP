@@ -5,7 +5,8 @@ import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { RegisterPage } from '../../features/auth/pages/RegisterPage'
 import { ConnectWhoopPage } from '../../features/whoop/pages/ConnectWhoopPage'
 import { ConnectWhoopSuccessPage } from '../../features/whoop/pages/ConnectWhoopSuccessPage'
-import { PlanPlaceholderPage } from '../../features/plan/pages/PlanPlaceholderPage'
+import { PlanPage } from '../../features/training/pages/PlanPage'
+import { WorkoutPage } from '../../features/training/pages/WorkoutPage'
 
 export function AppRouter() {
   useAuthBootstrap()
@@ -35,7 +36,15 @@ export function AppRouter() {
         path="/plan"
         element={
           <ProtectedRoute>
-            <PlanPlaceholderPage />
+            <PlanPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workouts/:workoutId"
+        element={
+          <ProtectedRoute>
+            <WorkoutPage />
           </ProtectedRoute>
         }
       />

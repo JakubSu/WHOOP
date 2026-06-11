@@ -17,7 +17,6 @@ export function useAuthBootstrap() {
       return
     }
 
-    let isMounted = true
     setChecking()
 
     async function bootstrap() {
@@ -25,20 +24,12 @@ export function useAuthBootstrap() {
         const tokens = await refreshSession()
         useAuthStore.getState().setAccessToken(tokens.access)
         const user = await getCurrentUser()
-        if (isMounted) {
-          setSession(tokens.access, user)
-        }
+        setSession(tokens.access, user)
       } catch {
-        if (isMounted) {
-          clearSession()
-        }
+        clearSession()
       }
     }
 
     void bootstrap()
-
-    return () => {
-      isMounted = false
-    }
   }, [clearSession, setChecking, setSession, status])
 }
