@@ -1,0 +1,23 @@
+meta {
+  name: Create Training Plan
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/training-plans/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Summer Block",
+    "start_date": "2026-06-01",
+    "end_date": "2026-07-01"
+  }
+}

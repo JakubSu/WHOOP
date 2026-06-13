@@ -1,0 +1,38 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/login/
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "athlete@example.com",
+    "password": "strong-password-123"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body.access) {
+    bru.setEnvVar("accessToken", body.access);
+  }
+  
+  if (body.refresh) {
+    bru.setEnvVar("refreshToken", body.refresh);
+  }
+  
+  if (body.user?.id) {
+    bru.setEnvVar("userId", body.user.id);
+  }
+}

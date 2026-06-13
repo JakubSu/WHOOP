@@ -1,0 +1,24 @@
+meta {
+  name: Get Recommendation
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/recommendations/{{recommendationId}}/
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body.id) {
+    bru.setEnvVar("recommendationId", body.id);
+  }
+
+  const recommendationOperationId = body.operations?.[0]?.id;
+  if (recommendationOperationId) {
+    bru.setEnvVar("recommendationOperationId", recommendationOperationId);
+  }
+}

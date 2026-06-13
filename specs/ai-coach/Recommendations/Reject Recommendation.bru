@@ -1,0 +1,19 @@
+meta {
+  name: Reject Recommendation
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/recommendations/{{recommendationId}}/operations/{{recommendationOperationId}}/reject/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}

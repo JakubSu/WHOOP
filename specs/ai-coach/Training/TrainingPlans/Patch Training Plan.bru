@@ -1,0 +1,21 @@
+meta {
+  name: Patch Training Plan
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/training-plans/{{trainingPlanId}}/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Updated Summer Block"
+  }
+}

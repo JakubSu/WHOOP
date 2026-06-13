@@ -1,0 +1,26 @@
+meta {
+  name: Create Exercise
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/exercises/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Bench Press",
+    "default_sets": 4,
+    "default_reps": 8,
+    "muscle_group": "Chest",
+    "default_time": 0,
+    "notes": "Pause reps."
+  }
+}

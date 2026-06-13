@@ -1,0 +1,11 @@
+meta {
+  name: Delete Exercise
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/exercises/{{exerciseId}}/
+  body: none
+  auth: inherit
+}

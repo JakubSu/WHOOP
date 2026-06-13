@@ -1,0 +1,32 @@
+meta {
+  name: Generate Recommendation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/recommendations/workouts/{{workoutId}}/generate/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body.id) {
+    bru.setEnvVar("recommendationId", body.id);
+  }
+
+  const recommendationOperationId = body.operations?.[0]?.id;
+  if (recommendationOperationId) {
+    bru.setEnvVar("recommendationOperationId", recommendationOperationId);
+  }
+}

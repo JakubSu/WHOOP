@@ -1,0 +1,11 @@
+meta {
+  name: List Plan Workouts
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/training-plans/{{trainingPlanId}}/workouts/
+  body: none
+  auth: inherit
+}

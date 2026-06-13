@@ -1,0 +1,22 @@
+meta {
+  name: Patch Exercise
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/exercises/{{exerciseId}}/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "default_sets": 5,
+    "notes": "Updated notes."
+  }
+}

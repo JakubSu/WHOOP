@@ -1,0 +1,21 @@
+meta {
+  name: Patch Workout
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/workouts/{{workoutId}}/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expected_time": 50
+  }
+}

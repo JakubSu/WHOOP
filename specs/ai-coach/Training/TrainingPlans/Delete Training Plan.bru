@@ -1,0 +1,11 @@
+meta {
+  name: Delete Training Plan
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/training-plans/{{trainingPlanId}}/
+  body: none
+  auth: inherit
+}

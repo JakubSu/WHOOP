@@ -1,0 +1,11 @@
+meta {
+  name: OAuth Callback
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/whoop/callback/?code={{whoopOAuthCode}}&state={{whoopOAuthState}}
+  body: none
+  auth: none
+}
