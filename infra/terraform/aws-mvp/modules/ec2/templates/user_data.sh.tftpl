@@ -6,7 +6,15 @@ export DEBIAN_FRONTEND=noninteractive
 APP_DIRECTORY="${app_directory}"
 
 apt-get update
-apt-get install -y awscli docker.io docker-compose-v2 git
+apt-get install -y curl docker.io docker-compose-v2 git unzip
+
+if ! command -v aws >/dev/null 2>&1; then
+  tmp_dir="$(mktemp -d)"
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "$tmp_dir/awscliv2.zip"
+  unzip -q "$tmp_dir/awscliv2.zip" -d "$tmp_dir"
+  "$tmp_dir/aws/install" --update
+  rm -rf "$tmp_dir"
+fi
 
 systemctl enable --now docker
 

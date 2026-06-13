@@ -48,8 +48,9 @@ if (-not (Test-Path $bootstrapScript)) {
 Invoke-NativeCommand -FilePath "scp" -ArgumentList @("-i", $KeyPath, $bootstrapScript, "${SshUser}@${HostName}:/tmp/bootstrap_backend.sh")
 
 $remoteCommand = @(
-    "chmod +x /tmp/bootstrap_backend.sh",
-    "sudo /tmp/bootstrap_backend.sh '$AppDomain' '$AcmeEmail' '$AwsRegion' '$SsmParameterPrefix' '$PostgresDb' '$PostgresUser' '$OpenAiModel' '$RepositoryUrl' '$Branch'"
+    "tr -d '\r' < /tmp/bootstrap_backend.sh > /tmp/bootstrap_backend.unix.sh",
+    "chmod +x /tmp/bootstrap_backend.unix.sh",
+    "sudo bash /tmp/bootstrap_backend.unix.sh '$AppDomain' '$AcmeEmail' '$AwsRegion' '$SsmParameterPrefix' '$PostgresDb' '$PostgresUser' '$OpenAiModel' '$RepositoryUrl' '$Branch'"
 ) -join " && "
 
 Invoke-NativeCommand -FilePath "ssh" -ArgumentList @("-i", $KeyPath, "${SshUser}@${HostName}", $remoteCommand)
