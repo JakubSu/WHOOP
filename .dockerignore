@@ -1,0 +1,12 @@
+.git
+.terraform
+**/__pycache__
+**/*.pyc
+**/.venv
+**/node_modules
+**/dist
+services/api/.env
+services/api/db.sqlite3
+infra/terraform/aws-mvp/terraform.tfstate
+infra/terraform/aws-mvp/terraform.tfstate.backup
+infra/terraform/aws-mvp/terraform.tfvars
