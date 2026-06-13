@@ -20,6 +20,10 @@ class ProductionSettingsTests(SimpleTestCase):
                     "Value": "openai-key",
                 },
                 {
+                    "Name": "/whoop-ai-coach/prod/whoop/client-id",
+                    "Value": "whoop-client-id",
+                },
+                {
                     "Name": "/whoop-ai-coach/prod/whoop/client-secret",
                     "Value": "whoop-secret",
                 },
@@ -49,6 +53,7 @@ class ProductionSettingsTests(SimpleTestCase):
 
                 self.assertEqual(settings_module.os.environ["SECRET_KEY"], "secret-key")
                 self.assertEqual(settings_module.os.environ["OPENAI_API_KEY"], "openai-key")
+                self.assertEqual(settings_module.os.environ["WHOOP_CLIENT_ID"], "whoop-client-id")
                 self.assertEqual(settings_module.os.environ["WHOOP_CLIENT_SECRET"], "whoop-secret")
                 self.assertEqual(settings_module.os.environ["POSTGRES_PASSWORD"], "postgres-password")
 

@@ -14,6 +14,7 @@ allowed_ssh_cidr_blocks = ["203.0.113.10/32"]
 cloudflare_api_token        = "replace-me"
 django_secret_key           = "replace-me"
 openai_api_key              = "replace-me"
+whoop_client_id             = "replace-me"
 whoop_client_secret         = "replace-me"
 whoop_token_encryption_key  = "replace-me"
 postgres_password           = "replace-me"

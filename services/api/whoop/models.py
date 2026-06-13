@@ -35,8 +35,11 @@ class WhoopOAuthState(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["state"]),
-            models.Index(fields=["user_id", "created_at"]),
+            models.Index(fields=["state"], name="whoop_oauth_state_idx"),
+            models.Index(
+                fields=["user_id", "created_at"],
+                name="whoop_oauth_user_created_idx",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -70,7 +73,10 @@ class WhoopSnapshot(models.Model):
     class Meta:
         ordering = ["-snapshot_date", "-created_at"]
         indexes = [
-            models.Index(fields=["user_id", "snapshot_date"]),
+            models.Index(
+                fields=["user_id", "snapshot_date"],
+                name="whoop_snapshot_user_date_idx",
+            ),
         ]
 
     def __str__(self) -> str:

@@ -126,6 +126,11 @@ variable "openai_api_key" {
   sensitive   = true
 }
 
+variable "whoop_client_id" {
+  description = "Production WHOOP OAuth client ID written to SSM Parameter Store."
+  type        = string
+}
+
 variable "whoop_client_secret" {
   description = "Production WHOOP OAuth client secret written to SSM Parameter Store."
   type        = string

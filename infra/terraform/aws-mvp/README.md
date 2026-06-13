@@ -5,7 +5,7 @@ This stack provisions the single-instance AWS deployment:
 - React UI, Django API, Caddy, and Postgres on one EC2 instance through Docker Compose
 - HTTPS through Cloudflare proxy mode in front of Caddy
 - Cloudflare proxied app `A` record
-- Production secrets in SSM Parameter Store
+- Production secrets and app parameters in SSM Parameter Store
 - EC2 IAM role scoped to the app SSM parameters
 - GitHub Actions OIDC role for SSM-based app deployments without stored AWS keys
 - Daily EBS snapshots for the instance root volume
@@ -64,6 +64,6 @@ The role can send SSM Run Command to the provisioned EC2 instance and read comma
 
 ## Secret Handling
 
-Terraform creates SecureString parameters under `/<project_name>/<environment>`. Django reads required secrets from SSM at startup when `DEBUG=false`; the deployment bootstrap also reads the Postgres password from SSM so the Postgres container can initialize.
+Terraform creates app parameters under `/<project_name>/<environment>`, including SecureString values for secrets and a String value for the WHOOP OAuth client ID. Django reads required values from SSM at startup when `DEBUG=false`; the deployment bootstrap also reads the Postgres password from SSM so the Postgres container can initialize.
 
 SecureString values are sensitive Terraform variables, but Terraform-managed SSM parameter values can still be present in Terraform state. Keep local state files out of source control and prefer a secured remote backend before using this for long-lived production secrets.

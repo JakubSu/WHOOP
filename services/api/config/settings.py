@@ -30,6 +30,7 @@ def load_ssm_parameters() -> None:
     parameter_names = {
         "SECRET_KEY": "django/secret-key",
         "OPENAI_API_KEY": "openai/api-key",
+        "WHOOP_CLIENT_ID": "whoop/client-id",
         "WHOOP_CLIENT_SECRET": "whoop/client-secret",
         "WHOOP_TOKEN_ENCRYPTION_KEY": "whoop/token-encryption-key",
         "POSTGRES_PASSWORD": "postgres/password",

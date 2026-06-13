@@ -54,6 +54,15 @@ resource "aws_ssm_parameter" "openai_api_key" {
   tags = local.common_tags
 }
 
+resource "aws_ssm_parameter" "whoop_client_id" {
+  name        = "${local.ssm_parameter_prefix}/whoop/client-id"
+  description = "WHOOP OAuth client ID for ${var.project_name} ${var.environment}."
+  type        = "String"
+  value       = var.whoop_client_id
+
+  tags = local.common_tags
+}
+
 resource "aws_ssm_parameter" "whoop_client_secret" {
   name        = "${local.ssm_parameter_prefix}/whoop/client-secret"
   description = "WHOOP OAuth client secret for ${var.project_name} ${var.environment}."
@@ -99,6 +108,7 @@ module "backend" {
   ssm_parameter_arns = [
     aws_ssm_parameter.django_secret_key.arn,
     aws_ssm_parameter.openai_api_key.arn,
+    aws_ssm_parameter.whoop_client_id.arn,
     aws_ssm_parameter.whoop_client_secret.arn,
     aws_ssm_parameter.whoop_token_encryption_key.arn,
     aws_ssm_parameter.postgres_password.arn,
@@ -111,7 +121,7 @@ module "backend" {
 resource "cloudflare_record" "app" {
   zone_id = data.cloudflare_zone.app.id
   name    = var.cloudflare_record_name
-  value   = module.backend.public_ip_address
+  content = module.backend.public_ip_address
   type    = "A"
   proxied = true
   ttl     = 1
