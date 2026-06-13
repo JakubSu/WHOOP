@@ -1,0 +1,19 @@
+{
+	email {$CADDY_ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	root * /srv
+
+	@api path /api/* /admin/*
+	reverse_proxy @api api:8000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote_host}
+	}
+
+	try_files {path} /index.html
+	file_server
+}

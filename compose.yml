@@ -1,0 +1,62 @@
+services:
+  caddy:
+    build:
+      context: ./apps/web
+      args:
+        VITE_API_BASE_URL: /api/v1
+    depends_on:
+      - api
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:?CADDY_ACME_EMAIL is required}
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+  api:
+    build:
+      context: ./services/api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      DEBUG: "false"
+      SSM_PARAMETER_PREFIX: ${SSM_PARAMETER_PREFIX:?SSM_PARAMETER_PREFIX is required}
+      DJANGO_ALLOWED_HOSTS: ${APP_DOMAIN:?APP_DOMAIN is required}
+      CSRF_TRUSTED_ORIGINS: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      CORS_ALLOWED_ORIGINS: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      WHOOP_FRONTEND_ALLOWED_ORIGINS: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      WHOOP_FRONTEND_SUCCESS_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}/connect-whoop/success
+      WHOOP_REDIRECT_URI: https://${APP_DOMAIN:?APP_DOMAIN is required}/api/v1/whoop/callback/
+      JWT_REFRESH_COOKIE_SECURE: "true"
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
