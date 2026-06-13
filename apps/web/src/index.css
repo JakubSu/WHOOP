@@ -227,6 +227,12 @@ a:hover {
   opacity: 0.68;
 }
 
+.workout-recommendation-button {
+  min-height: 2.65rem;
+  padding: 0 1rem;
+  font-size: 0.95rem;
+}
+
 .inline-error {
   margin: 0;
   border-left: 3px solid #b42318;

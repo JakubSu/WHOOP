@@ -10,10 +10,15 @@ export function PrimaryButton({
   children,
   isLoading = false,
   disabled,
+  className,
   ...props
 }: PrimaryButtonProps) {
   return (
-    <button className="primary-button" disabled={disabled || isLoading} {...props}>
+    <button
+      className={className ? `primary-button ${className}` : 'primary-button'}
+      disabled={disabled || isLoading}
+      {...props}
+    >
       {isLoading ? (
         <>
           <LoaderCircle className="spin" aria-hidden="true" size={18} />

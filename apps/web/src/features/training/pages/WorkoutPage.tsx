@@ -51,6 +51,7 @@ export function WorkoutPage() {
         />
         {!recommendation.recommendation ? (
           <PrimaryButton
+            className="workout-recommendation-button"
             type="button"
             isLoading={recommendation.isGenerating}
             disabled={!workoutId}
