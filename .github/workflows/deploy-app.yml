@@ -141,9 +141,9 @@ jobs:
           command = f"""set -euo pipefail
           script_path="/tmp/bootstrap_backend.sh"
           printf '%s' '{os.environ["SCRIPT_B64"]}' | base64 -d > "$script_path"
-          tr -d '\\r' < "$script_path" > "${{script_path}}.unix"
-          chmod +x "${{script_path}}.unix"
-          sudo bash "${{script_path}}.unix" {quoted_args}
+          tr -d '\\r' < "$script_path" > "$script_path.unix"
+          chmod +x "$script_path.unix"
+          sudo bash "$script_path.unix" {quoted_args}
           """
           print(json.dumps({"commands": [command]}))
           PY

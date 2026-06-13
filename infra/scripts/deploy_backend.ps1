@@ -43,7 +43,7 @@ function ConvertTo-BashSingleQuoted {
         [string]$Value
     )
 
-    return "'" + ($Value -replace "'", "'\"'\"'") + "'"
+    return "'" + $Value.Replace("'", "'""'""'") + "'"
 }
 
 $bootstrapScript = Join-Path $PSScriptRoot "bootstrap_backend.sh"
