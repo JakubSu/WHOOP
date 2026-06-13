@@ -21,8 +21,10 @@ export function WorkoutPage() {
           <p className="eyebrow">Workout</p>
           <h1>{workout?.name ?? 'Workout'}</h1>
         </div>
-        {isLoading ? <p className="muted">Loading workout...</p> : null}
-        <InlineError message={error ? getErrorMessage(error) : null} />
+        <div className="workout-status-stack">
+          {isLoading ? <p className="muted">Loading workout...</p> : null}
+          <InlineError message={error ? getErrorMessage(error) : null} />
+        </div>
         <ScrollableStack
           empty={
             !isLoading ? (
@@ -44,11 +46,13 @@ export function WorkoutPage() {
             />
           ) : null}
         </ScrollableStack>
-        <InlineError
-          message={
-            recommendation.error ? getErrorMessage(recommendation.error) : null
-          }
-        />
+        <div className="workout-status-stack">
+          <InlineError
+            message={
+              recommendation.error ? getErrorMessage(recommendation.error) : null
+            }
+          />
+        </div>
         {!recommendation.recommendation ? (
           <PrimaryButton
             className="workout-recommendation-button"
