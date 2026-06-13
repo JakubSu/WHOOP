@@ -7,6 +7,7 @@ This stack provisions the single-instance AWS deployment:
 - Cloudflare proxied app `A` record
 - Production secrets in SSM Parameter Store
 - EC2 IAM role scoped to the app SSM parameters
+- GitHub Actions OIDC role for SSM-based app deployments without stored AWS keys
 - Daily EBS snapshots for the instance root volume
 
 ## Layout
@@ -18,12 +19,13 @@ This stack provisions the single-instance AWS deployment:
 ## Apply Flow
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
-2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, and secret values.
+2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, secret values, and GitHub repository/environment if they differ from the defaults.
 3. Run `terraform init`.
 4. Run `terraform plan`.
 5. Run `terraform apply`.
 6. Confirm the Cloudflare DNS record is proxied.
-7. Deploy the app with `infra/scripts/deploy_backend.ps1`.
+7. Copy the `github_actions_role_arn` output into the GitHub `production` environment variable `AWS_ROLE_TO_ASSUME`.
+8. Deploy the app with `infra/scripts/deploy_backend.ps1` or the GitHub Actions workflow.
 
 ## Runtime
 
@@ -37,19 +39,28 @@ Terraform reads Cloudflare's current proxy IP ranges through the Cloudflare prov
 
 ## App Deployment
 
-`infra/scripts/deploy_backend.ps1` uploads only the bootstrap script and asks the EC2 instance to pull the application code from Git. By default it pulls `https://github.com/JakubSu/WHOOP.git` on `main`.
+`infra/scripts/deploy_backend.ps1` sends an SSM Run Command to the EC2 instance and asks the host to pull the application code from Git. By default it pulls `https://github.com/JakubSu/WHOOP.git` on `main`.
 
 Example:
 
 ```powershell
 .\infra\scripts\deploy_backend.ps1 `
-  -HostName 3.218.247.226 `
-  -KeyPath C:\path\to\whoop-project-key.pem `
+  -InstanceId i-0123456789abcdef0 `
   -AppDomain app.example.com `
   -AcmeEmail admin@example.com
 ```
 
-For a private repository, either pass a repository URL the EC2 host can access with `-RepositoryUrl`, or preconfigure deploy-key access on the instance before running the deploy script.
+For a private repository, either pass a repository URL the EC2 host can access with `-RepositoryUrl`, or preconfigure repo access on the instance before running the deploy script.
+
+## GitHub OIDC Deployment Role
+
+Terraform creates an AWS IAM OIDC provider for `token.actions.githubusercontent.com` and a deploy role limited to the configured GitHub repository and Actions environment. With the defaults in this stack, only the subject below can assume the role:
+
+```text
+repo:JakubSu/WHOOP:environment:production
+```
+
+The role can send SSM Run Command to the provisioned EC2 instance and read command status. It cannot read app secrets directly. Point the GitHub Actions variable `AWS_ROLE_TO_ASSUME` at the `github_actions_role_arn` Terraform output and keep `id-token: write` enabled in the workflow.
 
 ## Secret Handling
 

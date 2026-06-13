@@ -7,13 +7,24 @@
 
 	root * /srv
 
-	@api path /api/* /admin/*
-	reverse_proxy @api api:8000 {
-		header_up Host {host}
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Forwarded-For {remote_host}
+	handle /api/* {
+		reverse_proxy api:8000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-For {remote_host}
+		}
 	}
 
-	try_files {path} /index.html
-	file_server
+	handle /admin/* {
+		reverse_proxy api:8000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }

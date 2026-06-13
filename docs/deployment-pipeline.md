@@ -6,19 +6,18 @@ It deploys application code only. Terraform infrastructure changes are intention
 
 ## Required GitHub Secrets
 
-- `EC2_SSH_PRIVATE_KEY`: private key used to SSH into the EC2 instance.
-- `EC2_SSH_KNOWN_HOSTS`: known-hosts entry for the EC2 host, generated with `ssh-keyscan -H <ec2-host-or-ip>`.
+- Either `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, or an AWS role configured for GitHub OIDC via `AWS_ROLE_TO_ASSUME`.
 
 ## Required GitHub Variables
 
-- `EC2_HOST`: EC2 public hostname or IP reachable from the GitHub-hosted runner.
+- `EC2_INSTANCE_ID`: EC2 instance ID to target with AWS Systems Manager Run Command.
 - `APP_DOMAIN`: public application domain, for example `app.jakubsuran.com`.
 - `CADDY_ACME_EMAIL`: email passed to Caddy.
 
 ## Optional GitHub Variables
 
-- `EC2_SSH_USER`: defaults to `ubuntu`.
 - `AWS_REGION`: defaults to `us-east-1`.
+- `AWS_ROLE_TO_ASSUME`: preferred when using GitHub OIDC instead of static AWS keys.
 - `SSM_PARAMETER_PREFIX`: defaults to `/whoop-ai-coach/prod`.
 - `POSTGRES_DB`: defaults to `whoop_ai_coach`.
 - `POSTGRES_USER`: defaults to `whoop_ai_coach`.
@@ -27,6 +26,12 @@ It deploys application code only. Terraform infrastructure changes are intention
 
 ## Infrastructure Prerequisites
 
-- EC2 SSH ingress must allow GitHub-hosted runner access.
+- The EC2 instance must be registered in AWS Systems Manager and have the `AmazonSSMManagedInstanceCore` policy attached through its instance role.
+- The GitHub deployment identity must be allowed to call `ssm:SendCommand`, `ssm:GetCommandInvocation`, and `ssm:ListCommandInvocations` against the target instance and the `AWS-RunShellScript` document.
 - The EC2 IAM role must already allow reading the required SSM parameters.
 - The EC2 host must be able to pull `REPOSITORY_URL`.
+
+## What Changed
+
+- The workflow no longer uses SSH, `scp`, host key management, or GitHub-runner SSH ingress.
+- GitHub Actions now sends `infra/scripts/bootstrap_backend.sh` to the instance through SSM Run Command and waits for the command to finish before marking the deployment complete.

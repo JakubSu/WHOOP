@@ -37,6 +37,18 @@ variable "cloudflare_record_name" {
   type        = string
 }
 
+variable "github_repository" {
+  description = "GitHub repository allowed to assume the deploy role, in owner/name format."
+  type        = string
+  default     = "JakubSu/WHOOP"
+}
+
+variable "github_actions_environment" {
+  description = "GitHub Actions environment name allowed to assume the deploy role."
+  type        = string
+  default     = "production"
+}
+
 variable "ec2_availability_zone" {
   description = "Optional EC2 availability zone. Leave null to use the first available zone in the AWS region."
   type        = string

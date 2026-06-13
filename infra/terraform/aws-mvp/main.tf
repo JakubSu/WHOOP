@@ -2,6 +2,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
 locals {
   availability_zone    = coalesce(var.ec2_availability_zone, data.aws_availability_zones.available.names[0])
   ec2_key_pair_name    = coalesce(var.ec2_key_pair_name, var.lightsail_ssh_key_pair_name)
@@ -10,6 +14,7 @@ locals {
   cloudflare_zone_name = trimsuffix(var.cloudflare_zone_name, ".")
   app_url              = "https://${local.domain_name}"
   ssm_parameter_prefix = "/${var.project_name}/${var.environment}"
+  github_actions_sub   = "repo:${var.github_repository}:environment:${var.github_actions_environment}"
   common_tags = merge(
     {
       Project     = var.project_name
@@ -25,6 +30,10 @@ data "cloudflare_zone" "app" {
 }
 
 data "cloudflare_ip_ranges" "cloudflare" {
+}
+
+data "tls_certificate" "github_actions" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 resource "aws_ssm_parameter" "django_secret_key" {
@@ -106,4 +115,87 @@ resource "cloudflare_record" "app" {
   type    = "A"
   proxied = true
   ttl     = 1
+}
+
+resource "aws_iam_openid_connect_provider" "github_actions" {
+  url = "https://token.actions.githubusercontent.com"
+
+  client_id_list = [
+    "sts.amazonaws.com",
+  ]
+
+  thumbprint_list = [
+    data.tls_certificate.github_actions.certificates[0].sha1_fingerprint,
+  ]
+
+  tags = local.common_tags
+}
+
+data "aws_iam_policy_document" "github_actions_assume_role" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "sts:AssumeRoleWithWebIdentity",
+    ]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = [local.github_actions_sub]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_actions_deploy" {
+  name               = "${var.project_name}-${var.environment}-github-actions-deploy"
+  assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
+
+  tags = local.common_tags
+}
+
+data "aws_iam_policy_document" "github_actions_deploy" {
+  statement {
+    sid    = "SendSsmRunCommandToBackend"
+    effect = "Allow"
+
+    actions = [
+      "ssm:SendCommand",
+    ]
+
+    resources = [
+      "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}::document/AWS-RunShellScript",
+      "arn:${data.aws_partition.current.partition}:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:instance/${module.backend.instance_id}",
+    ]
+  }
+
+  statement {
+    sid    = "ReadSsmCommandStatus"
+    effect = "Allow"
+
+    actions = [
+      "ssm:GetCommandInvocation",
+      "ssm:ListCommandInvocations",
+      "ssm:ListCommands",
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "github_actions_deploy" {
+  name   = "${var.project_name}-${var.environment}-github-actions-deploy"
+  role   = aws_iam_role.github_actions_deploy.id
+  policy = data.aws_iam_policy_document.github_actions_deploy.json
 }
