@@ -19,6 +19,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+$env:AWS_CLI_FILE_ENCODING = "utf-8"
 
 function Invoke-NativeCommand {
     param(
@@ -66,12 +72,14 @@ $quotedArgs = @(
 ) -join " "
 
 $remoteCommand = @'
+bash -lc '
 set -euo pipefail
 script_path="/tmp/bootstrap_backend.sh"
-printf '%s' '__SCRIPT_BASE64__' | base64 -d > "$script_path"
-tr -d '\r' < "$script_path" > "${script_path}.unix"
-chmod +x "${script_path}.unix"
-sudo bash "${script_path}.unix" __BOOTSTRAP_ARGS__
+printf '"'"'%s'"'"' '"'"'__SCRIPT_BASE64__'"'"' | base64 -d > "$script_path"
+tr -d '"'"'\r'"'"' < "$script_path" > "$script_path.unix"
+chmod +x "$script_path.unix"
+sudo bash "$script_path.unix" __BOOTSTRAP_ARGS__
+'
 '@
 $remoteCommand = $remoteCommand.Replace("__SCRIPT_BASE64__", $scriptBase64).Replace("__BOOTSTRAP_ARGS__", $quotedArgs)
 
