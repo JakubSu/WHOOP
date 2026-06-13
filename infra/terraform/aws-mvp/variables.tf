@@ -16,39 +16,25 @@ variable "environment" {
   default     = "prod"
 }
 
-variable "github_repository" {
-  description = "GitHub repository URL connected to AWS Amplify."
+variable "domain_name" {
+  description = "Public application domain name, for example app.example.com."
   type        = string
 }
 
-variable "github_oauth_token" {
-  description = "GitHub OAuth token used by AWS Amplify to access the repository."
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with permission to read the zone and manage DNS records."
   type        = string
   sensitive   = true
 }
 
-variable "amplify_branch_name" {
-  description = "Git branch Amplify should build and deploy."
+variable "cloudflare_zone_name" {
+  description = "Cloudflare zone name, for example example.com."
   type        = string
-  default     = "main"
 }
 
-variable "amplify_environment_variables" {
-  description = "Additional environment variables injected into the Amplify build."
-  type        = map(string)
-  default     = {}
-}
-
-variable "auto_build_enabled" {
-  description = "Whether Amplify should auto-build on pushes to the configured branch."
-  type        = bool
-  default     = true
-}
-
-variable "auto_branch_deletion_enabled" {
-  description = "Whether Amplify should delete preview branches automatically after branch deletion."
-  type        = bool
-  default     = true
+variable "cloudflare_record_name" {
+  description = "Cloudflare DNS record name, for example app for app.example.com or @ for the zone apex."
+  type        = string
 }
 
 variable "ec2_availability_zone" {
@@ -58,7 +44,7 @@ variable "ec2_availability_zone" {
 }
 
 variable "ec2_instance_type" {
-  description = "EC2 instance type for the backend host."
+  description = "EC2 instance type for the Docker Compose host."
   type        = string
   default     = "t3.micro"
 }
@@ -70,21 +56,21 @@ variable "ec2_key_pair_name" {
 }
 
 variable "ec2_vpc_cidr_block" {
-  description = "CIDR block for the dedicated backend VPC."
+  description = "CIDR block for the dedicated application VPC."
   type        = string
   default     = "10.42.0.0/16"
 }
 
 variable "ec2_subnet_cidr_block" {
-  description = "CIDR block for the public backend subnet."
+  description = "CIDR block for the public application subnet."
   type        = string
   default     = "10.42.1.0/24"
 }
 
 variable "ec2_root_volume_size_gb" {
-  description = "Root EBS volume size for the backend instance in GiB."
+  description = "Root EBS volume size for the Docker Compose host in GiB."
   type        = number
-  default     = 16
+  default     = 24
 }
 
 variable "ec2_snapshot_retention_count" {
@@ -116,47 +102,34 @@ variable "lightsail_snapshot_time_of_day" {
   default     = null
 }
 
-variable "secrets_manager_recovery_window_in_days" {
-  description = "Recovery window for deleting the Secrets Manager secret."
-  type        = number
-  default     = 7
+variable "django_secret_key" {
+  description = "Production Django SECRET_KEY written to SSM Parameter Store."
+  type        = string
+  sensitive   = true
 }
 
 variable "openai_api_key" {
-  description = "Production OpenAI API key written to AWS Secrets Manager without persisting the value in Terraform state."
+  description = "Production OpenAI API key written to SSM Parameter Store."
   type        = string
   sensitive   = true
-  ephemeral   = true
 }
 
-variable "openai_api_key_version" {
-  description = "Monotonic version number for rotating the write-only OpenAI API key secret."
-  type        = number
-  default     = 1
-}
-
-variable "openai_model" {
-  description = "Default OpenAI model name written to the backend .env file."
+variable "whoop_client_secret" {
+  description = "Production WHOOP OAuth client secret written to SSM Parameter Store."
   type        = string
-  default     = "gpt-4.1-mini"
+  sensitive   = true
 }
 
-variable "whoop_frontend_success_path" {
-  description = "Frontend path used after WHOOP OAuth success."
+variable "whoop_token_encryption_key" {
+  description = "Production Fernet key used to encrypt WHOOP tokens, written to SSM Parameter Store."
   type        = string
-  default     = "/connect-whoop/success"
+  sensitive   = true
 }
 
-variable "additional_cors_allowed_origins" {
-  description = "Extra backend CORS origins to allow in addition to the Amplify branch URL."
-  type        = list(string)
-  default     = []
-}
-
-variable "additional_whoop_frontend_allowed_origins" {
-  description = "Extra frontend origins allowed by WHOOP-specific backend settings in addition to the Amplify branch URL."
-  type        = list(string)
-  default     = []
+variable "postgres_password" {
+  description = "Production Postgres password written to SSM Parameter Store."
+  type        = string
+  sensitive   = true
 }
 
 variable "tags" {

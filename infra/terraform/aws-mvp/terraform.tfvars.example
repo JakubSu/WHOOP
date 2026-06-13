@@ -1,20 +1,20 @@
-aws_region            = "us-east-1"
-project_name          = "whoop-ai-coach"
-environment           = "prod"
-github_repository     = "https://github.com/JakubSu/WHOOP"
-github_oauth_token    = "replace-me"
-amplify_branch_name   = "main"
-ec2_key_pair_name     = "your-ec2-keypair"
+aws_region              = "us-east-1"
+project_name            = "whoop-ai-coach"
+environment             = "prod"
+domain_name             = "app.example.com"
+cloudflare_zone_name    = "example.com"
+cloudflare_record_name  = "app"
+ec2_key_pair_name       = "your-ec2-keypair"
 allowed_ssh_cidr_blocks = ["203.0.113.10/32"]
-openai_api_key_version  = 1
 
-amplify_environment_variables = {
-  NODE_ENV = "production"
-}
-
-additional_cors_allowed_origins = []
-
-additional_whoop_frontend_allowed_origins = []
+# Store real values outside source control. These values are written to SSM
+# Parameter Store as SecureString parameters during terraform apply.
+cloudflare_api_token        = "replace-me"
+django_secret_key           = "replace-me"
+openai_api_key              = "replace-me"
+whoop_client_secret         = "replace-me"
+whoop_token_encryption_key  = "replace-me"
+postgres_password           = "replace-me"
 
 tags = {
   Owner = "platform"

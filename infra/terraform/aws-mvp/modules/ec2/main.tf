@@ -29,10 +29,24 @@ data "aws_iam_policy_document" "ec2_assume_role" {
   }
 }
 
-data "aws_iam_policy_document" "openai_secret_access" {
+data "aws_iam_policy_document" "ssm_parameter_access" {
   statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.openai_secret_arn]
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+    ]
+    resources = var.ssm_parameter_arns
+  }
+
+  statement {
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${var.aws_region}.amazonaws.com"]
+    }
   }
 }
 
@@ -88,23 +102,25 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "backend" {
   name        = "${var.instance_name}-sg"
-  description = "Public ingress for backend web traffic and restricted SSH."
+  description = "Cloudflare web ingress and restricted SSH."
   vpc_id      = aws_vpc.this.id
 
   ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "HTTP from Cloudflare proxy"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = var.cloudflare_ipv4_cidrs
+    ipv6_cidr_blocks = var.cloudflare_ipv6_cidrs
   }
 
   ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "HTTPS from Cloudflare proxy"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = var.cloudflare_ipv4_cidrs
+    ipv6_cidr_blocks = var.cloudflare_ipv6_cidrs
   }
 
   ingress {
@@ -133,10 +149,10 @@ resource "aws_iam_role" "ec2" {
   tags = var.tags
 }
 
-resource "aws_iam_role_policy" "openai_secret_access" {
-  name   = "${var.instance_name}-openai-secret-access"
+resource "aws_iam_role_policy" "ssm_parameter_access" {
+  name   = "${var.instance_name}-ssm-parameter-access"
   role   = aws_iam_role.ec2.id
-  policy = data.aws_iam_policy_document.openai_secret_access.json
+  policy = data.aws_iam_policy_document.ssm_parameter_access.json
 }
 
 resource "aws_iam_instance_profile" "ec2" {
@@ -157,14 +173,7 @@ resource "aws_instance" "this" {
   user_data_replace_on_change = true
 
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
-    app_directory                  = "/var/www/backend"
-    aws_region                     = var.aws_region
-    cors_allowed_origins           = join(",", distinct(var.cors_allowed_origins))
-    django_user                    = "django"
-    openai_model                   = var.openai_model
-    openai_secret_arn              = var.openai_secret_arn
-    whoop_frontend_allowed_origins = join(",", distinct(var.whoop_frontend_allowed_origins))
-    whoop_frontend_success_url     = var.whoop_frontend_success_url
+    app_directory = var.app_directory
   })
 
   root_block_device {

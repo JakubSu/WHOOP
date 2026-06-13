@@ -4,31 +4,11 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 APP_DIRECTORY="${app_directory}"
-APP_USER="${django_user}"
-ENV_FILE="${app_directory}/.env"
-AWS_REGION="${aws_region}"
-OPENAI_SECRET_ARN="${openai_secret_arn}"
 
 apt-get update
-apt-get install -y awscli jq
+apt-get install -y awscli docker.io docker-compose-v2 git
 
-if ! id -u "$APP_USER" >/dev/null 2>&1; then
-  useradd --system --home-dir "$APP_DIRECTORY" --shell /usr/sbin/nologin "$APP_USER"
-fi
+systemctl enable --now docker
 
 mkdir -p "$APP_DIRECTORY"
-chown "$APP_USER:$APP_USER" "$APP_DIRECTORY"
-
-OPENAI_API_KEY="$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$OPENAI_SECRET_ARN" --query SecretString --output text)"
-
-{
-  printf 'AI_LLM_PROVIDER=%s\n' 'openai'
-  printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"
-  printf 'OPENAI_MODEL=%s\n' '${openai_model}'
-  printf 'CORS_ALLOWED_ORIGINS=%s\n' '${cors_allowed_origins}'
-  printf 'WHOOP_FRONTEND_ALLOWED_ORIGINS=%s\n' '${whoop_frontend_allowed_origins}'
-  printf 'WHOOP_FRONTEND_SUCCESS_URL=%s\n' '${whoop_frontend_success_url}'
-} >"$ENV_FILE"
-
-chown "$APP_USER:$APP_USER" "$ENV_FILE"
-chmod 600 "$ENV_FILE"
+chown ubuntu:ubuntu "$APP_DIRECTORY"

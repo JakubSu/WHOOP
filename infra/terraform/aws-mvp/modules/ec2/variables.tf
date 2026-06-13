@@ -8,8 +8,13 @@ variable "instance_name" {
   type        = string
 }
 
+variable "app_directory" {
+  description = "Directory on the EC2 instance where the Docker Compose app will be deployed."
+  type        = string
+}
+
 variable "availability_zone" {
-  description = "Availability zone for the backend subnet and instance."
+  description = "Availability zone for the application subnet and instance."
   type        = string
 }
 
@@ -28,38 +33,28 @@ variable "allowed_ssh_cidr_blocks" {
   type        = list(string)
 }
 
-variable "openai_secret_arn" {
-  description = "ARN of the Secrets Manager secret containing the OpenAI API key."
-  type        = string
-}
-
-variable "openai_model" {
-  description = "Default OpenAI model stored on the backend host."
-  type        = string
-}
-
-variable "cors_allowed_origins" {
-  description = "Origins allowed by Django CORS configuration."
+variable "cloudflare_ipv4_cidrs" {
+  description = "Cloudflare IPv4 CIDR ranges allowed to reach web ports."
   type        = list(string)
 }
 
-variable "whoop_frontend_allowed_origins" {
-  description = "Origins allowed by WHOOP-specific frontend validation."
+variable "cloudflare_ipv6_cidrs" {
+  description = "Cloudflare IPv6 CIDR ranges allowed to reach web ports."
   type        = list(string)
 }
 
-variable "whoop_frontend_success_url" {
-  description = "Frontend URL used after WHOOP OAuth success."
-  type        = string
+variable "ssm_parameter_arns" {
+  description = "SSM parameters the EC2 instance can read."
+  type        = list(string)
 }
 
 variable "vpc_cidr_block" {
-  description = "CIDR block for the dedicated backend VPC."
+  description = "CIDR block for the dedicated application VPC."
   type        = string
 }
 
 variable "subnet_cidr_block" {
-  description = "CIDR block for the backend public subnet."
+  description = "CIDR block for the application public subnet."
   type        = string
 }
 
