@@ -9,23 +9,23 @@ POST {{baseUrl}}/training-plans/
 Content-Type: application/json
 
 {
-  "user_id": "demo-user",
   "name": "Strength Block",
-  "goal": "Build strength",
-  "status": "active",
-  "notes": "Eight-week base plan"
+  "start_date": "2026-06-01",
+  "end_date": "2026-07-27"
 }
 
 ### Get training plan
 GET {{baseUrl}}/training-plans/{{trainingPlanId}}/
+
+### List workouts for training plan
+GET {{baseUrl}}/training-plans/{{trainingPlanId}}/workouts/
 
 ### Update training plan
 PATCH {{baseUrl}}/training-plans/{{trainingPlanId}}/
 Content-Type: application/json
 
 {
-  "notes": "Updated after coach review",
-  "status": "paused"
+  "end_date": "2026-08-03"
 }
 
 ### Delete training plan

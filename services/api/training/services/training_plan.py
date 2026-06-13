@@ -1,6 +1,8 @@
 from typing import Any
 
-from training.models import TrainingPlan
+from django.db.models import Count
+
+from training.models import TrainingPlan, Workout
 
 
 def list_training_plans(user_id: str) -> list[TrainingPlan]:
@@ -12,6 +14,14 @@ def get_training_plan(training_plan_id: str, user_id: str) -> TrainingPlan | Non
         return TrainingPlan.objects.get(pk=training_plan_id, user_id=user_id)
     except TrainingPlan.DoesNotExist:
         return None
+
+
+def list_plan_workouts(training_plan_id: str, user_id: str) -> list[Workout]:
+    return list(
+        Workout.objects.filter(plan_id=training_plan_id, user_id=user_id)
+        .annotate(exercise_count=Count("workout_exercises"))
+        .order_by("-date", "name")
+    )
 
 
 def create_training_plan(data: dict[str, Any], *, user_id: str) -> TrainingPlan:
@@ -39,11 +49,8 @@ def _normalized_training_plan_payload(
     payload: dict[str, Any] = {}
     fields = (
         "name",
-        "goal",
         "start_date",
         "end_date",
-        "status",
-        "notes",
     )
 
     for field in fields:

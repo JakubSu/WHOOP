@@ -1,4 +1,3 @@
-from decimal import Decimal
 import uuid
 
 from django.db import models
@@ -12,25 +11,17 @@ class WorkoutExercise(models.Model):
     exercise = models.ForeignKey(
         "training.Exercise", on_delete=models.PROTECT, related_name="workout_exercises"
     )
-    position = models.PositiveIntegerField(default=1)
     sets = models.PositiveIntegerField(default=0)
     reps = models.PositiveIntegerField(default=0)
-    duration_seconds = models.PositiveIntegerField(default=0)
-    distance = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
-    load = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"))
-    intensity = models.CharField(max_length=64, blank=True, default="")
-    rest_seconds = models.PositiveIntegerField(default=0)
-    notes = models.TextField(blank=True, default="")
+    time = models.PositiveIntegerField(default=0)
+    weight = models.DecimalField(max_digits=7, decimal_places=2, blank=True, null=True)
+    weight_unit = models.CharField(max_length=16, default="lb")
+    note = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["workout", "position"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["workout", "position"], name="unique_workout_exercise_position"
-            )
-        ]
+        ordering = ["workout", "exercise__name"]
 
     def __str__(self) -> str:
-        return f"{self.workout.name} #{self.position}"
+        return f"{self.workout.name}: {self.exercise.name}"

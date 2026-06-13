@@ -38,12 +38,47 @@ class WhoopApiViewTests(TestCase):
                 "connect_url": "https://api.prod.whoop.com/oauth/oauth2/auth?state=secure-state",
             },
         )
-        service.execute.assert_called_once_with(user_id=str(self.user.id))
+        service.execute.assert_called_once_with(
+            user_id=str(self.user.id),
+            frontend_success_url="",
+        )
+
+    @patch("whoop.api.views.services.create_build_connect_url_service")
+    def test_connect_url_forwards_frontend_success_url(self, factory: MagicMock) -> None:
+        service = MagicMock()
+        service.execute.return_value = {
+            "state": "secure-state",
+            "connect_url": "https://api.prod.whoop.com/oauth/oauth2/auth?state=secure-state",
+        }
+        factory.return_value = service
+
+        response = self.client.get(
+            reverse("whoop-connect-url"),
+            {"success_url": "http://localhost:5173/connect-whoop/success"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        service.execute.assert_called_once_with(
+            user_id=str(self.user.id),
+            frontend_success_url="http://localhost:5173/connect-whoop/success",
+        )
+
+    @patch("whoop.api.views.services.create_build_connect_url_service")
+    def test_connect_url_returns_validation_error(self, factory: MagicMock) -> None:
+        service = MagicMock()
+        service.execute.side_effect = ValueError("Missing frontend success URL.")
+        factory.return_value = service
+
+        response = self.client.get(reverse("whoop-connect-url"))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"detail": "Missing frontend success URL."})
 
     @patch("whoop.api.views.services.create_complete_connection_service")
     @override_settings(WHOOP_FRONTEND_SUCCESS_URL="")
     def test_callback_completes_connection(self, factory: MagicMock) -> None:
         service = MagicMock()
+        service.execute.return_value = MagicMock(frontend_success_url="")
         factory.return_value = service
 
         client = APIClient()
@@ -58,6 +93,46 @@ class WhoopApiViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"connected": True})
         service.execute.assert_called_once_with(state="secure-state", code="code-123")
+
+    @patch("whoop.api.views.services.create_complete_connection_service")
+    @override_settings(WHOOP_FRONTEND_SUCCESS_URL="")
+    def test_callback_redirects_to_state_bound_frontend_success_url(self, factory: MagicMock) -> None:
+        service = MagicMock()
+        service.execute.return_value = MagicMock(
+            frontend_success_url="http://localhost:5173/connect-whoop/success?whoop=connected"
+        )
+        factory.return_value = service
+
+        client = APIClient()
+        response = client.get(
+            reverse("whoop-callback"),
+            {"code": "code-123", "state": "secure-state"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            "http://localhost:5173/connect-whoop/success?whoop=connected",
+        )
+
+    @patch("whoop.api.views.services.create_complete_connection_service")
+    @override_settings(WHOOP_FRONTEND_SUCCESS_URL="http://localhost:5173/connect-whoop/success")
+    def test_callback_uses_global_fallback_when_state_has_no_success_url(self, factory: MagicMock) -> None:
+        service = MagicMock()
+        service.execute.return_value = MagicMock(frontend_success_url="")
+        factory.return_value = service
+
+        client = APIClient()
+        response = client.get(
+            reverse("whoop-callback"),
+            {"code": "code-123", "state": "secure-state"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            "http://localhost:5173/connect-whoop/success",
+        )
 
     @patch("whoop.api.views.services.create_complete_connection_service")
     def test_callback_rejects_invalid_state(self, factory: MagicMock) -> None:

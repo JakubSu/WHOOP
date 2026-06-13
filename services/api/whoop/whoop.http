@@ -3,9 +3,10 @@
 @csrfToken = replace-me
 @oauthCode = replace-me
 @oauthState = replace-me
+@frontendSuccessUrl = http://localhost:5173/connect-whoop/success
 
 ### Connect WHOOP
-GET {{baseUrl}}/whoop/connect/
+GET {{baseUrl}}/whoop/connect-url/?success_url={{frontendSuccessUrl}}
 Cookie: {{sessionCookie}}
 
 ### WHOOP OAuth callback
@@ -20,4 +21,3 @@ Cookie: {{sessionCookie}}
 POST {{baseUrl}}/whoop/disconnect/
 Cookie: {{sessionCookie}}
 X-CSRFToken: {{csrfToken}}
-

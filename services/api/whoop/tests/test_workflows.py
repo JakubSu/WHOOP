@@ -28,6 +28,7 @@ from whoop.whoop_api.dto import (
     Workout,
 )
 from whoop.workflows.summary import GetWhoopSummaryService, WhoopApiServices
+from whoop.workflows.connection import DisconnectWhoopService
 
 
 @override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("utf-8"))
@@ -99,6 +100,37 @@ class WhoopSummaryWorkflowTests(TestCase):
         self.api_services_factory.assert_called_once_with("new-token")
         self.assertEqual(summary["recovery_score"], 72.0)
         self.assertEqual(summary["recent_workout_count"], 1)
+
+
+@override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("utf-8"))
+class DisconnectWhoopWorkflowTests(TestCase):
+    def test_disconnect_revokes_connection_and_clears_profile_whoop_id(self) -> None:
+        User = cast(Any, get_user_model())
+        user = User.objects.create_user(
+            email="disconnect@example.com",
+            password="password",
+            whoop_user_id="10129",
+        )
+        connection_repository = WhoopConnectionRepository(TokenCrypto())
+        connection = connection_repository.save_connection(
+            user_id=str(user.id),
+            whoop_user_id=10129,
+            token=WhoopToken(access_token="access-token"),
+        )
+        auth_service = MagicMock()
+        service = DisconnectWhoopService(
+            auth_service=auth_service,
+            connection_repository=connection_repository,
+        )
+
+        disconnected = service.execute(str(user.id))
+
+        self.assertTrue(disconnected)
+        auth_service.revoke_user_access.assert_called_once_with("access-token")
+        connection.refresh_from_db()
+        user.refresh_from_db()
+        self.assertIsNotNone(connection.revoked_at)
+        self.assertEqual(user.whoop_user_id, "")
 
 
 def _api_services() -> WhoopApiServices:

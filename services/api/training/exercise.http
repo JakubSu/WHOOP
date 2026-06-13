@@ -11,12 +11,11 @@ Content-Type: application/json
 
 {
   "name": "Push-Up",
-  "category": "strength",
-  "primary_muscle_group": "chest",
-  "equipment": "bodyweight",
   "default_sets": 3,
   "default_reps": 10,
-  "is_favorite": true
+  "muscle_group": "chest",
+  "default_time": 0,
+  "notes": "Keep ribs down"
 }
 
 ###

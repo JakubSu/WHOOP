@@ -4,7 +4,12 @@ from users.services.authentication import (
     RefreshSessionService,
     RegisterUserService,
 )
-from users.services.profile import GetProfileService, SetWhoopUserIdService, UpdateProfileService
+from users.services.profile import (
+    ClearWhoopUserIdService,
+    GetProfileService,
+    SetWhoopUserIdService,
+    UpdateProfileService,
+)
 
 __all__ = [
     "AuthenticateUserService",
@@ -12,6 +17,7 @@ __all__ = [
     "RefreshSessionService",
     "RegisterUserService",
     "GetProfileService",
+    "ClearWhoopUserIdService",
     "SetWhoopUserIdService",
     "UpdateProfileService",
 ]

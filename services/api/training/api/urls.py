@@ -5,12 +5,12 @@ from training.api.views import (
     ExerciseDetailAPIView,
     TrainingPlanCollectionAPIView,
     TrainingPlanDetailAPIView,
+    TrainingPlanWorkoutCollectionAPIView,
     WorkoutCollectionAPIView,
     WorkoutDetailAPIView,
+    WorkoutExercisePageCollectionAPIView,
     WorkoutExerciseCollectionAPIView,
     WorkoutExerciseDetailAPIView,
-    WorkoutSnapshotCollectionAPIView,
-    WorkoutSnapshotDetailAPIView,
 )
 
 
@@ -19,10 +19,10 @@ urlpatterns = [
     path("exercises/<uuid:pk>/", ExerciseDetailAPIView.as_view(), name="exercise-detail"),
     path("training-plans/", TrainingPlanCollectionAPIView.as_view(), name="training-plan-collection"),
     path("training-plans/<uuid:pk>/", TrainingPlanDetailAPIView.as_view(), name="training-plan-detail"),
+    path("training-plans/<uuid:pk>/workouts/", TrainingPlanWorkoutCollectionAPIView.as_view(), name="training-plan-workout-collection"),
     path("workouts/", WorkoutCollectionAPIView.as_view(), name="workout-collection"),
     path("workouts/<uuid:pk>/", WorkoutDetailAPIView.as_view(), name="workout-detail"),
-    path("workout-snapshots/", WorkoutSnapshotCollectionAPIView.as_view(), name="workout-snapshot-collection"),
-    path("workout-snapshots/<uuid:pk>/", WorkoutSnapshotDetailAPIView.as_view(), name="workout-snapshot-detail"),
+    path("workouts/<uuid:pk>/exercises/", WorkoutExercisePageCollectionAPIView.as_view(), name="workout-exercise-page-collection"),
     path("workout-exercises/", WorkoutExerciseCollectionAPIView.as_view(), name="workout-exercise-collection"),
     path("workout-exercises/<uuid:pk>/", WorkoutExerciseDetailAPIView.as_view(), name="workout-exercise-detail"),
 ]

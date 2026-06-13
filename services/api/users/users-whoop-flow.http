@@ -2,10 +2,11 @@
 @email = athlete@example.com
 @password = strong-password-123
 @displayName = Athlete
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgwODU1MzA3LCJpYXQiOjE3ODA4NTQ0MDcsImp0aSI6ImZlM2U0OTE1MDEzNzQzYjViZWE3NTEyN2Y3ZmQ3ZTU4IiwidXNlcl9pZCI6ImE1NTlhNzViLThjNTUtNGE0MS1hMmM4LWJkMTViOWMyZDhhMyJ9.n2BxZjb7pKNveEv4WQubV_66D2VQPmyMBhfBeXevvAY
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgxMTMzMTc1LCJpYXQiOjE3ODExMzIyNzYsImp0aSI6ImU0NTVlYzNiZjZjZjRmNmZiODIxYzY5YzFjMTJhNTM0IiwidXNlcl9pZCI6ImE1NTlhNzViLThjNTUtNGE0MS1hMmM4LWJkMTViOWMyZDhhMyJ9.vO3m8Zg2QeK4l6IAaGY5pCl6K4hjLWykp9hSPEOJ0D0
 @refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc4MTQ1Nzc4OCwiaWF0IjoxNzgwODUyOTg4LCJqdGkiOiJlOGFlOTNmYTlhZjY0NzljYTlmZDlmYWY4MWFmMWQxMSIsInVzZXJfaWQiOiJhNTU5YTc1Yi04YzU1LTRhNDEtYTJjOC1iZDE1YjljMmQ4YTMifQ.8vl3UYS4rrzvfm2vRqYz5WZTUOuOX3XMuzyQWMIVdnw
 @oauthCode = replace-after-whoop-authorize
 @oauthState = replace-after-connect-url
+@frontendSuccessUrl = http://localhost:5173/connect-whoop/success
 
 ### Register user
 POST {{baseUrl}}/users/register/
@@ -42,7 +43,7 @@ Authorization: Bearer {{accessToken}}
 # Copy the access token from login into @accessToken before running this request.
 # Open the returned connect_url in a browser to authorize with WHOOP.
 # Copy the returned state into @oauthState.
-GET {{baseUrl}}/whoop/connect-url/
+GET {{baseUrl}}/whoop/connect-url/?success_url={{frontendSuccessUrl}}
 Authorization: Bearer {{accessToken}}
 
 ### WHOOP OAuth callback

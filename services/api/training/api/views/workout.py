@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from training import services
-from training.api.serializers import WorkoutSerializer
+from training.api.serializers import WorkoutExercisePageSerializer, WorkoutSerializer
 from training.api.views.helpers import validated_data_as_dict
 
 
@@ -67,3 +67,14 @@ class WorkoutDetailAPIView(APIView):
             raise NotFound()
         services.delete_workout(workout)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WorkoutExercisePageCollectionAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request: Request, pk: str) -> Response:
+        workout = services.get_workout(pk, str(request.user.id))
+        if workout is None:
+            raise NotFound()
+        workout_exercises = services.list_workout_exercises_for_workout(pk, str(request.user.id))
+        return Response(WorkoutExercisePageSerializer(workout_exercises, many=True).data)

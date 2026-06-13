@@ -1,5 +1,6 @@
 @baseUrl = http://127.0.0.1:8000/api/v1
 @workoutId = 13c53a4d-f6ca-42cd-adf4-e65f9c919868
+@trainingPlanId = 11111111-1111-1111-1111-111111111111
 
 ### List workouts
 GET {{baseUrl}}/workouts/
@@ -9,25 +10,24 @@ POST {{baseUrl}}/workouts/
 Content-Type: application/json
 
 {
-  "user_id": "demo-user",
+  "plan": "{{trainingPlanId}}",
   "name": "Upper Body Strength",
-  "workout_type": "strength",
-  "status": "planned",
-  "planned_intensity": "moderate",
-  "planned_duration_minutes": 45,
-  "notes": "First draft workout"
+  "date": "2026-06-09",
+  "expected_time": 45
 }
 
 ### Get workout
 GET {{baseUrl}}/workouts/{{workoutId}}/
+
+### List exercises for workout
+GET {{baseUrl}}/workouts/{{workoutId}}/exercises/
 
 ### Update workout
 PATCH {{baseUrl}}/workouts/{{workoutId}}/
 Content-Type: application/json
 
 {
-  "status": "completed",
-  "actual_strain": 12.5
+  "expected_time": 60
 }
 
 ### Delete workout

@@ -57,6 +57,7 @@ def create_build_connect_url_service() -> BuildWhoopConnectUrlService:
         auth_service=create_auth_service(),
         oauth_state_repository=create_oauth_state_repository(),
         oauth_state_ttl_seconds=settings.WHOOP_OAUTH_STATE_TTL_SECONDS,
+        allowed_frontend_origins=set(settings.WHOOP_FRONTEND_ALLOWED_ORIGINS),
     )
 
 

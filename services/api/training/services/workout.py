@@ -1,7 +1,5 @@
 from typing import Any
 
-from django.utils import timezone
-
 from training.models import TrainingPlan, Workout
 
 
@@ -43,21 +41,15 @@ def _normalized_workout_payload(
     user_id: str,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {}
-    if "training_plan" in data:
-        payload["training_plan"] = _get_training_plan(data["training_plan"], user_id=user_id)
+    if "plan" in data:
+        payload["plan"] = _get_training_plan(data["plan"], user_id=user_id)
     elif existing is not None:
-        payload["training_plan"] = existing.training_plan
+        payload["plan"] = existing.plan
 
     fields = (
-        "scheduled_date",
         "name",
-        "workout_type",
-        "status",
-        "planned_intensity",
-        "planned_duration_minutes",
-        "completed_at",
-        "actual_strain",
-        "notes",
+        "date",
+        "expected_time",
     )
 
     for field in fields:
@@ -65,12 +57,6 @@ def _normalized_workout_payload(
             payload[field] = data[field]
         elif existing is not None:
             payload[field] = getattr(existing, field)
-
-    if "status" not in payload:
-        payload["status"] = Workout.Status.PLANNED
-
-    if payload.get("status") == Workout.Status.COMPLETED and payload.get("completed_at") is None:
-        payload["completed_at"] = timezone.now()
 
     return payload
 

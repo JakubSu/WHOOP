@@ -10,16 +10,11 @@ class WorkoutExerciseSerializer(serializers.ModelSerializer):
             "id",
             "workout",
             "exercise",
-            "position",
             "sets",
             "reps",
-            "duration_seconds",
-            "distance",
-            "load",
-            "intensity",
-            "rest_seconds",
-            "notes",
-            "created_at",
-            "updated_at",
+            "time",
+            "weight",
+            "weight_unit",
+            "note",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id"]

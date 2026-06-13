@@ -17,9 +17,14 @@ class WhoopConnectAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request: Request) -> Response:
-        payload = services.create_build_connect_url_service().execute(
-            user_id=str(request.user.id)
-        )
+        frontend_success_url = request.query_params.get("success_url", "")
+        try:
+            payload = services.create_build_connect_url_service().execute(
+                user_id=str(request.user.id),
+                frontend_success_url=frontend_success_url,
+            )
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
         return Response(payload)
 
 
@@ -36,9 +41,12 @@ class WhoopCallbackAPIView(APIView):
             raise ValidationError({"detail": "Invalid WHOOP OAuth state."})
 
         try:
-            services.create_complete_connection_service().execute(state=state, code=code)
+            mapping = services.create_complete_connection_service().execute(state=state, code=code)
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
+
+        if mapping.frontend_success_url:
+            return redirect(mapping.frontend_success_url)
         if settings.WHOOP_FRONTEND_SUCCESS_URL:
             return redirect(settings.WHOOP_FRONTEND_SUCCESS_URL)
         return Response({"connected": True})

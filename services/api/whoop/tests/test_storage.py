@@ -10,6 +10,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from whoop.models import WhoopSnapshot
+from whoop.storage.oauth_state_repository import WhoopOAuthStateRepository
 from whoop.storage.connection_repository import WhoopConnectionRepository
 from whoop.storage.snapshot_repository import WhoopSnapshotRepository
 from whoop.storage.token_crypto import TokenCrypto
@@ -30,6 +31,7 @@ class WhoopStorageTests(TestCase):
         self.user = User.objects.create_user(email="whoop@example.com", password="password")
         self.user_id = str(self.user.id)
         self.connection_repository = WhoopConnectionRepository(TokenCrypto())
+        self.oauth_state_repository = WhoopOAuthStateRepository()
         self.snapshot_repository = WhoopSnapshotRepository()
 
     def test_connection_repository_encrypts_and_decrypts_tokens(self) -> None:
@@ -82,3 +84,18 @@ class WhoopStorageTests(TestCase):
 
         self.assertEqual(today, snapshot)
         self.assertEqual(WhoopSnapshot.objects.count(), 1)
+
+    def test_oauth_state_repository_stores_frontend_success_url(self) -> None:
+        mapping = self.oauth_state_repository.create(
+            user_id=self.user_id,
+            frontend_success_url="http://localhost:5173/connect-whoop/success",
+            ttl_seconds=600,
+        )
+
+        consumed = self.oauth_state_repository.consume(state=mapping.state)
+
+        self.assertIsNotNone(consumed)
+        self.assertEqual(
+            consumed.frontend_success_url,
+            "http://localhost:5173/connect-whoop/success",
+        )

@@ -27,6 +27,7 @@ class WhoopOAuthState(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     state = models.CharField(max_length=255, unique=True)
     user_id = models.CharField(max_length=64)
+    frontend_success_url = models.URLField(max_length=2048, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     consumed_at = models.DateTimeField(null=True, blank=True)

@@ -27,6 +27,14 @@ class SetWhoopUserIdService:
         return user
 
 
+class ClearWhoopUserIdService:
+    def execute(self, *, user_id: str) -> Any:
+        user = _get_user(user_id)
+        user.whoop_user_id = ""
+        user.save(update_fields=["whoop_user_id", "updated_at"])
+        return user
+
+
 def _get_user(user_id: str) -> Any:
     User = get_user_model()
     try:

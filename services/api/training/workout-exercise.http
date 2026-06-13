@@ -13,11 +13,11 @@ Content-Type: application/json
 {
   "workout": "{{workoutId}}",
   "exercise": "{{exerciseId}}",
-  "position": 1,
   "sets": 3,
   "reps": 10,
-  "rest_seconds": 60,
-  "notes": "First movement in the session"
+  "weight": "95.00",
+  "weight_unit": "lb",
+  "note": "First movement in the session"
 }
 
 ### Get workout exercise
@@ -29,7 +29,9 @@ Content-Type: application/json
 
 {
   "sets": 4,
-  "reps": 8
+  "reps": 8,
+  "weight": "105.00",
+  "weight_unit": "lb"
 }
 
 ### Delete workout exercise

@@ -42,16 +42,12 @@ def _normalized_payload(data: dict[str, Any], existing: Exercise | None = None) 
     payload: dict[str, Any] = {}
     fields = (
         "name",
-        "category",
-        "primary_muscle_group",
-        "secondary_muscle_groups",
-        "equipment",
-        "default_intensity",
-        "notes",
+        "prescription_type",
         "default_sets",
         "default_reps",
-        "is_favorite",
-        "is_avoided",
+        "muscle_group",
+        "default_time",
+        "notes",
     )
 
     for field in fields:
@@ -60,14 +56,13 @@ def _normalized_payload(data: dict[str, Any], existing: Exercise | None = None) 
         elif existing is not None:
             payload[field] = getattr(existing, field)
 
-    favorite_explicit = "is_favorite" in data
-    avoided_explicit = "is_avoided" in data
-
-    if favorite_explicit and avoided_explicit and data.get("is_favorite") and data.get("is_avoided"):
-        raise ValueError("Exercise cannot be marked favorite and avoided at the same time.")
-    if favorite_explicit and data.get("is_favorite"):
-        payload["is_avoided"] = False
-    elif avoided_explicit and data.get("is_avoided"):
-        payload["is_favorite"] = False
-
+    _validate_exercise_defaults(payload)
     return payload
+
+
+def _validate_exercise_defaults(payload: dict[str, Any]) -> None:
+    prescription_type = payload.get("prescription_type", Exercise.PrescriptionType.STRENGTH)
+    if prescription_type == Exercise.PrescriptionType.TIMED:
+        return
+    if payload.get("default_time", 0) > 0:
+        raise ValueError("Strength exercises cannot use a default time.")

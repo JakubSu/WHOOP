@@ -8,17 +8,25 @@ class WorkoutServiceTests(TestCase):
     user_id = "user-1"
 
     def test_create_workout(self) -> None:
+        starting_count = Workout.objects.count()
+        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
         workout = services.create_workout(
-            {"name": "Upper Body", "workout_type": Workout.Type.STRENGTH},
+            {
+                "plan": str(training_plan.id),
+                "name": "Upper Body",
+                "date": "2026-06-09",
+                "expected_time": 45,
+            },
             user_id=self.user_id,
         )
         self.assertEqual(workout.name, "Upper Body")
+        self.assertEqual(workout.plan, training_plan)
         self.assertEqual(workout.user_id, self.user_id)
-        self.assertEqual(workout.status, Workout.Status.PLANNED)
-        self.assertEqual(Workout.objects.count(), 1)
+        self.assertEqual(str(workout.date), "2026-06-09")
+        self.assertEqual(workout.expected_time, 45)
+        self.assertEqual(Workout.objects.count(), starting_count + 1)
 
-    def test_completed_workout_gets_completed_at(self) -> None:
+    def test_update_workout_expected_time(self) -> None:
         workout = services.create_workout({"name": "Upper Body"}, user_id=self.user_id)
-        updated = services.update_workout(workout, {"status": Workout.Status.COMPLETED}, user_id=self.user_id)
-        self.assertEqual(updated.status, Workout.Status.COMPLETED)
-        self.assertIsNotNone(updated.completed_at)
+        updated = services.update_workout(workout, {"expected_time": 60}, user_id=self.user_id)
+        self.assertEqual(updated.expected_time, 60)

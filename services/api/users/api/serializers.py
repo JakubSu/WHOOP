@@ -13,11 +13,11 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RefreshSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
+    refresh = serializers.CharField(required=False, allow_blank=True)
 
 
 class LogoutSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
+    refresh = serializers.CharField(required=False, allow_blank=True)
 
 
 class ProfileSerializer(serializers.Serializer):

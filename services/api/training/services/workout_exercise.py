@@ -16,6 +16,14 @@ def get_workout_exercise(workout_exercise_id: str, user_id: str) -> WorkoutExerc
         return None
 
 
+def list_workout_exercises_for_workout(workout_id: str, user_id: str) -> list[WorkoutExercise]:
+    return list(
+        WorkoutExercise.objects.select_related("workout", "exercise")
+        .filter(workout_id=workout_id, workout__user_id=user_id)
+        .order_by("created_at", "exercise__name")
+    )
+
+
 def create_workout_exercise(data: dict[str, Any], *, user_id: str) -> WorkoutExercise:
     payload = _normalized_workout_exercise_payload(data, user_id=user_id)
     return WorkoutExercise.objects.create(**payload)
@@ -56,15 +64,12 @@ def _normalized_workout_exercise_payload(
         payload["exercise"] = existing.exercise
 
     fields = (
-        "position",
         "sets",
         "reps",
-        "duration_seconds",
-        "distance",
-        "load",
-        "intensity",
-        "rest_seconds",
-        "notes",
+        "time",
+        "weight",
+        "weight_unit",
+        "note",
     )
 
     for field in fields:
@@ -73,7 +78,26 @@ def _normalized_workout_exercise_payload(
         elif existing is not None:
             payload[field] = getattr(existing, field)
 
+    if "weight_unit" not in payload:
+        payload["weight_unit"] = "lb"
+
+    _validate_workout_exercise_prescription(payload)
     return payload
+
+
+def _validate_workout_exercise_prescription(payload: dict[str, Any]) -> None:
+    exercise = payload.get("exercise")
+    if exercise is None:
+        return
+
+    prescription_type = exercise.prescription_type
+    if prescription_type == Exercise.PrescriptionType.TIMED:
+        if payload.get("sets", 0) > 0 or payload.get("reps", 0) > 0 or payload.get("weight") is not None:
+            raise ValueError("Timed exercises can only use time and note.")
+        return
+
+    if payload.get("time", 0) > 0:
+        raise ValueError("Strength exercises can only use sets, reps, weight, and note.")
 
 
 def _get_workout(workout_value: Workout | str, *, user_id: str) -> Workout:

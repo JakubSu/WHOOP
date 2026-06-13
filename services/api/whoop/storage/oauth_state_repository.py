@@ -9,11 +9,18 @@ from whoop.models import WhoopOAuthState
 
 
 class WhoopOAuthStateRepository:
-    def create(self, *, user_id: str, ttl_seconds: int) -> WhoopOAuthState:
+    def create(
+        self,
+        *,
+        user_id: str,
+        frontend_success_url: str,
+        ttl_seconds: int,
+    ) -> WhoopOAuthState:
         now = timezone.now()
         return WhoopOAuthState.objects.create(
             state=token_urlsafe(32),
             user_id=user_id,
+            frontend_success_url=frontend_success_url,
             expires_at=now + timedelta(seconds=ttl_seconds),
         )
 

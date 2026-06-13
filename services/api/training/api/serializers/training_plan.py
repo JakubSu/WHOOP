@@ -8,14 +8,8 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
         model = TrainingPlan
         fields = [
             "id",
-            "user_id",
             "name",
-            "goal",
             "start_date",
             "end_date",
-            "status",
-            "notes",
-            "created_at",
-            "updated_at",
         ]
-        read_only_fields = ["id", "user_id", "created_at", "updated_at"]
+        read_only_fields = ["id"]
