@@ -6,6 +6,7 @@ This stack provisions the single-instance AWS deployment:
 - HTTPS through Cloudflare proxy mode in front of Caddy
 - Cloudflare proxied app `A` record
 - Production secrets and app parameters in SSM Parameter Store
+- Docker container logs in CloudWatch Logs
 - EC2 IAM role scoped to the app SSM parameters
 - GitHub Actions OIDC role for SSM-based app deployments without stored AWS keys
 - Daily EBS snapshots for the instance root volume
@@ -67,3 +68,9 @@ The role can send SSM Run Command to the provisioned EC2 instance and read comma
 Terraform creates app parameters under `/<project_name>/<environment>`, including SecureString values for secrets and a String value for the WHOOP OAuth client ID. Django reads required values from SSM at startup when `DEBUG=false`; the deployment bootstrap also reads the Postgres password from SSM so the Postgres container can initialize.
 
 SecureString values are sensitive Terraform variables, but Terraform-managed SSM parameter values can still be present in Terraform state. Keep local state files out of source control and prefer a secured remote backend before using this for long-lived production secrets.
+
+## Container Logs
+
+Terraform creates a CloudWatch Logs group at `/<project_name>/<environment>/docker` and grants the EC2 instance role permission to create log streams and publish events inside that group. Docker Compose uses the `awslogs` logging driver for Caddy, Django API, and Postgres containers.
+
+Apply Terraform before deploying app changes that enable CloudWatch logging. The deployment bootstrap writes `CLOUDWATCH_LOG_GROUP` into the instance `.env` file from the SSM parameter prefix.

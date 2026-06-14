@@ -15,6 +15,7 @@ locals {
   app_url              = "https://${local.domain_name}"
   ssm_parameter_prefix = "/${var.project_name}/${var.environment}"
   github_actions_sub   = "repo:${var.github_repository}:environment:${var.github_actions_environment}"
+  cloudwatch_log_group = "${local.ssm_parameter_prefix}/docker"
   common_tags = merge(
     {
       Project     = var.project_name
@@ -93,18 +94,20 @@ resource "aws_ssm_parameter" "postgres_password" {
 module "backend" {
   source = "./modules/ec2"
 
-  allowed_ssh_cidr_blocks  = var.allowed_ssh_cidr_blocks
-  app_directory            = "/opt/whoop-ai-coach"
-  availability_zone        = local.availability_zone
-  aws_region               = var.aws_region
-  cloudflare_ipv4_cidrs    = data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks
-  cloudflare_ipv6_cidrs    = data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks
-  instance_name            = "${var.project_name}-${var.environment}-backend"
-  instance_type            = var.ec2_instance_type
-  key_pair_name            = local.ec2_key_pair_name
-  root_volume_size_gb      = var.ec2_root_volume_size_gb
-  snapshot_retention_count = var.ec2_snapshot_retention_count
-  snapshot_time_utc        = local.snapshot_time_utc
+  allowed_ssh_cidr_blocks       = var.allowed_ssh_cidr_blocks
+  app_directory                 = "/opt/whoop-ai-coach"
+  availability_zone             = local.availability_zone
+  aws_region                    = var.aws_region
+  cloudwatch_log_group_name     = local.cloudwatch_log_group
+  cloudwatch_log_retention_days = var.cloudwatch_log_retention_days
+  cloudflare_ipv4_cidrs         = data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks
+  cloudflare_ipv6_cidrs         = data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks
+  instance_name                 = "${var.project_name}-${var.environment}-backend"
+  instance_type                 = var.ec2_instance_type
+  key_pair_name                 = local.ec2_key_pair_name
+  root_volume_size_gb           = var.ec2_root_volume_size_gb
+  snapshot_retention_count      = var.ec2_snapshot_retention_count
+  snapshot_time_utc             = local.snapshot_time_utc
   ssm_parameter_arns = [
     aws_ssm_parameter.django_secret_key.arn,
     aws_ssm_parameter.openai_api_key.arn,

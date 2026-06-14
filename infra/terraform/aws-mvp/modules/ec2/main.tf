@@ -50,6 +50,20 @@ data "aws_iam_policy_document" "ssm_parameter_access" {
   }
 }
 
+data "aws_iam_policy_document" "cloudwatch_logs_access" {
+  statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:DescribeLogStreams",
+      "logs:PutLogEvents",
+    ]
+    resources = [
+      aws_cloudwatch_log_group.docker.arn,
+      "${aws_cloudwatch_log_group.docker.arn}:*",
+    ]
+  }
+}
+
 data "aws_iam_policy_document" "dlm_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -142,6 +156,13 @@ resource "aws_security_group" "backend" {
   tags = merge(var.tags, { Name = "${var.instance_name}-sg" })
 }
 
+resource "aws_cloudwatch_log_group" "docker" {
+  name              = var.cloudwatch_log_group_name
+  retention_in_days = var.cloudwatch_log_retention_days
+
+  tags = var.tags
+}
+
 resource "aws_iam_role" "ec2" {
   name               = "${var.instance_name}-role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -153,6 +174,12 @@ resource "aws_iam_role_policy" "ssm_parameter_access" {
   name   = "${var.instance_name}-ssm-parameter-access"
   role   = aws_iam_role.ec2.id
   policy = data.aws_iam_policy_document.ssm_parameter_access.json
+}
+
+resource "aws_iam_role_policy" "cloudwatch_logs_access" {
+  name   = "${var.instance_name}-cloudwatch-logs-access"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.cloudwatch_logs_access.json
 }
 
 resource "aws_iam_role_policy_attachment" "ssm_managed_instance_core" {

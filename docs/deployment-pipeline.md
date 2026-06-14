@@ -29,6 +29,7 @@ It deploys application code only. Terraform infrastructure changes are intention
 - The EC2 instance must be registered in AWS Systems Manager and have the `AmazonSSMManagedInstanceCore` policy attached through its instance role.
 - The GitHub deployment identity must be allowed to call `ssm:SendCommand`, `ssm:GetCommandInvocation`, and `ssm:ListCommandInvocations` against the target instance and the `AWS-RunShellScript` document.
 - The EC2 IAM role must already allow reading the required SSM parameters.
+- The EC2 IAM role must already allow publishing Docker logs to the Terraform-managed CloudWatch Logs group.
 - The EC2 host must be able to pull `REPOSITORY_URL`.
 
 ## What Changed

@@ -72,18 +72,12 @@ $quotedArgs = @(
 ) -join " "
 
 $remoteCommand = @'
-bash -lc '
-set -euo pipefail
-script_path="/tmp/bootstrap_backend.sh"
-printf '"'"'%s'"'"' '"'"'__SCRIPT_BASE64__'"'"' | base64 -d > "$script_path"
-tr -d '"'"'\r'"'"' < "$script_path" > "$script_path.unix"
-chmod +x "$script_path.unix"
-sudo bash "$script_path.unix" __BOOTSTRAP_ARGS__
-'
+bash -lc 'set -euo pipefail; script_path="/tmp/bootstrap_backend.sh"; printf '"'"'%s'"'"' '"'"'__SCRIPT_BASE64__'"'"' | base64 -d > "$script_path"; tr -d '"'"'\r'"'"' < "$script_path" > "$script_path.unix"; chmod +x "$script_path.unix"; sudo bash "$script_path.unix" __BOOTSTRAP_ARGS__'
 '@
 $remoteCommand = $remoteCommand.Replace("__SCRIPT_BASE64__", $scriptBase64).Replace("__BOOTSTRAP_ARGS__", $quotedArgs)
 
 $ssmParametersPath = Join-Path ([System.IO.Path]::GetTempPath()) ("whoop-ssm-command-" + [System.Guid]::NewGuid().ToString() + ".json")
+$commandResponsePath = Join-Path ([System.IO.Path]::GetTempPath()) ("whoop-ssm-command-response-" + [System.Guid]::NewGuid().ToString() + ".json")
 $invocationPath = Join-Path ([System.IO.Path]::GetTempPath()) ("whoop-ssm-invocation-" + [System.Guid]::NewGuid().ToString() + ".json")
 
 try {
@@ -105,13 +99,21 @@ try {
         "--document-name", "AWS-RunShellScript",
         "--comment", "Deploy WHOOP app",
         "--parameters", "file://$ssmParametersPath",
-        "--query", "Command.CommandId",
-        "--output", "text"
+        "--output", "json"
     )
 
-    $commandId = (& aws @commandIdArguments).Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commandId)) {
+    [System.IO.File]::WriteAllText(
+        $commandResponsePath,
+        (& aws @commandIdArguments),
+        [System.Text.UTF8Encoding]::new($false)
+    )
+    if ($LASTEXITCODE -ne 0) {
         throw "Failed to start SSM deployment command."
+    }
+    $commandResponse = Get-Content -Raw -Path $commandResponsePath | ConvertFrom-Json
+    $commandId = [string]$commandResponse.Command.CommandId
+    if ([string]::IsNullOrWhiteSpace($commandId)) {
+        throw "Failed to parse SSM deployment command ID."
     }
 
     Write-Host "Started SSM command: $commandId"
@@ -181,6 +183,10 @@ try {
 finally {
     if (Test-Path $ssmParametersPath) {
         Remove-Item -LiteralPath $ssmParametersPath -Force
+    }
+
+    if (Test-Path $commandResponsePath) {
+        Remove-Item -LiteralPath $commandResponsePath -Force
     }
 
     if (Test-Path $invocationPath) {

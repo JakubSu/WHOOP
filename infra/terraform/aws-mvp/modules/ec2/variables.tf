@@ -48,6 +48,16 @@ variable "ssm_parameter_arns" {
   type        = list(string)
 }
 
+variable "cloudwatch_log_group_name" {
+  description = "CloudWatch Logs group where Docker container logs are written."
+  type        = string
+}
+
+variable "cloudwatch_log_retention_days" {
+  description = "How many days to retain Docker container logs in CloudWatch."
+  type        = number
+}
+
 variable "vpc_cidr_block" {
   description = "CIDR block for the dedicated application VPC."
   type        = string

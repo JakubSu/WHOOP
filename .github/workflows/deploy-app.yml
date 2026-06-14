@@ -138,26 +138,34 @@ jobs:
               os.environ["TARGET_BRANCH"],
           ]
           quoted_args = " ".join(shlex.quote(arg) for arg in args)
-          command = f"""bash -lc '
-          set -euo pipefail
-          script_path="/tmp/bootstrap_backend.sh"
-          printf '"'"'%s'"'"' '"'"'{os.environ["SCRIPT_B64"]}'"'"' | base64 -d > "$script_path"
-          tr -d '"'"'\\r'"'"' < "$script_path" > "$script_path.unix"
-          chmod +x "$script_path.unix"
-          sudo bash "$script_path.unix" {quoted_args}
-          '
-          """
+          command = (
+              "bash -lc '"
+              "set -euo pipefail; "
+              'script_path="/tmp/bootstrap_backend.sh"; '
+              f'printf \'"\'"\'%s\'"\'"\' \'"\'"\'{os.environ["SCRIPT_B64"]}\'"\'"\' | base64 -d > "$script_path"; '
+              'tr -d \'"\'"\'\\\\r\'"\'"\' < "$script_path" > "$script_path.unix"; '
+              'chmod +x "$script_path.unix"; '
+              f"sudo bash \"$script_path.unix\" {quoted_args}"
+              "'"
+          )
           print(json.dumps({"commands": [command]}))
           PY
 
-          COMMAND_ID="$(aws ssm send-command \
+          aws ssm send-command \
             --region "$AWS_REGION" \
             --instance-ids "$EC2_INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy WHOOP app from GitHub Actions" \
             --parameters file:///tmp/ssm-commands.json \
-            --query 'Command.CommandId' \
-            --output text)"
+            --output json > /tmp/ssm-send-command.json
+
+          COMMAND_ID="$(python - <<'PY'
+          import json
+          with open('/tmp/ssm-send-command.json', 'r', encoding='utf-8') as fh:
+              payload = json.load(fh)
+          print(payload["Command"]["CommandId"])
+          PY
+          )"
 
           echo "Started SSM command: $COMMAND_ID"
 

@@ -28,6 +28,11 @@ output "ssm_parameter_prefix" {
   value       = local.ssm_parameter_prefix
 }
 
+output "cloudwatch_log_group_name" {
+  description = "CloudWatch Logs group where Docker container logs are written."
+  value       = module.backend.cloudwatch_log_group_name
+}
+
 output "github_actions_role_arn" {
   description = "IAM role ARN for GitHub Actions OIDC-based application deployments."
   value       = aws_iam_role.github_actions_deploy.arn

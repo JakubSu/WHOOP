@@ -97,6 +97,12 @@ variable "ec2_snapshot_time_utc" {
   default     = null
 }
 
+variable "cloudwatch_log_retention_days" {
+  description = "How many days to retain Docker container logs in CloudWatch."
+  type        = number
+  default     = 30
+}
+
 variable "allowed_ssh_cidr_blocks" {
   description = "CIDR blocks allowed to reach the instance over SSH."
   type        = list(string)

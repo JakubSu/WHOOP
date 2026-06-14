@@ -7,3 +7,8 @@ output "instance_id" {
   description = "EC2 instance ID."
   value       = aws_instance.this.id
 }
+
+output "cloudwatch_log_group_name" {
+  description = "CloudWatch Logs group where Docker container logs are written."
+  value       = aws_cloudwatch_log_group.docker.name
+}
