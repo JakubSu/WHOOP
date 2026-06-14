@@ -12,8 +12,18 @@ POSTGRES_USER="${6:-whoop_ai_coach}"
 OPENAI_MODEL="${7:-gpt-4.1-mini}"
 REPOSITORY_URL="${8:?Repository URL is required.}"
 BRANCH="${9:-main}"
+DEPLOY_LOG_DIR="/var/log/whoop-ai-coach"
+DEPLOY_LOG="$DEPLOY_LOG_DIR/deploy.log"
 
 export DEBIAN_FRONTEND=noninteractive
+
+mkdir -p "$DEPLOY_LOG_DIR"
+touch "$DEPLOY_LOG"
+chmod 640 "$DEPLOY_LOG"
+exec > >(tee -a "$DEPLOY_LOG") 2>&1
+
+echo "[$(date --iso-8601=seconds)] Starting WHOOP AI Coach deployment."
+echo "Deploying branch '$BRANCH' from '$REPOSITORY_URL'."
 
 apt-get update
 apt-get install -y curl docker.io docker-compose-v2 git unzip
@@ -59,6 +69,10 @@ chmod 600 "$APP_DIR/.env"
 
 cd "$APP_DIR"
 
+echo "[$(date --iso-8601=seconds)] Building Docker images."
 docker compose build
+echo "[$(date --iso-8601=seconds)] Running database migrations."
 docker compose run --rm api python manage.py migrate --noinput
+echo "[$(date --iso-8601=seconds)] Starting Docker Compose services."
 docker compose up -d
+echo "[$(date --iso-8601=seconds)] Deployment completed."

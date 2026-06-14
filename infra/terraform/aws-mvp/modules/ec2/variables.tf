@@ -53,6 +53,11 @@ variable "cloudwatch_log_group_name" {
   type        = string
 }
 
+variable "cloudwatch_host_log_group_name" {
+  description = "CloudWatch Logs group where EC2 host and deployment logs are written."
+  type        = string
+}
+
 variable "cloudwatch_log_retention_days" {
   description = "How many days to retain Docker container logs in CloudWatch."
   type        = number

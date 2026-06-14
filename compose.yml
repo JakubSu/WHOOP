@@ -1,9 +1,7 @@
-x-cloudwatch-logging: &cloudwatch-logging
-  driver: awslogs
-  options:
-    awslogs-region: ${AWS_REGION:?AWS_REGION is required}
-    awslogs-group: ${CLOUDWATCH_LOG_GROUP:?CLOUDWATCH_LOG_GROUP is required}
-    awslogs-create-group: "false"
+x-cloudwatch-logging-options: &cloudwatch-logging-options
+  awslogs-region: ${AWS_REGION:?AWS_REGION is required}
+  awslogs-group: ${CLOUDWATCH_LOG_GROUP:?CLOUDWATCH_LOG_GROUP is required}
+  awslogs-create-group: "false"
 
 services:
   caddy:
@@ -20,7 +18,11 @@ services:
       - "80:80"
       - "443:443"
     restart: unless-stopped
-    logging: *cloudwatch-logging
+    logging:
+      driver: awslogs
+      options:
+        <<: *cloudwatch-logging-options
+        awslogs-stream: caddy
     volumes:
       - caddy_data:/data
       - caddy_config:/config
@@ -48,7 +50,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
     restart: unless-stopped
-    logging: *cloudwatch-logging
+    logging:
+      driver: awslogs
+      options:
+        <<: *cloudwatch-logging-options
+        awslogs-stream: api
 
   db:
     image: postgres:16-alpine
@@ -62,7 +68,11 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    logging: *cloudwatch-logging
+    logging:
+      driver: awslogs
+      options:
+        <<: *cloudwatch-logging-options
+        awslogs-stream: db
     secrets:
       - postgres_password
     volumes:

@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "drf_spectacular",
     "rest_framework_simplejwt.token_blacklist",
     "users.apps.UsersConfig",
     "training.apps.TrainingConfig",
@@ -163,6 +164,13 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "WHOOP AI Coach API",
+    "DESCRIPTION": "OpenAPI schema for the Django API.",
+    "VERSION": "1.0.0",
 }
 
 SIMPLE_JWT = {

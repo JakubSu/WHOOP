@@ -16,6 +16,7 @@ locals {
   ssm_parameter_prefix = "/${var.project_name}/${var.environment}"
   github_actions_sub   = "repo:${var.github_repository}:environment:${var.github_actions_environment}"
   cloudwatch_log_group = "${local.ssm_parameter_prefix}/docker"
+  host_log_group       = "${local.ssm_parameter_prefix}/host"
   common_tags = merge(
     {
       Project     = var.project_name
@@ -94,20 +95,21 @@ resource "aws_ssm_parameter" "postgres_password" {
 module "backend" {
   source = "./modules/ec2"
 
-  allowed_ssh_cidr_blocks       = var.allowed_ssh_cidr_blocks
-  app_directory                 = "/opt/whoop-ai-coach"
-  availability_zone             = local.availability_zone
-  aws_region                    = var.aws_region
-  cloudwatch_log_group_name     = local.cloudwatch_log_group
-  cloudwatch_log_retention_days = var.cloudwatch_log_retention_days
-  cloudflare_ipv4_cidrs         = data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks
-  cloudflare_ipv6_cidrs         = data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks
-  instance_name                 = "${var.project_name}-${var.environment}-backend"
-  instance_type                 = var.ec2_instance_type
-  key_pair_name                 = local.ec2_key_pair_name
-  root_volume_size_gb           = var.ec2_root_volume_size_gb
-  snapshot_retention_count      = var.ec2_snapshot_retention_count
-  snapshot_time_utc             = local.snapshot_time_utc
+  allowed_ssh_cidr_blocks        = var.allowed_ssh_cidr_blocks
+  app_directory                  = "/opt/whoop-ai-coach"
+  availability_zone              = local.availability_zone
+  aws_region                     = var.aws_region
+  cloudwatch_host_log_group_name = local.host_log_group
+  cloudwatch_log_group_name      = local.cloudwatch_log_group
+  cloudwatch_log_retention_days  = var.cloudwatch_log_retention_days
+  cloudflare_ipv4_cidrs          = data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks
+  cloudflare_ipv6_cidrs          = data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks
+  instance_name                  = "${var.project_name}-${var.environment}-backend"
+  instance_type                  = var.ec2_instance_type
+  key_pair_name                  = local.ec2_key_pair_name
+  root_volume_size_gb            = var.ec2_root_volume_size_gb
+  snapshot_retention_count       = var.ec2_snapshot_retention_count
+  snapshot_time_utc              = local.snapshot_time_utc
   ssm_parameter_arns = [
     aws_ssm_parameter.django_secret_key.arn,
     aws_ssm_parameter.openai_api_key.arn,
@@ -119,6 +121,199 @@ module "backend" {
   subnet_cidr_block = var.ec2_subnet_cidr_block
   tags              = local.common_tags
   vpc_cidr_block    = var.ec2_vpc_cidr_block
+}
+
+resource "aws_cloudwatch_dashboard" "ops" {
+  dashboard_name = "${var.project_name}-${var.environment}-ops"
+
+  dashboard_body = jsonencode({
+    start          = "-PT6H"
+    periodOverride = "inherit"
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 6
+        height = 6
+        properties = {
+          title  = "EC2 CPU"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/EC2", "CPUUtilization", "InstanceId", module.backend.instance_id],
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 6
+        y      = 0
+        width  = 6
+        height = 6
+        properties = {
+          title  = "EC2 Status Checks"
+          region = var.aws_region
+          period = 300
+          stat   = "Maximum"
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/EC2", "StatusCheckFailed", "InstanceId", module.backend.instance_id],
+            [".", "StatusCheckFailed_Instance", ".", "."],
+            [".", "StatusCheckFailed_System", ".", "."],
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 6
+        height = 6
+        properties = {
+          title  = "Host Memory"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          view   = "timeSeries"
+          metrics = [
+            [{
+              expression = "SEARCH('{CWAgent,InstanceId} MetricName=\"mem_used_percent\" InstanceId=\"${module.backend.instance_id}\"', 'Average', 300)"
+              id         = "mem"
+              label      = "Memory used %"
+            }],
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 0
+        width  = 6
+        height = 6
+        properties = {
+          title  = "Root Disk"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          view   = "timeSeries"
+          metrics = [
+            [{
+              expression = "SEARCH('{CWAgent,InstanceId,path} MetricName=\"disk_used_percent\" InstanceId=\"${module.backend.instance_id}\" path=\"/\"', 'Average', 300)"
+              id         = "disk"
+              label      = "Root disk used %"
+            }],
+          ]
+        }
+      },
+      {
+        type   = "log"
+        x      = 0
+        y      = 6
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Latest Deployment Logs"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.host_log_group}' | fields @timestamp, @message | filter @logStream like /deploy/ | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 12
+        y      = 6
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Deployment Errors"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.host_log_group}' | fields @timestamp, @message | filter @logStream like /deploy/ | filter @message like /(?i)(error|failed|traceback|exception|timed out|exit code|nonzero)/ | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 0
+        y      = 12
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Latest API Logs"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.cloudwatch_log_group}' | fields @timestamp, @message | filter @logStream = 'api' | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 12
+        y      = 12
+        width  = 12
+        height = 6
+        properties = {
+          title  = "API Errors"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.cloudwatch_log_group}' | fields @timestamp, @message | filter @logStream = 'api' | filter @message like /(?i)(error|exception|traceback| 500 |AIProviderConfigurationError|openai|whoop|database|connection refused|timeout)/ | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 0
+        y      = 18
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Latest Host Logs"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.host_log_group}' | fields @timestamp, @logStream, @message | filter @logStream like /syslog|cloud-init-output|docker-daemon/ | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 12
+        y      = 18
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Host Crash Signals"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.host_log_group}' | fields @timestamp, @logStream, @message | filter @message like /(?i)(oom|killed process|segfault|panic|failed|unhealthy|No space left|systemd|docker.*restart|docker.*fail)/ | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 0
+        y      = 24
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Caddy Ingress Logs"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.cloudwatch_log_group}' | fields @timestamp, @message | filter @logStream = 'caddy' | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "log"
+        x      = 12
+        y      = 24
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Postgres Logs"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${local.cloudwatch_log_group}' | fields @timestamp, @message | filter @logStream = 'db' | sort @timestamp desc | limit 50"
+        }
+      },
+    ]
+  })
 }
 
 resource "cloudflare_record" "app" {

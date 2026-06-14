@@ -33,6 +33,16 @@ output "cloudwatch_log_group_name" {
   value       = module.backend.cloudwatch_log_group_name
 }
 
+output "cloudwatch_host_log_group_name" {
+  description = "CloudWatch Logs group where EC2 host and deployment logs are written."
+  value       = module.backend.cloudwatch_host_log_group_name
+}
+
+output "cloudwatch_dashboard_name" {
+  description = "CloudWatch dashboard for production operations."
+  value       = aws_cloudwatch_dashboard.ops.dashboard_name
+}
+
 output "github_actions_role_arn" {
   description = "IAM role ARN for GitHub Actions OIDC-based application deployments."
   value       = aws_iam_role.github_actions_deploy.arn

@@ -52,6 +52,11 @@ data "aws_iam_policy_document" "ssm_parameter_access" {
 
 data "aws_iam_policy_document" "cloudwatch_logs_access" {
   statement {
+    actions   = ["logs:DescribeLogGroups"]
+    resources = ["*"]
+  }
+
+  statement {
     actions = [
       "logs:CreateLogStream",
       "logs:DescribeLogStreams",
@@ -60,7 +65,25 @@ data "aws_iam_policy_document" "cloudwatch_logs_access" {
     resources = [
       aws_cloudwatch_log_group.docker.arn,
       "${aws_cloudwatch_log_group.docker.arn}:*",
+      aws_cloudwatch_log_group.host.arn,
+      "${aws_cloudwatch_log_group.host.arn}:*",
     ]
+  }
+
+  statement {
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["CWAgent"]
+    }
+  }
+
+  statement {
+    actions   = ["ec2:DescribeTags"]
+    resources = ["*"]
   }
 }
 
@@ -163,6 +186,13 @@ resource "aws_cloudwatch_log_group" "docker" {
   tags = var.tags
 }
 
+resource "aws_cloudwatch_log_group" "host" {
+  name              = var.cloudwatch_host_log_group_name
+  retention_in_days = var.cloudwatch_log_retention_days
+
+  tags = var.tags
+}
+
 resource "aws_iam_role" "ec2" {
   name               = "${var.instance_name}-role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -205,7 +235,9 @@ resource "aws_instance" "this" {
   user_data_replace_on_change = true
 
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
-    app_directory = var.app_directory
+    app_directory                  = var.app_directory
+    aws_region                     = var.aws_region
+    cloudwatch_host_log_group_name = var.cloudwatch_host_log_group_name
   })
 
   root_block_device {

@@ -12,3 +12,8 @@ output "cloudwatch_log_group_name" {
   description = "CloudWatch Logs group where Docker container logs are written."
   value       = aws_cloudwatch_log_group.docker.name
 }
+
+output "cloudwatch_host_log_group_name" {
+  description = "CloudWatch Logs group where EC2 host and deployment logs are written."
+  value       = aws_cloudwatch_log_group.host.name
+}
