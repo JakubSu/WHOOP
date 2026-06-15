@@ -375,7 +375,14 @@ resource "aws_iam_role" "github_actions_deploy" {
 
 data "aws_iam_policy_document" "github_actions_deploy" {
   statement {
-    sid    = "SendSsmRunCommandWithRunShellScript"
+    sid       = "DiscoverBackendInstance"
+    effect    = "Allow"
+    actions   = ["ec2:DescribeInstances"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "SendSsmRunCommandToBackend"
     effect = "Allow"
 
     actions = [
@@ -384,38 +391,8 @@ data "aws_iam_policy_document" "github_actions_deploy" {
 
     resources = [
       "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}::document/AWS-RunShellScript",
+      "arn:${data.aws_partition.current.partition}:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:instance/${module.backend.instance_id}",
     ]
-  }
-
-  statement {
-    sid    = "SendSsmRunCommandToTaggedBackendInstances"
-    effect = "Allow"
-
-    actions = [
-      "ssm:SendCommand",
-    ]
-
-    resources = [
-      "arn:${data.aws_partition.current.partition}:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:instance/*",
-    ]
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/Project"
-      values   = [var.project_name]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/Environment"
-      values   = [var.environment]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/Name"
-      values   = ["${var.project_name}-${var.environment}-backend"]
-    }
   }
 
   statement {

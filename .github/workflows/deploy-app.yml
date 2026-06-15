@@ -73,7 +73,6 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
       AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
       CADDY_ACME_EMAIL: ${{ vars.CADDY_ACME_EMAIL }}
-      EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1-mini' }}
       POSTGRES_DB: ${{ vars.POSTGRES_DB || 'whoop_ai_coach' }}
       POSTGRES_USER: ${{ vars.POSTGRES_USER || 'whoop_ai_coach' }}
@@ -95,7 +94,6 @@ jobs:
           set -euo pipefail
           test -n "$APP_DOMAIN"
           test -n "$CADDY_ACME_EMAIL"
-          test -n "$EC2_INSTANCE_ID"
           if [ -z "$AWS_ROLE_TO_ASSUME" ] && { [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; }; then
             echo "Either AWS_ROLE_TO_ASSUME or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY must be configured." >&2
             exit 1
@@ -115,6 +113,29 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Discover backend instance
+        run: |
+          set -euo pipefail
+          mapfile -t INSTANCE_IDS < <(
+            aws ec2 describe-instances \
+              --region "$AWS_REGION" \
+              --filters \
+                "Name=tag:Name,Values=whoop-ai-coach-prod-backend" \
+                "Name=tag:Project,Values=whoop-ai-coach" \
+                "Name=tag:Environment,Values=prod" \
+                "Name=instance-state-name,Values=running" \
+              --query 'Reservations[].Instances[].InstanceId' \
+              --output text | tr '\t' '\n' | sed '/^$/d'
+          )
+
+          if [ "${#INSTANCE_IDS[@]}" -ne 1 ]; then
+            echo "Expected exactly one running backend instance, found ${#INSTANCE_IDS[@]}: ${INSTANCE_IDS[*]:-none}" >&2
+            exit 1
+          fi
+
+          echo "EC2_INSTANCE_ID=${INSTANCE_IDS[0]}" >> "$GITHUB_ENV"
+          echo "Discovered backend instance: ${INSTANCE_IDS[0]}"
 
       - name: Deploy with SSM Run Command
         run: |
