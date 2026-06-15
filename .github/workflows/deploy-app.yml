@@ -176,6 +176,8 @@ jobs:
               f'printf \'"\'"\'%s\'"\'"\' \'"\'"\'{os.environ["SCRIPT_B64"]}\'"\'"\' | base64 -d > "$script_path"; '
               'tr -d \'"\'"\'\\\\r\'"\'"\' < "$script_path" > "$script_path.unix"; '
               'chmod +x "$script_path.unix"; '
+              'nl -ba "$script_path.unix" | sed -n \'"\'"\'15,22p\'"\'"\'; '
+              'if grep -n \'"\'"\'expot\'"\'"\' "$script_path.unix"; then exit 1; fi; '
               f"sudo bash \"$script_path.unix\" {quoted_args}"
               "'"
           )
