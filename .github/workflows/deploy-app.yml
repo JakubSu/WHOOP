@@ -86,6 +86,16 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
+      - name: Validate deployment script snapshot
+        run: |
+          set -euo pipefail
+          echo "Deploy workflow commit: $(git rev-parse HEAD)"
+          grep -n "export DEBIAN_FRONTEND=noninteractive" infra/scripts/bootstrap_backend.sh
+          if grep -n "expot" infra/scripts/bootstrap_backend.sh; then
+            echo "bootstrap_backend.sh contains a shell typo and cannot be deployed." >&2
+            exit 1
+          fi
+
       - name: Validate deployment configuration
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
