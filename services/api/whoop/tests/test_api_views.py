@@ -6,6 +6,7 @@ from typing import Any, cast
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 
@@ -104,9 +105,12 @@ class WhoopApiViewTests(TestCase):
         factory.return_value = service
 
         client = APIClient()
-        response = client.get(
+        response = cast(
+            Response,
+            client.get(
             reverse("whoop-callback"),
             {"code": "code-123", "state": "secure-state"},
+            ),
         )
 
         self.assertEqual(response.status_code, 302)
@@ -123,9 +127,12 @@ class WhoopApiViewTests(TestCase):
         factory.return_value = service
 
         client = APIClient()
-        response = client.get(
+        response = cast(
+            Response,
+            client.get(
             reverse("whoop-callback"),
             {"code": "code-123", "state": "secure-state"},
+            ),
         )
 
         self.assertEqual(response.status_code, 302)
@@ -143,9 +150,12 @@ class WhoopApiViewTests(TestCase):
         factory.return_value = service
 
         client = APIClient()
-        response = client.get(
+        response = cast(
+            Response,
+            client.get(
             reverse("whoop-callback"),
             {"code": "code-123", "state": "expired-state"},
+            ),
         )
 
         self.assertEqual(response.status_code, 400)

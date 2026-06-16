@@ -13,3 +13,8 @@ class TrainingPlanSerializer(serializers.ModelSerializer):
             "end_date",
         ]
         read_only_fields = ["id"]
+        extra_kwargs = {
+            "name": {"help_text": "Training plan name shown in the app."},
+            "start_date": {"help_text": "Optional start date for the training plan."},
+            "end_date": {"help_text": "Optional end date for the training plan."},
+        }

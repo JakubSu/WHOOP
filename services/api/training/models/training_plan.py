@@ -1,6 +1,11 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from django.db import models
+
+if TYPE_CHECKING:
+    from django.db.models.manager import RelatedManager
+    from .workout import Workout
 
 
 class TrainingPlan(models.Model):
@@ -11,6 +16,8 @@ class TrainingPlan(models.Model):
     end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    workouts: "RelatedManager[Workout]"
 
     class Meta:
         ordering = ["-created_at", "name"]

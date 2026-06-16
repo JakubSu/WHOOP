@@ -14,3 +14,9 @@ class WorkoutSerializer(serializers.ModelSerializer):
             "expected_time",
         ]
         read_only_fields = ["id"]
+        extra_kwargs = {
+            "plan": {"help_text": "Training plan identifier this workout belongs to."},
+            "name": {"help_text": "Workout name shown in the training plan."},
+            "date": {"help_text": "Optional scheduled date for the workout."},
+            "expected_time": {"help_text": "Expected workout duration in minutes."},
+        }

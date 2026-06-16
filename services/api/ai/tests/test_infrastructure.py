@@ -1,5 +1,5 @@
-from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 from django.test import SimpleTestCase, override_settings
 from pydantic import BaseModel
@@ -16,7 +16,9 @@ from ai.infrastructure.models import LLMRequestMetadata
 from ai.infrastructure.prompt_loader import FileSystemPromptLoader
 from ai.infrastructure.providers.openai_provider import OpenAIProvider
 from ai.infrastructure.services import get_llm_provider
-from ai.infrastructure.structured_response_parser import PydanticStructuredResponseParser
+from ai.infrastructure.structured_response_parser import (
+    PydanticStructuredResponseParser,
+)
 
 
 class ExampleResponse(BaseModel):
@@ -78,9 +80,12 @@ class AIInfrastructureTests(SimpleTestCase):
     def test_structured_parser_validates_json_string(self):
         parser = PydanticStructuredResponseParser()
 
-        parsed = parser.parse(
-            raw_response='{"title": "Plan", "score": 9}',
-            response_model=ExampleResponse,
+        parsed = cast(
+            ExampleResponse,
+            parser.parse(
+                raw_response='{"title": "Plan", "score": 9}',
+                response_model=ExampleResponse,
+            ),
         )
 
         self.assertEqual(parsed.title, "Plan")
@@ -89,9 +94,12 @@ class AIInfrastructureTests(SimpleTestCase):
     def test_structured_parser_validates_dict(self):
         parser = PydanticStructuredResponseParser()
 
-        parsed = parser.parse(
-            raw_response={"title": "Plan", "score": 9},
-            response_model=ExampleResponse,
+        parsed = cast(
+            ExampleResponse,
+            parser.parse(
+                raw_response={"title": "Plan", "score": 9},
+                response_model=ExampleResponse,
+            ),
         )
 
         self.assertEqual(parsed.title, "Plan")

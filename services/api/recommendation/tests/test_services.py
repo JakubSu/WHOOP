@@ -290,6 +290,8 @@ class WorkoutRecommendationServiceTests(TestCase):
             ]
         )
         first_operation = recommendation.operations.order_by("sequence").first()
+        if first_operation is None:
+            self.fail("Expected recommendation to have at least one operation.")
 
         updated = services.approve_recommendation_operation(
             self.user_id,

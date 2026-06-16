@@ -1,9 +1,11 @@
 import json
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
 from ai.infrastructure.exceptions import AIProviderResponseValidationError
+
+ResponseModelT = TypeVar("ResponseModelT", bound=BaseModel)
 
 
 class StructuredResponseParser(Protocol):
@@ -11,8 +13,8 @@ class StructuredResponseParser(Protocol):
         self,
         *,
         raw_response: str | dict[str, Any],
-        response_model: type[BaseModel],
-    ) -> BaseModel:
+        response_model: type[ResponseModelT],
+    ) -> ResponseModelT:
         ...
 
 
@@ -21,8 +23,8 @@ class PydanticStructuredResponseParser:
         self,
         *,
         raw_response: str | dict[str, Any],
-        response_model: type[BaseModel],
-    ) -> BaseModel:
+        response_model: type[ResponseModelT],
+    ) -> ResponseModelT:
         try:
             if isinstance(raw_response, str):
                 return response_model.model_validate_json(raw_response)

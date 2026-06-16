@@ -169,7 +169,10 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "WHOOP AI Coach API",
-    "DESCRIPTION": "OpenAPI schema for the Django API.",
+    "DESCRIPTION": (
+        "API for authentication, WHOOP connection management, training plans, workouts, "
+        "exercise libraries, and AI-generated workout recommendations."
+    ),
     "VERSION": "1.0.0",
 }
 

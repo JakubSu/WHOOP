@@ -1,12 +1,16 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from django.test import SimpleTestCase
 from pydantic import BaseModel
 
 from ai.infrastructure.models import LoadedPrompt
+from ai.infrastructure.llm_provider import LLMProvider
+from ai.infrastructure.models import LLMRequestMetadata
 from ai.recommendation.schemas import WorkoutPatchDraft
 from ai.recommendation.services.workout_patch_generator import WorkoutPatchGenerator
+
+ResponseModelT = TypeVar("ResponseModelT", bound=BaseModel)
 
 
 class FakePromptLoader:
@@ -24,8 +28,8 @@ class FakePromptLoader:
         )
 
 
-class FakeProvider:
-    def __init__(self, response: BaseModel | dict[str, Any]) -> None:
+class FakeProvider(LLMProvider):
+    def __init__(self, response: WorkoutPatchDraft | dict[str, Any]) -> None:
         self.response = response
         self.calls: list[dict[str, Any]] = []
 
@@ -34,9 +38,9 @@ class FakeProvider:
         *,
         prompt: str,
         input_data: dict[str, Any],
-        response_model: type[BaseModel],
-        metadata=None,
-    ) -> BaseModel | dict[str, Any]:
+        response_model: type[ResponseModelT],
+        metadata: LLMRequestMetadata | None = None,
+    ) -> ResponseModelT:
         self.calls.append(
             {
                 "prompt": prompt,
@@ -45,7 +49,13 @@ class FakeProvider:
                 "metadata": metadata,
             }
         )
-        return self.response
+        if isinstance(self.response, WorkoutPatchDraft):
+            if isinstance(self.response, response_model):
+                return self.response
+            return response_model.model_validate(
+                self.response.model_dump(mode="json")
+            )
+        return response_model.model_validate(self.response)
 
 
 class WorkoutPatchGeneratorTests(SimpleTestCase):

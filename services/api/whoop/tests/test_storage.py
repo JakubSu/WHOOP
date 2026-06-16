@@ -95,6 +95,8 @@ class WhoopStorageTests(TestCase):
         consumed = self.oauth_state_repository.consume(state=mapping.state)
 
         self.assertIsNotNone(consumed)
+        if consumed is None:
+            self.fail("Expected stored OAuth state to be returned.")
         self.assertEqual(
             consumed.frontend_success_url,
             "http://localhost:5173/connect-whoop/success",

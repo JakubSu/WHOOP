@@ -1,8 +1,10 @@
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel
 
 from ai.infrastructure.models import LLMRequestMetadata
+
+ResponseModelT = TypeVar("ResponseModelT", bound=BaseModel)
 
 
 class LLMProvider(Protocol):
@@ -11,7 +13,7 @@ class LLMProvider(Protocol):
         *,
         prompt: str,
         input_data: dict[str, Any],
-        response_model: type[BaseModel],
+        response_model: type[ResponseModelT],
         metadata: LLMRequestMetadata | None = None,
-    ) -> BaseModel:
+    ) -> ResponseModelT:
         ...

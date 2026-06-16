@@ -1,5 +1,4 @@
 import uuid
-
 from django.db import models
 
 
@@ -19,6 +18,9 @@ class WorkoutExercise(models.Model):
     note = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    workout_id: uuid.UUID
+    exercise_id: uuid.UUID
 
     class Meta:
         ordering = ["workout", "exercise__name"]

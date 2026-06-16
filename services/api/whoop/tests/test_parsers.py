@@ -22,7 +22,11 @@ class WhoopParserTests(SimpleTestCase):
             }
         )
 
-        self.assertEqual(cycle.score.strain, 5.2)
+        score = cycle.score
+        self.assertIsNotNone(score)
+        if score is None:
+            self.fail("Expected cycle score to be present.")
+        self.assertEqual(score.strain, 5.2)
         self.assertIsNotNone(cycle.created_at.tzinfo)
 
     def test_parses_recovery_optional_fields(self) -> None:
@@ -43,15 +47,27 @@ class WhoopParserTests(SimpleTestCase):
             }
         )
 
-        self.assertEqual(recovery.score.recovery_score, 44.0)
-        self.assertIsNone(recovery.score.spo2_percentage)
+        score = recovery.score
+        self.assertIsNotNone(score)
+        if score is None:
+            self.fail("Expected recovery score to be present.")
+        self.assertEqual(score.recovery_score, 44.0)
+        self.assertIsNone(score.spo2_percentage)
 
     def test_parses_sleep_and_workout_scores(self) -> None:
         sleep = parse_sleep(_sleep_payload())
         workout = parse_workout(_workout_payload())
 
-        self.assertEqual(sleep.score.sleep_performance_percentage, 98.0)
-        self.assertEqual(workout.score.zone_durations.zone_three_milli, 900000)
+        sleep_score = sleep.score
+        workout_score = workout.score
+        self.assertIsNotNone(sleep_score)
+        self.assertIsNotNone(workout_score)
+        if sleep_score is None:
+            self.fail("Expected sleep score to be present.")
+        if workout_score is None:
+            self.fail("Expected workout score to be present.")
+        self.assertEqual(sleep_score.sleep_performance_percentage, 98.0)
+        self.assertEqual(workout_score.zone_durations.zone_three_milli, 900000)
 
     def test_parses_paginated_response(self) -> None:
         page = parse_paginated_response({"records": [_workout_payload()], "next_token": "next"}, parse_workout)

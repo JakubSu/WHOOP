@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, TypeVar
 
 from django.conf import settings
 from pydantic import BaseModel
@@ -22,6 +22,7 @@ from ai.infrastructure.structured_response_parser import (
 
 logger = logging.getLogger(__name__)
 MAX_LOG_TEXT_LENGTH = 8000
+ResponseModelT = TypeVar("ResponseModelT", bound=BaseModel)
 
 
 class OpenAIProvider:
@@ -51,14 +52,15 @@ class OpenAIProvider:
         *,
         prompt: str,
         input_data: dict[str, Any],
-        response_model: type[BaseModel],
+        response_model: type[ResponseModelT],
         metadata: LLMRequestMetadata | None = None,
-    ) -> BaseModel:
+    ) -> ResponseModelT:
         call_metadata = metadata or LLMRequestMetadata()
         started_at = time.perf_counter()
         status = "error"
         error_type: str | None = None
         usage = LLMUsage()
+        parsed: ResponseModelT | None = None
 
         try:
             client = self._client()
@@ -95,8 +97,8 @@ class OpenAIProvider:
         name: str,
         version: str,
         input_data: dict[str, Any],
-        response_model: type[BaseModel],
-    ) -> BaseModel:
+        response_model: type[ResponseModelT],
+    ) -> ResponseModelT:
         loaded_prompt = self.prompt_loader.load(
             namespace=namespace,
             name=name,
@@ -160,8 +162,8 @@ class OpenAIProvider:
     def _extract_parsed_response(
         self,
         response: Any,
-        response_model: type[BaseModel],
-    ) -> BaseModel:
+        response_model: type[ResponseModelT],
+    ) -> ResponseModelT:
         parsed = getattr(response, "output_parsed", None)
         if parsed is not None:
             if isinstance(parsed, response_model):
@@ -246,7 +248,10 @@ class OpenAIProvider:
     def _render_prompt(self, prompt: LoadedPrompt, input_data: dict[str, Any]) -> str:
         render = getattr(self.prompt_loader, "render", None)
         if callable(render):
-            return render(prompt, input_data)
+            rendered = render(prompt, input_data)
+            if isinstance(rendered, str):
+                return rendered
+            raise AIProviderConfigurationError("Prompt loader render() must return a string.")
         return prompt.template
 
     def _log_request(

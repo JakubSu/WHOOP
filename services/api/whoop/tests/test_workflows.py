@@ -127,7 +127,7 @@ class DisconnectWhoopWorkflowTests(TestCase):
 
         self.assertTrue(disconnected)
         auth_service.revoke_user_access.assert_called_once_with("access-token")
-        connection.refresh_from_db()
+        connection.refresh_from_db(from_queryset=None)
         user.refresh_from_db()
         self.assertIsNotNone(connection.revoked_at)
         self.assertEqual(user.whoop_user_id, "")

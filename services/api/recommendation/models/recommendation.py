@@ -1,6 +1,11 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from django.db import models
+
+if TYPE_CHECKING:
+    from django.db.models.manager import RelatedManager
+    from .recommendation import Recommendation, RecommendationOperation
 
 
 class Recommendation(models.Model):
@@ -23,6 +28,8 @@ class Recommendation(models.Model):
     reason = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    operations: "RelatedManager[RecommendationOperation]"
 
     class Meta:
         ordering = ["-created_at"]
@@ -71,6 +78,8 @@ class RecommendationOperation(models.Model):
     applied_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    recommendation_id: uuid.UUID
 
     class Meta:
         ordering = ["sequence"]

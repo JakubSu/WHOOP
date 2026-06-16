@@ -1,4 +1,11 @@
-from recommendation.api.serializers.recommendation import ApproveRecommendationSerializer
+from recommendation.api.serializers.recommendation import (
+    ApproveRecommendationSerializer,
+    RecommendationOperationSerializer,
+    RecommendationSerializer,
+)
 
-__all__ = ["ApproveRecommendationSerializer"]
-
+__all__ = [
+    "ApproveRecommendationSerializer",
+    "RecommendationOperationSerializer",
+    "RecommendationSerializer",
+]

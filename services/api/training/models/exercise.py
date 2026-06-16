@@ -1,6 +1,11 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from django.db import models
+
+if TYPE_CHECKING:
+    from django.db.models.manager import RelatedManager
+    from .workout_exercise import WorkoutExercise
 
 
 class Exercise(models.Model):
@@ -23,6 +28,8 @@ class Exercise(models.Model):
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    workout_exercises: "RelatedManager[WorkoutExercise]"
 
     class Meta:
         ordering = ["name"]
