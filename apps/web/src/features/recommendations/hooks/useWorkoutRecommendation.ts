@@ -10,6 +10,9 @@ import { type Recommendation } from '../types'
 export function useWorkoutRecommendation(workoutId: string | undefined) {
   const queryClient = useQueryClient()
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
+  const isWorkoutReadyToSave =
+    recommendation?.status === 'accepted' &&
+    recommendation.operations.every((operation) => operation.status === 'accepted')
   const generate = useMutation({
     mutationFn: () => generateRecommendation(workoutId ?? ''),
     onSuccess: setRecommendation,
@@ -30,6 +33,15 @@ export function useWorkoutRecommendation(workoutId: string | undefined) {
       setRecommendation(nextRecommendation)
     },
   })
+  const saveWorkout = useMutation({
+    mutationFn: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['workout', workoutId] })
+      await queryClient.invalidateQueries({ queryKey: ['workout-exercises'] })
+    },
+    onSuccess: () => {
+      setRecommendation(null)
+    },
+  })
 
   return {
     recommendation,
@@ -48,9 +60,16 @@ export function useWorkoutRecommendation(workoutId: string | undefined) {
         reject.mutate(operationId)
       }
     },
+    saveWorkout: () => {
+      if (isWorkoutReadyToSave) {
+        saveWorkout.mutate()
+      }
+    },
     isGenerating: generate.isPending,
+    isSavingWorkout: saveWorkout.isPending,
+    isWorkoutReadyToSave,
     acceptingOperationId: accept.isPending ? accept.variables : null,
     rejectingOperationId: reject.isPending ? reject.variables : null,
-    error: generate.error ?? accept.error ?? reject.error,
+    error: generate.error ?? accept.error ?? reject.error ?? saveWorkout.error,
   }
 }

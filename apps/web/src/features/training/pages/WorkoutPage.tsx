@@ -53,7 +53,16 @@ export function WorkoutPage() {
             }
           />
         </div>
-        {!recommendation.recommendation ? (
+        {recommendation.isWorkoutReadyToSave ? (
+          <PrimaryButton
+            className="workout-recommendation-button"
+            type="button"
+            isLoading={recommendation.isSavingWorkout}
+            onClick={recommendation.saveWorkout}
+          >
+            Save Workout
+          </PrimaryButton>
+        ) : !recommendation.recommendation ? (
           <PrimaryButton
             className="workout-recommendation-button"
             type="button"
