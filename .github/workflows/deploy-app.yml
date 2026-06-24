@@ -200,6 +200,20 @@ jobs:
 
           echo "Started SSM command: $COMMAND_ID"
 
+          print_ssm_invocation_output() {
+            local output_name="$1"
+            local query="$2"
+
+            echo "::group::$output_name"
+            aws ssm get-command-invocation \
+              --region "$AWS_REGION" \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query "$query" \
+              --output text || true
+            echo "::endgroup::"
+          }
+
           for attempt in $(seq 1 120); do
             STATUS="$(aws ssm get-command-invocation \
               --region "$AWS_REGION" \
@@ -217,24 +231,16 @@ jobs:
                 ;;
               Cancelled|TimedOut|Failed|Cancelling)
                 echo "SSM command failed with status: $STATUS" >&2
-                aws ssm get-command-invocation \
-                  --region "$AWS_REGION" \
-                  --command-id "$COMMAND_ID" \
-                  --instance-id "$EC2_INSTANCE_ID" \
-                  --query 'StandardOutputContent' \
-                  --output text || true
-                aws ssm get-command-invocation \
-                  --region "$AWS_REGION" \
-                  --command-id "$COMMAND_ID" \
-                  --instance-id "$EC2_INSTANCE_ID" \
-                  --query 'StandardErrorContent' \
-                  --output text || true
+                print_ssm_invocation_output "SSM standard output" 'StandardOutputContent'
+                print_ssm_invocation_output "SSM standard error" 'StandardErrorContent'
                 exit 1
                 ;;
             esac
 
             if [ "$attempt" -eq 120 ]; then
               echo "Timed out waiting for SSM deployment command to finish." >&2
+              print_ssm_invocation_output "SSM standard output" 'StandardOutputContent'
+              print_ssm_invocation_output "SSM standard error" 'StandardErrorContent'
               exit 1
             fi
           done

@@ -22,8 +22,37 @@ touch "$DEPLOY_LOG"
 chmod 640 "$DEPLOY_LOG"
 exec > >(tee -a "$DEPLOY_LOG") 2>&1
 
+scm_url_for_logs() {
+  sed -E 's#(https?://)[^/@]+@#\1***@#' <<<"$1"
+}
+
+run_scm_command() {
+  local description="$1"
+  shift
+
+  local output_file
+  output_file="$(mktemp)"
+
+  echo "[$(date --iso-8601=seconds)] SCM: $description."
+  if "$@" >"$output_file" 2>&1; then
+    cat "$output_file"
+    rm -f "$output_file"
+    return 0
+  fi
+
+  local exit_code=$?
+  echo "SCM command failed while trying to $description." >&2
+  echo "Exit code: $exit_code" >&2
+  echo "Repository: $(scm_url_for_logs "$REPOSITORY_URL")" >&2
+  echo "Branch: $BRANCH" >&2
+  echo "Command output:" >&2
+  cat "$output_file" >&2
+  rm -f "$output_file"
+  return "$exit_code"
+}
+
 echo "[$(date --iso-8601=seconds)] Starting WHOOP AI Coach deployment."
-echo "Deploying branch '$BRANCH' from '$REPOSITORY_URL'."
+echo "Deploying branch '$BRANCH' from '$(scm_url_for_logs "$REPOSITORY_URL")'."
 
 apt-get update
 apt-get install -y curl docker.io docker-compose-v2 git unzip
@@ -38,12 +67,18 @@ fi
 
 systemctl enable --now docker
 
+run_scm_command "verify repository access and branch existence" \
+  git ls-remote --exit-code --heads "$REPOSITORY_URL" "$BRANCH"
+
 if [ -d "$APP_DIR/.git" ]; then
-  git -C "$APP_DIR" fetch origin "$BRANCH"
-  git -C "$APP_DIR" reset --hard "origin/$BRANCH"
+  run_scm_command "fetch branch '$BRANCH' into existing checkout" \
+    git -C "$APP_DIR" fetch origin "$BRANCH"
+  run_scm_command "reset existing checkout to origin/$BRANCH" \
+    git -C "$APP_DIR" reset --hard "origin/$BRANCH"
 else
   rm -rf "$APP_DIR"
-  git clone --branch "$BRANCH" --single-branch "$REPOSITORY_URL" "$APP_DIR"
+  run_scm_command "clone branch '$BRANCH' into $APP_DIR" \
+    git clone --branch "$BRANCH" --single-branch "$REPOSITORY_URL" "$APP_DIR"
 fi
 
 mkdir -p "$APP_DIR/secrets"
