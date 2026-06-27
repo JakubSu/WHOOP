@@ -177,6 +177,21 @@ class WhoopApiViewTests(TestCase):
             "resting_heart_rate": 58.0,
             "sleep_duration_minutes": 431,
             "recent_workout_count": 2,
+            "recent_workouts": [
+                {
+                    "id": "workout-id",
+                    "sport_name": "running",
+                    "start": "2026-06-07T13:00:00Z",
+                    "end": "2026-06-07T13:45:00Z",
+                    "duration_minutes": 45,
+                    "strain": 6.8,
+                    "average_heart_rate": 142,
+                    "max_heart_rate": 176,
+                    "kilojoule": 1800.0,
+                    "distance_meter": 5000.0,
+                    "score_state": "SCORED",
+                }
+            ],
             "refreshed_at": "2026-06-07T14:30:00Z",
         }
         factory.return_value = service
@@ -185,6 +200,7 @@ class WhoopApiViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["connected"])
+        self.assertEqual(response.json()["recent_workouts"][0]["sport_name"], "running")
 
     @patch("whoop.api.views.services.create_disconnect_service")
     def test_disconnect_marks_connection_revoked(self, factory: MagicMock) -> None:

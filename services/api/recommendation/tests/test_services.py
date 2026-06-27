@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
@@ -7,6 +8,7 @@ from recommendation import services
 from recommendation.models import Recommendation, RecommendationOperation
 from training import services as training_services
 from training.models import Exercise, Workout, WorkoutExercise
+from whoop.exceptions import WhoopConnectionNotFound
 
 
 class FakeWorkoutPatchGenerator:
@@ -55,6 +57,38 @@ class WorkoutRecommendationServiceTests(TestCase):
             self.bench_row_id,
         )
         self.assertIn(str(self.goblet.id), [exercise["id"] for exercise in context["available_exercises"]])
+        self.assertIn("whoop_summary", context)
+
+    @patch("whoop.services.create_summary_service")
+    def test_context_contains_connected_whoop_summary(self, summary_factory: MagicMock) -> None:
+        summary_factory.return_value.execute.return_value = {
+            "connected": True,
+            "recovery_score": 72.0,
+            "recent_workouts": [{"id": "workout-id", "sport_name": "running"}],
+        }
+
+        context = services.build_workout_recommendation_context(
+            self.user_id,
+            str(self.workout.id),
+        )
+
+        summary_factory.return_value.execute.assert_called_once_with(self.user_id)
+        self.assertTrue(context["whoop_summary"]["connected"])
+        self.assertEqual(context["whoop_summary"]["recent_workouts"][0]["sport_name"], "running")
+
+    @patch("whoop.services.create_summary_service")
+    def test_context_uses_disconnected_whoop_summary_when_whoop_is_not_connected(
+        self,
+        summary_factory: MagicMock,
+    ) -> None:
+        summary_factory.return_value.execute.side_effect = WhoopConnectionNotFound()
+
+        context = services.build_workout_recommendation_context(
+            self.user_id,
+            str(self.workout.id),
+        )
+
+        self.assertFalse(context["whoop_summary"]["connected"])
 
     def test_generate_stores_ordered_operations_from_mocked_provider(self) -> None:
         draft = WorkoutPatchDraft.model_validate(
@@ -86,6 +120,7 @@ class WorkoutRecommendationServiceTests(TestCase):
         self.assertEqual(recommendation.summary, "Reduce fatigue.")
         self.assertEqual(recommendation.operations.count(), 2)
         self.assertEqual(generator.calls[0]["context"]["current_workout"]["id"], str(self.workout.id))
+        self.assertIn("whoop_summary", generator.calls[0]["context"])
         self.assertEqual(
             list(recommendation.operations.values_list("operation_type", flat=True)),
             ["update_exercise", "replace_exercise"],

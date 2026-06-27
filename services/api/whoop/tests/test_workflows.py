@@ -10,6 +10,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from whoop.exceptions import WhoopConnectionNotFound
+from whoop.exceptions import WhoopValidationError
 from whoop.storage.connection_repository import WhoopConnectionRepository
 from whoop.storage.snapshot_repository import WhoopSnapshotRepository
 from whoop.storage.token_crypto import TokenCrypto
@@ -26,7 +27,10 @@ from whoop.whoop_api.dto import (
     SleepStageSummary,
     WhoopToken,
     Workout,
+    WorkoutScore,
+    ZoneDurations,
 )
+from whoop.models import WhoopSnapshot
 from whoop.workflows.summary import GetWhoopSummaryService, WhoopApiServices
 from whoop.workflows.connection import DisconnectWhoopService
 
@@ -52,7 +56,7 @@ class WhoopSummaryWorkflowTests(TestCase):
         with self.assertRaises(WhoopConnectionNotFound):
             self.service.execute(self.user_id)
 
-    def test_fresh_snapshot_is_returned_without_calling_whoop(self) -> None:
+    def test_recent_snapshot_is_returned_without_calling_whoop(self) -> None:
         self.connection_repository.save_connection(
             user_id=self.user_id,
             whoop_user_id=10129,
@@ -78,6 +82,35 @@ class WhoopSummaryWorkflowTests(TestCase):
         self.assertEqual(summary["recovery_score"], 72.0)
         self.api_services_factory.assert_not_called()
 
+    def test_snapshot_older_than_one_hour_is_refreshed(self) -> None:
+        self.connection_repository.save_connection(
+            user_id=self.user_id,
+            whoop_user_id=10129,
+            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+        )
+        snapshot = self.snapshot_repository.save_snapshot(
+            user_id=self.user_id,
+            data={
+                "snapshot_date": timezone.localdate(),
+                "recovery_score": 41.0,
+                "sleep_performance_percent": 58.0,
+                "day_strain": 12.4,
+                "hrv_rmssd_milli": 31.2,
+                "resting_heart_rate": 64.0,
+                "sleep_duration_minutes": 320,
+                "recent_workout_count": 0,
+                "raw_payload": {},
+            },
+        )
+        WhoopSnapshot.objects.filter(pk=snapshot.pk).update(
+            created_at=timezone.now() - timedelta(hours=2),
+        )
+
+        summary = self.service.execute(self.user_id)
+
+        self.api_services_factory.assert_called_once_with("access-token")
+        self.assertEqual(summary["recovery_score"], 72.0)
+
     def test_expired_token_is_refreshed_and_snapshot_is_created(self) -> None:
         self.connection_repository.save_connection(
             user_id=self.user_id,
@@ -100,6 +133,42 @@ class WhoopSummaryWorkflowTests(TestCase):
         self.api_services_factory.assert_called_once_with("new-token")
         self.assertEqual(summary["recovery_score"], 72.0)
         self.assertEqual(summary["recent_workout_count"], 1)
+        self.assertEqual(len(summary["recent_workouts"]), 1)
+        self.assertEqual(summary["recent_workouts"][0]["sport_name"], "running")
+
+    def test_summary_fetches_workouts_from_last_three_rolling_days(self) -> None:
+        self.connection_repository.save_connection(
+            user_id=self.user_id,
+            whoop_user_id=10129,
+            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+        )
+        started_at = timezone.now()
+
+        summary = self.service.execute(self.user_id)
+
+        workout_service = self.api_services_factory.return_value.workout_service
+        _, kwargs = workout_service.list_workouts.call_args
+        self.assertEqual(kwargs["limit"], 25)
+        self.assertLessEqual(kwargs["start"], started_at - timedelta(days=3) + timedelta(seconds=1))
+        self.assertGreaterEqual(kwargs["end"], started_at)
+        self.assertEqual(summary["recent_workouts"][0]["duration_minutes"], 45)
+        self.assertEqual(summary["recent_workouts"][0]["strain"], 6.8)
+
+    def test_summary_still_saves_snapshot_when_recent_workout_fetch_is_rejected(self) -> None:
+        self.connection_repository.save_connection(
+            user_id=self.user_id,
+            whoop_user_id=10129,
+            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+        )
+        self.api_services_factory.return_value.workout_service.list_workouts.side_effect = WhoopValidationError(
+            "WHOOP request failed with status 400."
+        )
+
+        summary = self.service.execute(self.user_id)
+
+        self.assertEqual(summary["recovery_score"], 72.0)
+        self.assertEqual(summary["recent_workout_count"], 0)
+        self.assertEqual(summary["recent_workouts"], [])
 
 
 @override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("utf-8"))
@@ -225,9 +294,25 @@ def _workout() -> Workout:
         user_id=10129,
         created_at=now,
         updated_at=now,
-        start=now,
+        start=now - timedelta(minutes=45),
         end=now,
         timezone_offset="-05:00",
         sport_name="running",
         score_state="SCORED",
+        score=WorkoutScore(
+            strain=6.8,
+            average_heart_rate=142,
+            max_heart_rate=176,
+            kilojoule=1800.0,
+            percent_recorded=100.0,
+            zone_durations=ZoneDurations(
+                zone_zero_milli=1,
+                zone_one_milli=2,
+                zone_two_milli=3,
+                zone_three_milli=4,
+                zone_four_milli=5,
+                zone_five_milli=6,
+            ),
+            distance_meter=5000.0,
+        ),
     )

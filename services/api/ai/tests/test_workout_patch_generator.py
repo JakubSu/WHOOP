@@ -78,7 +78,16 @@ class WorkoutPatchGeneratorTests(SimpleTestCase):
         result = WorkoutPatchGenerator(
             provider=provider,
             prompt_loader=prompt_loader,
-        ).generate({"current_workout": {"id": "workout-1"}})
+        ).generate(
+            {
+                "current_workout": {"id": "workout-1"},
+                "whoop_summary": {
+                    "connected": True,
+                    "recovery_score": 72.0,
+                    "recent_workouts": [{"id": "whoop-workout-1"}],
+                },
+            }
+        )
 
         self.assertIsInstance(result, WorkoutPatchDraft)
         self.assertEqual(result.summary, "Reduce fatigue.")
@@ -87,6 +96,7 @@ class WorkoutPatchGeneratorTests(SimpleTestCase):
         self.assertEqual(prompt_loader.calls[0]["version"], "v1")
         self.assertEqual(provider.calls[0]["response_model"], WorkoutPatchDraft)
         self.assertEqual(provider.calls[0]["metadata"].prompt_version, "v1")
+        self.assertEqual(provider.calls[0]["input_data"]["whoop_summary"]["recovery_score"], 72.0)
 
     def test_generator_validates_dict_response(self) -> None:
         provider = FakeProvider(

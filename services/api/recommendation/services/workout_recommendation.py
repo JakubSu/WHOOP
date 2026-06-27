@@ -10,6 +10,8 @@ from ai.recommendation.schemas import WorkoutPatchDraft
 from ai.recommendation.services import WorkoutPatchGenerator
 from recommendation.models import Recommendation, RecommendationOperation
 from training.models import Exercise, Workout, WorkoutExercise
+from whoop.exceptions import WhoopConnectionNotFound, WhoopError
+from whoop.workflows.summary import disconnected_summary
 
 
 class RecommendationNotFound(ValueError):
@@ -91,6 +93,7 @@ def build_workout_recommendation_context(
                 Q(user_id=user_id) | Q(user_id="")
             ).order_by("name")
         ],
+        "whoop_summary": _build_whoop_summary(user_id),
         "allowed_operations": [
             {
                 "op": "replace_exercise",
@@ -124,6 +127,25 @@ def build_workout_recommendation_context(
             },
         ],
     }
+
+
+def _build_whoop_summary(user_id: str) -> dict[str, Any]:
+    from whoop import services as whoop_services
+
+    try:
+        return whoop_services.create_summary_service().execute(user_id)
+    except WhoopConnectionNotFound:
+        return disconnected_summary()
+    except WhoopError as exc:
+        return {
+            "connected": False,
+            "detail": f"WHOOP summary unavailable: {exc}",
+        }
+    except Exception as exc:
+        return {
+            "connected": False,
+            "detail": f"WHOOP summary unavailable: {exc}",
+        }
 
 
 @transaction.atomic

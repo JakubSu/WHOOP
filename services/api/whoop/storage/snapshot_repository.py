@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -11,6 +12,18 @@ from whoop.models import WhoopSnapshot
 class WhoopSnapshotRepository:
     def get_latest_for_user(self, user_id: str) -> WhoopSnapshot | None:
         return WhoopSnapshot.objects.filter(user_id=user_id).order_by("-snapshot_date", "-created_at").first()
+
+    def get_recent_for_user(
+        self,
+        user_id: str,
+        *,
+        max_age: timedelta,
+    ) -> WhoopSnapshot | None:
+        cutoff = timezone.now() - max_age
+        return WhoopSnapshot.objects.filter(
+            user_id=user_id,
+            created_at__gte=cutoff,
+        ).order_by("-created_at").first()
 
     def get_today_for_user(self, user_id: str) -> WhoopSnapshot | None:
         return WhoopSnapshot.objects.filter(user_id=user_id, snapshot_date=timezone.localdate()).order_by("-created_at").first()
