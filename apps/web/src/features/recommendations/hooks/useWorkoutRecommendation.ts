@@ -5,14 +5,13 @@ import {
   generateRecommendation,
   rejectRecommendationOperation,
 } from '../api/recommendationApi'
+import { isRecommendationReadyToSave } from '../services/readiness'
 import { type Recommendation } from '../types'
 
 export function useWorkoutRecommendation(workoutId: string | undefined) {
   const queryClient = useQueryClient()
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
-  const isWorkoutReadyToSave =
-    recommendation?.status === 'accepted' &&
-    recommendation.operations.every((operation) => operation.status === 'accepted')
+  const isWorkoutReadyToSave = isRecommendationReadyToSave(recommendation)
   const generate = useMutation({
     mutationFn: () => generateRecommendation(workoutId ?? ''),
     onSuccess: setRecommendation,
