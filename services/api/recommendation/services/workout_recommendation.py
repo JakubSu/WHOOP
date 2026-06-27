@@ -217,6 +217,7 @@ def approve_recommendation_operation(
 
             _apply_operation(workout, operation, user_id=user_id)
             workout.save()
+            workout.refresh_from_db(fields=["updated_at"])
             now = timezone.now()
             operation.status = RecommendationOperation.Status.ACCEPTED
             operation.decided_at = now
@@ -224,6 +225,8 @@ def approve_recommendation_operation(
             operation.save(
                 update_fields=["status", "decided_at", "applied_at", "updated_at"]
             )
+            recommendation.snapshot_version = workout.updated_at.isoformat()
+            recommendation.save(update_fields=["snapshot_version", "updated_at"])
             _refresh_recommendation_rollup(recommendation)
     except RecommendationNotFound:
         _mark_operation_status(

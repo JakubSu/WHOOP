@@ -252,6 +252,10 @@ resource "aws_instance" "this" {
     Name     = var.instance_name
     Snapshot = "true"
   })
+
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
 
 resource "aws_iam_role" "dlm" {

@@ -40,15 +40,24 @@ Terraform reads Cloudflare's current proxy IP ranges through the Cloudflare prov
 
 ## App Deployment
 
-`infra/scripts/deploy_backend.ps1` sends an SSM Run Command to the EC2 instance and asks the host to pull the application code from Git. By default it pulls `https://github.com/JakubSu/WHOOP.git` on `main`.
+`infra/scripts/deploy_backend.ps1` and `infra/scripts/deploy_backend_macos.sh` send an SSM Run Command to the EC2 instance and ask the host to pull the application code from Git. By default they pull `https://github.com/JakubSu/WHOOP.git` on `main`.
 
-Example:
+PowerShell example:
 
 ```powershell
 .\infra\scripts\deploy_backend.ps1 `
   -InstanceId i-0123456789abcdef0 `
   -AppDomain app.example.com `
   -AcmeEmail admin@example.com
+```
+
+macOS example:
+
+```bash
+infra/scripts/deploy_backend_macos.sh \
+  --instance-id i-0123456789abcdef0 \
+  --app-domain app.example.com \
+  --acme-email admin@example.com
 ```
 
 For a private repository, either pass a repository URL the EC2 host can access with `-RepositoryUrl`, or preconfigure repo access on the instance before running the deploy script.

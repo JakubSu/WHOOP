@@ -305,6 +305,44 @@ class WorkoutRecommendationServiceTests(TestCase):
         self.assertEqual(WorkoutExercise.objects.get(pk=self.bench_row_id).sets, 3)
         self.assertEqual(WorkoutExercise.objects.get(pk=self.row_row_id).reps, 8)
 
+    def test_accepting_multiple_operations_from_same_recommendation_uses_latest_workout_version(self) -> None:
+        recommendation = self._create_recommendation(
+            [
+                {
+                    "operation_type": "update_exercise",
+                    "payload_json": {
+                        "workout_exercise_id": self.bench_row_id,
+                        "changes": {"sets": 3},
+                    },
+                },
+                {
+                    "operation_type": "update_exercise",
+                    "payload_json": {
+                        "workout_exercise_id": self.row_row_id,
+                        "changes": {"reps": 10},
+                    },
+                },
+            ]
+        )
+        operations = list(recommendation.operations.order_by("sequence"))
+
+        services.approve_recommendation_operation(
+            self.user_id,
+            str(recommendation.id),
+            str(operations[0].id),
+        )
+        updated = services.approve_recommendation_operation(
+            self.user_id,
+            str(recommendation.id),
+            str(operations[1].id),
+        )
+
+        self.assertEqual(updated.status, Recommendation.Status.ACCEPTED)
+        statuses = list(updated.operations.order_by("sequence").values_list("status", flat=True))
+        self.assertEqual(statuses, ["accepted", "accepted"])
+        self.assertEqual(WorkoutExercise.objects.get(pk=self.bench_row_id).sets, 3)
+        self.assertEqual(WorkoutExercise.objects.get(pk=self.row_row_id).reps, 10)
+
     def test_mixed_operation_decisions_roll_up_to_partial(self) -> None:
         recommendation = self._create_recommendation(
             [

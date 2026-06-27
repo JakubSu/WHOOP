@@ -214,6 +214,17 @@ jobs:
             echo "::endgroup::"
           }
 
+          print_ssm_invocation_metadata() {
+            echo "::group::SSM invocation metadata"
+            aws ssm get-command-invocation \
+              --region "$AWS_REGION" \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query '{Status:Status,StatusDetails:StatusDetails,ResponseCode:ResponseCode,ExecutionStartDateTime:ExecutionStartDateTime,ExecutionEndDateTime:ExecutionEndDateTime,PluginName:PluginName}' \
+              --output table || true
+            echo "::endgroup::"
+          }
+
           for attempt in $(seq 1 120); do
             STATUS="$(aws ssm get-command-invocation \
               --region "$AWS_REGION" \
@@ -231,6 +242,7 @@ jobs:
                 ;;
               Cancelled|TimedOut|Failed|Cancelling)
                 echo "SSM command failed with status: $STATUS" >&2
+                print_ssm_invocation_metadata
                 print_ssm_invocation_output "SSM standard output" 'StandardOutputContent'
                 print_ssm_invocation_output "SSM standard error" 'StandardErrorContent'
                 exit 1
@@ -239,6 +251,7 @@ jobs:
 
             if [ "$attempt" -eq 120 ]; then
               echo "Timed out waiting for SSM deployment command to finish." >&2
+              print_ssm_invocation_metadata
               print_ssm_invocation_output "SSM standard output" 'StandardOutputContent'
               print_ssm_invocation_output "SSM standard error" 'StandardErrorContent'
               exit 1
