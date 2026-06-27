@@ -1,4 +1,5 @@
-import { useParams } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { InlineError } from '../../../shared/components/InlineError'
 import { PrimaryButton } from '../../../shared/components/PrimaryButton'
@@ -11,6 +12,7 @@ import { useWorkoutPage } from '../hooks/useWorkoutPage'
 
 export function WorkoutPage() {
   const { workoutId } = useParams()
+  const navigate = useNavigate()
   const { workout, exerciseDisplays, isLoading, error } = useWorkoutPage(workoutId)
   const recommendation = useWorkoutRecommendation(workoutId)
 
@@ -18,7 +20,17 @@ export function WorkoutPage() {
     <TrainingLayout>
       <section className="training-content workout-content">
         <div className="section-heading">
-          <p className="eyebrow">Workout</p>
+          <div className="section-heading__actions">
+            <p className="eyebrow">Workout</p>
+            <PrimaryButton
+              className="secondary-action back-to-plan-button"
+              type="button"
+              onClick={() => navigate('/plan')}
+            >
+              <ArrowLeft aria-hidden="true" size={17} />
+              My Plan
+            </PrimaryButton>
+          </div>
           <h1>{workout?.name ?? 'Workout'}</h1>
         </div>
         <div className="workout-status-stack">
