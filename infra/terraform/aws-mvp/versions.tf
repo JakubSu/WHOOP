@@ -1,4 +1,11 @@
 terraform {
+  backend "s3" {
+    bucket  = "whoop-ai-coach-prod-297904677684-tfstate"
+    key     = "aws-mvp/prod/terraform.tfstate"
+    region  = "us-east-1"
+    encrypt = true
+  }
+
   required_version = ">= 1.8.0"
 
   required_providers {
