@@ -1,9 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import {
-  formatDate,
-  formatExpectedTime,
-} from '../services/formatters'
+import { formatExpectedTime, formatWeekdayDate } from '../services/formatters'
 import { type WorkoutListItem } from '../types'
 
 type WorkoutListItemButtonProps = {
@@ -20,9 +17,9 @@ export function WorkoutListItemButton({ workout }: WorkoutListItemButtonProps) {
       onClick={() => navigate(`/workouts/${workout.id}`)}
     >
       <span>
-        <strong>{workout.name}</strong>
+        <strong>{formatWeekdayDate(workout.date)}</strong>
         <small>
-          {formatDate(workout.date)} · {workout.exerciseCount} exercises ·{' '}
+          {workout.name} | {workout.exercise_count} exercises |{' '}
           {formatExpectedTime(workout.expected_time)}
         </small>
       </span>

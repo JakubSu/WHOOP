@@ -23,7 +23,7 @@ export function ConnectWhoopSuccessPage() {
         }
       } finally {
         if (isMounted) {
-          navigate('/plan', { replace: true })
+          navigate('/training', { replace: true })
         }
       }
     }

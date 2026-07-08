@@ -2,6 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models import Q
 
 if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
@@ -21,6 +22,13 @@ class TrainingPlan(models.Model):
 
     class Meta:
         ordering = ["-created_at", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id"],
+                condition=~Q(user_id=""),
+                name="training_plan_one_per_user",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name

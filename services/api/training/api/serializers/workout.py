@@ -20,3 +20,11 @@ class WorkoutSerializer(serializers.ModelSerializer):
             "date": {"help_text": "Optional scheduled date for the workout."},
             "expected_time": {"help_text": "Expected workout duration in minutes."},
         }
+
+
+class WorkoutErrorDetailSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
+class WorkoutLandingQuerySerializer(serializers.Serializer):
+    today = serializers.DateField()

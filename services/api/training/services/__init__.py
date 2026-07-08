@@ -17,6 +17,7 @@ from training.services.workout import (
     create_workout,
     delete_workout,
     get_workout,
+    get_workout_landing,
     list_workouts,
     update_workout,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "create_workout",
     "delete_workout",
     "get_workout",
+    "get_workout_landing",
     "list_workouts",
     "update_workout",
     "create_workout_exercise",

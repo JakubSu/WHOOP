@@ -8,6 +8,7 @@ from training.api.views.workout import (
     WorkoutCollectionAPIView,
     WorkoutDetailAPIView,
     WorkoutExercisePageCollectionAPIView,
+    WorkoutLandingAPIView,
 )
 from training.api.views.workout_exercise import WorkoutExerciseCollectionAPIView, WorkoutExerciseDetailAPIView
 
@@ -20,6 +21,7 @@ __all__ = [
     "WorkoutCollectionAPIView",
     "WorkoutDetailAPIView",
     "WorkoutExercisePageCollectionAPIView",
+    "WorkoutLandingAPIView",
     "WorkoutExerciseCollectionAPIView",
     "WorkoutExerciseDetailAPIView",
 ]

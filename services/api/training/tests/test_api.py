@@ -204,9 +204,26 @@ class MinimalTrainingApiTests(TestCase):
 
     def test_plan_workouts_returns_only_requested_plan_with_exercise_counts(self) -> None:
         plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
-        other_plan = TrainingPlan.objects.create(name="Other Block", user_id=str(self.user.id))
-        workout = Workout.objects.create(name="Upper Body", user_id=str(self.user.id), plan=plan, expected_time=45)
-        Workout.objects.create(name="Conditioning", user_id=str(self.user.id), plan=other_plan, expected_time=30)
+        User = get_user_model()
+        other_user = cast(Any, User.objects).create_user(
+            email="third@example.com",
+            password="strong-password",
+        )
+        other_plan = TrainingPlan.objects.create(name="Other Block", user_id=str(other_user.id))
+        workout = Workout.objects.create(
+            name="Upper Body",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-10",
+            expected_time=45,
+        )
+        Workout.objects.create(
+            name="Conditioning",
+            user_id=str(other_user.id),
+            plan=other_plan,
+            date="2026-06-11",
+            expected_time=30,
+        )
         exercise_one = Exercise.objects.create(name="Bench Press", user_id=str(self.user.id))
         exercise_two = Exercise.objects.create(name="Row", user_id=str(self.user.id))
         WorkoutExercise.objects.create(workout=workout, exercise=exercise_one)
@@ -220,6 +237,114 @@ class MinimalTrainingApiTests(TestCase):
         self.assertEqual(body[0]["id"], str(workout.id))
         self.assertEqual(body[0]["exercise_count"], 2)
         self.assertEqual(body[0]["expected_time"], 45)
+
+    def test_plan_workouts_return_ascending_schedule_order(self) -> None:
+        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
+        Workout.objects.create(
+            name="Day 3",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-12",
+        )
+        Workout.objects.create(
+            name="Day 1",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-10",
+        )
+        Workout.objects.create(
+            name="Day 2",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-11",
+        )
+
+        response = self.client.get(reverse("training-plan-workout-collection", args=[plan.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [workout["name"] for workout in response.json()],
+            ["Day 1", "Day 2", "Day 3"],
+        )
+
+    def test_workout_create_rejects_missing_date_for_planned_workout(self) -> None:
+        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
+
+        response = self.client.post(
+            reverse("workout-collection"),
+            {
+                "plan": str(plan.id),
+                "name": "Upper Body",
+                "expected_time": 45,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"], "Planned workouts must have a date.")
+
+    def test_training_plan_create_rejects_second_plan_for_same_user(self) -> None:
+        TrainingPlan.objects.create(name="Existing Plan", user_id=str(self.user.id))
+
+        response = self.client.post(
+            reverse("training-plan-collection"),
+            {"name": "Second Plan"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"], "User already has a training plan.")
+
+    def test_workout_landing_returns_todays_workout(self) -> None:
+        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
+        workout = Workout.objects.create(
+            name="Today Lift",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-10",
+            expected_time=45,
+        )
+
+        response = self.client.get(
+            reverse("workout-landing"),
+            {"today": "2026-06-10"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["selected_workout"]["id"], str(workout.id))
+        self.assertTrue(body["selected_workout"]["is_today"])
+        self.assertTrue(body["has_workout_today"])
+        self.assertIsNone(body["message"])
+
+    def test_workout_landing_returns_closest_upcoming_when_today_missing(self) -> None:
+        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
+        next_workout = Workout.objects.create(
+            name="Next Up",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-11",
+            expected_time=45,
+        )
+        Workout.objects.create(
+            name="Later",
+            user_id=str(self.user.id),
+            plan=plan,
+            date="2026-06-14",
+            expected_time=30,
+        )
+
+        response = self.client.get(
+            reverse("workout-landing"),
+            {"today": "2026-06-10"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["selected_workout"]["id"], str(next_workout.id))
+        self.assertFalse(body["selected_workout"]["is_today"])
+        self.assertFalse(body["has_workout_today"])
+        self.assertEqual(body["message"], "No workout scheduled today")
 
     def test_workout_exercises_page_returns_nested_exercise_display_data(self) -> None:
         workout = Workout.objects.create(name="Upper Body", user_id=str(self.user.id))

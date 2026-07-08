@@ -9,6 +9,7 @@ from training.api.views import (
     WorkoutCollectionAPIView,
     WorkoutDetailAPIView,
     WorkoutExercisePageCollectionAPIView,
+    WorkoutLandingAPIView,
     WorkoutExerciseCollectionAPIView,
     WorkoutExerciseDetailAPIView,
 )
@@ -20,6 +21,7 @@ urlpatterns = [
     path("training-plans/", TrainingPlanCollectionAPIView.as_view(), name="training-plan-collection"),
     path("training-plans/<uuid:pk>/", TrainingPlanDetailAPIView.as_view(), name="training-plan-detail"),
     path("training-plans/<uuid:pk>/workouts/", TrainingPlanWorkoutCollectionAPIView.as_view(), name="training-plan-workout-collection"),
+    path("workouts/landing/", WorkoutLandingAPIView.as_view(), name="workout-landing"),
     path("workouts/", WorkoutCollectionAPIView.as_view(), name="workout-collection"),
     path("workouts/<uuid:pk>/", WorkoutDetailAPIView.as_view(), name="workout-detail"),
     path("workouts/<uuid:pk>/exercises/", WorkoutExercisePageCollectionAPIView.as_view(), name="workout-exercise-page-collection"),

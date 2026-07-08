@@ -33,6 +33,14 @@ export function AppRouter() {
         }
       />
       <Route
+        path="/training"
+        element={
+          <ProtectedRoute>
+            <WorkoutPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/plan"
         element={
           <ProtectedRoute>

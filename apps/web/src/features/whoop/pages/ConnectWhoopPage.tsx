@@ -58,7 +58,7 @@ export function ConnectWhoopPage() {
             Continue to WHOOP
           </a>
         ) : null}
-        <Link className="primary-button secondary-action" to="/plan">
+        <Link className="primary-button secondary-action" to="/training">
           Continue without WHOOP
         </Link>
         <InlineError message={error} />

@@ -22,3 +22,9 @@ class TrainingPlanServiceTests(TestCase):
         self.assertEqual(str(training_plan.start_date), "2026-06-01")
         self.assertEqual(str(training_plan.end_date), "2026-07-01")
         self.assertEqual(TrainingPlan.objects.count(), starting_count + 1)
+
+    def test_user_can_only_have_one_training_plan(self) -> None:
+        services.create_training_plan({"name": "Summer Strength Block"}, user_id=self.user_id)
+
+        with self.assertRaisesMessage(ValueError, "User already has a training plan."):
+            services.create_training_plan({"name": "Fall Strength Block"}, user_id=self.user_id)

@@ -13,6 +13,16 @@ export type Workout = {
   expected_time: number | null
 }
 
+export type WorkoutLandingSelection = Workout & {
+  is_today: boolean
+}
+
+export type WorkoutLanding = {
+  has_workout_today: boolean
+  message: string | null
+  selected_workout: WorkoutLandingSelection | null
+}
+
 export type WorkoutExercise = {
   id: string
   workout: string
@@ -37,7 +47,7 @@ export type Exercise = {
 }
 
 export type WorkoutListItem = Workout & {
-  exerciseCount: number
+  exercise_count: number
 }
 
 export type WorkoutExerciseDisplay = WorkoutExercise & {

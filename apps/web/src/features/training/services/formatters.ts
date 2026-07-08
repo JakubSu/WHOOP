@@ -1,9 +1,7 @@
 import {
   type Exercise,
-  type Workout,
   type WorkoutExercise,
   type WorkoutExerciseDisplay,
-  type WorkoutListItem,
 } from '../types'
 
 export function formatDate(value: string | null) {
@@ -17,23 +15,44 @@ export function formatDate(value: string | null) {
   }).format(new Date(`${value}T00:00:00`))
 }
 
+export function formatWeekdayDate(value: string | null) {
+  if (!value) {
+    return 'No date'
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(`${value}T00:00:00`))
+}
+
+export function getLocalDateIso() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function isDateToday(value: string | null, today = getLocalDateIso()) {
+  return Boolean(value) && value === today
+}
+
+export function getWorkoutScreenTitle(value: string | null, isToday: boolean) {
+  return isToday ? 'Today' : formatDate(value)
+}
+
+export function getWorkoutScreenEyebrow(message: string | null) {
+  return message ?? 'Workout'
+}
+
 export function formatExpectedTime(minutes: number | null) {
   if (!minutes) {
     return 'Time TBD'
   }
 
   return `${minutes} min`
-}
-
-export function buildWorkoutListItems(
-  workouts: Workout[],
-  workoutExercises: WorkoutExercise[],
-): WorkoutListItem[] {
-  return workouts.map((workout) => ({
-    ...workout,
-    exerciseCount: workoutExercises.filter((item) => item.workout === workout.id)
-      .length,
-  }))
 }
 
 export function buildExerciseDisplays(

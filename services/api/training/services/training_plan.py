@@ -20,11 +20,13 @@ def list_plan_workouts(training_plan_id: str, user_id: str) -> list[Workout]:
     return list(
         Workout.objects.filter(plan_id=training_plan_id, user_id=user_id)
         .annotate(exercise_count=Count("workout_exercises"))
-        .order_by("-date", "name")
+        .order_by("date", "name")
     )
 
 
 def create_training_plan(data: dict[str, Any], *, user_id: str) -> TrainingPlan:
+    if TrainingPlan.objects.filter(user_id=user_id).exists():
+        raise ValueError("User already has a training plan.")
     payload = _normalized_training_plan_payload(data)
     payload["user_id"] = user_id
     return TrainingPlan.objects.create(**payload)

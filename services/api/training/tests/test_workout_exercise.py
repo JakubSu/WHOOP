@@ -75,7 +75,11 @@ class WorkoutExerciseServiceTests(TestCase):
     def test_create_workout_with_training_plan(self) -> None:
         training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
         workout = services.create_workout(
-            {"name": "Lower Body", "plan": str(training_plan.id)},
+            {
+                "name": "Lower Body",
+                "plan": str(training_plan.id),
+                "date": "2026-06-10",
+            },
             user_id=self.user_id,
         )
 

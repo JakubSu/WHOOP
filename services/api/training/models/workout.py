@@ -28,7 +28,13 @@ class Workout(models.Model):
     workout_exercises: "RelatedManager[WorkoutExercise]"
 
     class Meta:
-        ordering = ["-date", "name"]
+        ordering = ["date", "name"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(plan__isnull=True) | models.Q(date__isnull=False),
+                name="planned_workout_requires_date",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name

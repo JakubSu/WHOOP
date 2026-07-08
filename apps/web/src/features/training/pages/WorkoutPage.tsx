@@ -9,19 +9,34 @@ import { RecommendationPanel } from '../../recommendations/components/Recommenda
 import { useWorkoutRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
 import { ExerciseCard } from '../components/ExerciseCard'
 import { useWorkoutPage } from '../hooks/useWorkoutPage'
+import {
+  getWorkoutScreenEyebrow,
+  getWorkoutScreenTitle,
+} from '../services/formatters'
 
 export function WorkoutPage() {
   const { workoutId } = useParams()
   const navigate = useNavigate()
-  const { workout, exerciseDisplays, isLoading, error } = useWorkoutPage(workoutId)
-  const recommendation = useWorkoutRecommendation(workoutId)
+  const {
+    resolvedWorkoutId,
+    workout,
+    exerciseDisplays,
+    isToday,
+    landingMessage,
+    isLoading,
+    error,
+  } =
+    useWorkoutPage(workoutId)
+  const recommendation = useWorkoutRecommendation(resolvedWorkoutId)
+  const primaryTitle = getWorkoutScreenTitle(workout?.date ?? null, isToday)
+  const eyebrow = getWorkoutScreenEyebrow(landingMessage)
 
   return (
     <TrainingLayout>
       <section className="training-content workout-content">
         <div className="section-heading">
           <div className="section-heading__actions">
-            <p className="eyebrow">Workout</p>
+            <p className="eyebrow">{eyebrow}</p>
             <PrimaryButton
               className="secondary-action back-to-plan-button"
               type="button"
@@ -31,7 +46,8 @@ export function WorkoutPage() {
               My Plan
             </PrimaryButton>
           </div>
-          <h1>{workout?.name ?? 'Workout'}</h1>
+          <h1>{workout ? primaryTitle : 'Workout'}</h1>
+          {workout ? <p className="muted">{workout.name}</p> : null}
         </div>
         <div className="workout-status-stack">
           {isLoading ? <p className="muted">Loading workout...</p> : null}
@@ -79,7 +95,7 @@ export function WorkoutPage() {
             className="workout-recommendation-button"
             type="button"
             isLoading={recommendation.isGenerating}
-            disabled={!workoutId}
+            disabled={!resolvedWorkoutId}
             onClick={recommendation.generate}
           >
             Get Recommendation

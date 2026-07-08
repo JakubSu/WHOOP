@@ -34,7 +34,7 @@ export function LoginPage() {
 
     try {
       await login.mutateAsync({ email, password })
-      navigate('/plan', { replace: true })
+      navigate('/training', { replace: true })
     } catch (error) {
       setFormError(getErrorMessage(error))
     }

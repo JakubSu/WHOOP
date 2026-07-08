@@ -1,10 +1,12 @@
+from datetime import date
 from typing import Any
 
+from training.domain import WorkoutLanding
 from training.models import TrainingPlan, Workout
 
 
 def list_workouts(user_id: str) -> list[Workout]:
-    return list(Workout.objects.filter(user_id=user_id))
+    return list(Workout.objects.filter(user_id=user_id).order_by("date", "name"))
 
 
 def get_workout(workout_id: str, user_id: str) -> Workout | None:
@@ -34,6 +36,40 @@ def delete_workout(workout: Workout) -> None:
     workout.delete()
 
 
+def get_workout_landing(user_id: str, today_value: str | date) -> WorkoutLanding | None:
+    today = _coerce_date(today_value)
+    workouts = list(
+        Workout.objects.filter(user_id=user_id, plan__isnull=False, date__isnull=False).order_by("date", "name")
+    )
+    if not workouts:
+        return None
+
+    todays_workout = next((workout for workout in workouts if workout.date == today), None)
+    if todays_workout is not None:
+        return WorkoutLanding(
+            workout=todays_workout,
+            is_today=True,
+            has_workout_today=True,
+            message=None,
+        )
+
+    upcoming_workout = next((workout for workout in workouts if workout.date and workout.date > today), None)
+    if upcoming_workout is None:
+        return WorkoutLanding(
+            workout=workouts[-1],
+            is_today=False,
+            has_workout_today=False,
+            message="No workout scheduled today",
+        )
+
+    return WorkoutLanding(
+        workout=upcoming_workout,
+        is_today=False,
+        has_workout_today=False,
+        message="No workout scheduled today",
+    )
+
+
 def _normalized_workout_payload(
     data: dict[str, Any],
     existing: Workout | None = None,
@@ -58,6 +94,9 @@ def _normalized_workout_payload(
         elif existing is not None:
             payload[field] = getattr(existing, field)
 
+    if payload.get("plan") is not None and payload.get("date") is None:
+        raise ValueError("Planned workouts must have a date.")
+
     return payload
 
 
@@ -74,3 +113,9 @@ def _get_training_plan(training_plan_value: TrainingPlan | str | None, *, user_i
         return TrainingPlan.objects.get(pk=training_plan_value, user_id=user_id)
     except TrainingPlan.DoesNotExist as exc:
         raise ValueError("Training plan was not found.") from exc
+
+
+def _coerce_date(value: str | date) -> date:
+    if isinstance(value, date):
+        return value
+    return date.fromisoformat(value)
