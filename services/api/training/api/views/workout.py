@@ -207,7 +207,8 @@ class WorkoutLandingAPIView(APIView):
     def get(self, request: Request) -> Response:
         query_serializer = WorkoutLandingQuerySerializer(data=request.query_params)
         query_serializer.is_valid(raise_exception=True)
-        today = cast(date, query_serializer.validated_data["today"])
+        query_data = validated_data_as_dict(query_serializer)
+        today = cast(date, query_data["today"])
         landing = services.get_workout_landing(str(request.user.id), today)
         if landing is None:
             payload = {
