@@ -1,10 +1,24 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
 
+def remove_json_schema_defaults(schema: dict[str, Any]) -> None:
+    schema.pop("default", None)
+    for value in schema.values():
+        if isinstance(value, dict):
+            remove_json_schema_defaults(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    remove_json_schema_defaults(item)
+
+
 class UpdateExerciseChanges(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra=remove_json_schema_defaults,
+    )
 
     sets: int | None = None
     reps: int | None = None
@@ -21,7 +35,10 @@ class UpdateExerciseChanges(BaseModel):
 
 
 class WorkoutPatchOperation(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra=remove_json_schema_defaults,
+    )
 
     op: Literal[
         "replace_exercise",
@@ -69,7 +86,10 @@ AddExerciseOperation = WorkoutPatchOperation
 
 
 class WorkoutPatchDraft(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra=remove_json_schema_defaults,
+    )
 
     summary: str
     operations: list[WorkoutPatchOperation]

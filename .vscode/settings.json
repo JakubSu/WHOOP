@@ -1,6 +1,9 @@
 {
     "python.defaultInterpreterPath": "C:\\Users\\kubas\\miniconda3\\envs\\whoop-api\\python.exe",
     "python.terminal.useEnvFile": true,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/services/api"
+    ],
     "sqltools.connections": [
         {
             "previewLimit": 50,

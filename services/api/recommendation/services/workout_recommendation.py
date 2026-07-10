@@ -160,6 +160,34 @@ def generate_recommendation_for_workout(
     if not isinstance(draft, WorkoutPatchDraft):
         draft = WorkoutPatchDraft.model_validate(draft)
 
+    return create_recommendation_from_workout_patch(
+        user_id=user_id,
+        workout_id=workout_id,
+        draft=draft,
+        snapshot_version=str(context["current_workout"]["version"]),
+    )
+
+
+@transaction.atomic
+def create_recommendation_from_workout_patch(
+    *,
+    user_id: str,
+    workout_id: str,
+    draft: WorkoutPatchDraft,
+    snapshot_version: str | None = None,
+    source: str = Recommendation.Source.DAILY_RECOMMENDATION,
+    coach_conversation_id: str | None = None,
+    coach_message_id: str | None = None,
+) -> Recommendation:
+    if not isinstance(draft, WorkoutPatchDraft):
+        draft = WorkoutPatchDraft.model_validate(draft)
+    if snapshot_version is None:
+        try:
+            workout = Workout.objects.get(pk=workout_id, user_id=user_id)
+        except Workout.DoesNotExist as exc:
+            raise RecommendationNotFound("Workout was not found.") from exc
+        snapshot_version = workout.updated_at.isoformat()
+
     operation_payloads = [
         operation.model_dump(mode="json", exclude_none=True)
         for operation in draft.operations
@@ -173,10 +201,13 @@ def generate_recommendation_for_workout(
     recommendation = Recommendation.objects.create(
         user_id=user_id,
         workout_id=workout_id,
-        snapshot_version=str(context["current_workout"]["version"]),
+        snapshot_version=snapshot_version,
         status=Recommendation.Status.PENDING,
         summary=draft.summary,
         reason=draft.reason,
+        source=source,
+        coach_conversation_id=coach_conversation_id,
+        coach_message_id=coach_message_id,
     )
     for index, payload in enumerate(operation_payloads, start=1):
         operation_type = str(payload.pop("op"))
@@ -310,6 +341,13 @@ def serialize_recommendation(recommendation: Recommendation) -> dict[str, Any]:
         "status": recommendation.status,
         "summary": recommendation.summary,
         "reason": recommendation.reason,
+        "source": recommendation.source,
+        "coach_conversation_id": str(recommendation.coach_conversation_id)
+        if recommendation.coach_conversation_id
+        else None,
+        "coach_message_id": str(recommendation.coach_message_id)
+        if recommendation.coach_message_id
+        else None,
         "operations": [
             _serialize_operation(
                 operation, recommendation.user_id, str(recommendation.workout_id)

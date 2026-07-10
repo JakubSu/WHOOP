@@ -17,6 +17,10 @@ class Recommendation(models.Model):
         STALE = "stale", "Stale"
         FAILED = "failed", "Failed"
 
+    class Source(models.TextChoices):
+        DAILY_RECOMMENDATION = "daily_recommendation", "Daily recommendation"
+        COACH_CHAT = "coach_chat", "Coach chat"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.CharField(max_length=200, db_index=True)
     workout_id = models.UUIDField(db_index=True)
@@ -26,6 +30,13 @@ class Recommendation(models.Model):
     )
     summary = models.TextField(blank=True, default="")
     reason = models.TextField(blank=True, default="")
+    source = models.CharField(
+        max_length=64,
+        choices=Source.choices,
+        default=Source.DAILY_RECOMMENDATION,
+    )
+    coach_conversation_id = models.UUIDField(blank=True, null=True, db_index=True)
+    coach_message_id = models.UUIDField(blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
