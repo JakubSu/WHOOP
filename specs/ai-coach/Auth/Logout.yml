@@ -1,0 +1,24 @@
+info:
+  name: "Logout"
+  type: "http"
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/logout/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "refresh": "{{refreshToken}}"
+      }
+  auth: "none"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

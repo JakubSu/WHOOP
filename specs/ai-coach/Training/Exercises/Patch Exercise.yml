@@ -1,0 +1,25 @@
+info:
+  name: "Patch Exercise"
+  type: "http"
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/exercises/{{exerciseId}}/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "default_sets": 5,
+        "notes": "Updated notes."
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,35 @@
+info:
+  name: "Generate Recommendation"
+  type: "http"
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/recommendations/workouts/{{workoutId}}/generate/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {}
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+scripts:
+  postResponse: |-
+    const body = res.getBody();
+    
+    if (body.id) {
+      bru.setEnvVar("recommendationId", body.id);
+    }
+    
+    const recommendationOperationId = body.operations?.[0]?.id;
+    if (recommendationOperationId) {
+      bru.setEnvVar("recommendationOperationId", recommendationOperationId);
+    }

@@ -1,0 +1,66 @@
+info:
+  name: Stream Today Workout Turn
+  type: http
+  seq: 2
+  tags:
+    - Coach
+
+http:
+  method: POST
+  url: "{{baseUrl}}/coach/turns/stream/"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: text/event-stream
+  body:
+    type: json
+    data: |-
+      {
+        "page_context": {
+          "page_type": "today_workout"
+        },
+        "message": "What is the most important thing to know before today's workout?"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: SSE Response
+    description: Creates or reuses the active today-workout coach conversation.
+    request:
+      url: "{{baseUrl}}/coach/turns/stream/"
+      method: POST
+      headers:
+        - name: Content-Type
+          value: application/json
+        - name: Accept
+          value: text/event-stream
+      body:
+        type: json
+        data: |-
+          {
+            "page_context": {
+              "page_type": "today_workout"
+            },
+            "message": "What is the most important thing to know before today's workout?"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: text/event-stream
+      body:
+        type: text
+        data: |-
+          event: conversation_started
+          data: {"conversation_id":"{{coachConversationId}}","page_context":{"page_type":"today_workout","context_id":""}}
+
+          event: assistant_done
+          data: {"message":{"id":"{{coachMessageId}}","role":"assistant","content":"..."}}

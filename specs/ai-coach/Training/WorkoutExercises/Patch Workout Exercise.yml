@@ -1,0 +1,27 @@
+info:
+  name: "Patch Workout Exercise"
+  type: "http"
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/workout-exercises/{{workoutExerciseId}}/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "sets": 5,
+        "reps": 6,
+        "effort": "max",
+        "note": "Top set."
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

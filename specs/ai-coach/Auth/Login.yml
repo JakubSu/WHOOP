@@ -1,0 +1,41 @@
+info:
+  name: "Login"
+  type: "http"
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/login/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "email": "athlete@example.com",
+        "password": "strong-password-123"
+      }
+  auth: "none"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+scripts:
+  postResponse: |-
+    const body = res.getBody();
+    
+    if (body.access) {
+      bru.setEnvVar("accessToken", body.access);
+    }
+    
+    if (body.refresh) {
+      bru.setEnvVar("refreshToken", body.refresh);
+    }
+    
+    if (body.user?.id) {
+      bru.setEnvVar("userId", body.user.id);
+    }

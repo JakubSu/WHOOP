@@ -1,0 +1,24 @@
+info:
+  name: "Update Current User"
+  type: "http"
+  seq: 2
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/users/me/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "display_name": "Updated Athlete Name"
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

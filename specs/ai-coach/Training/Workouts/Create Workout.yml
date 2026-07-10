@@ -1,0 +1,27 @@
+info:
+  name: "Create Workout"
+  type: "http"
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/workouts/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "plan": "{{trainingPlanId}}",
+        "name": "Upper Body",
+        "date": "2026-06-10",
+        "expected_time": 45
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

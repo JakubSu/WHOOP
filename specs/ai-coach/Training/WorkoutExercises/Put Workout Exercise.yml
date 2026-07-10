@@ -1,0 +1,30 @@
+info:
+  name: "Put Workout Exercise"
+  type: "http"
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/workout-exercises/{{workoutExerciseId}}/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "workout": "{{workoutId}}",
+        "exercise": "{{exerciseId}}",
+        "sets": 4,
+        "reps": 8,
+        "time": 15,
+        "effort": "hard",
+        "note": "Move well."
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

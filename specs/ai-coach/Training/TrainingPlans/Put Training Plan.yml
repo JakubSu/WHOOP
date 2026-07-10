@@ -1,0 +1,26 @@
+info:
+  name: "Put Training Plan"
+  type: "http"
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/training-plans/{{trainingPlanId}}/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "name": "Summer Block",
+        "start_date": "2026-06-01",
+        "end_date": "2026-07-01"
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

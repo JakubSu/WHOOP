@@ -1,0 +1,68 @@
+info:
+  name: Stream Training Plan Turn
+  type: http
+  seq: 3
+  tags:
+    - Coach
+
+http:
+  method: POST
+  url: "{{baseUrl}}/coach/turns/stream/"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: text/event-stream
+  body:
+    type: json
+    data: |-
+      {
+        "page_context": {
+          "page_type": "training_plan",
+          "context_id": "{{trainingPlanId}}"
+        },
+        "message": "Summarize the next few workouts in this plan and tell me where to focus."
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: SSE Response
+    description: Creates or reuses a training-plan coach conversation.
+    request:
+      url: "{{baseUrl}}/coach/turns/stream/"
+      method: POST
+      headers:
+        - name: Content-Type
+          value: application/json
+        - name: Accept
+          value: text/event-stream
+      body:
+        type: json
+        data: |-
+          {
+            "page_context": {
+              "page_type": "training_plan",
+              "context_id": "{{trainingPlanId}}"
+            },
+            "message": "Summarize the next few workouts in this plan and tell me where to focus."
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: text/event-stream
+      body:
+        type: text
+        data: |-
+          event: conversation_started
+          data: {"conversation_id":"{{coachConversationId}}","page_context":{"page_type":"training_plan","context_id":"{{trainingPlanId}}"}}
+
+          event: assistant_done
+          data: {"message":{"id":"{{coachMessageId}}","role":"assistant","content":"..."}}
