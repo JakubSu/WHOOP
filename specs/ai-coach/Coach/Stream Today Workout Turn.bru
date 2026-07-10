@@ -1,0 +1,32 @@
+meta {
+  name: Stream Today Workout Turn
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/coach/turns/stream/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "page_context": {
+      "page_type": "today_workout"
+    },
+    "message": "What is the most important thing to know before today's workout?"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}

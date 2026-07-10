@@ -1,0 +1,66 @@
+info:
+  name: Stream Recovery Turn
+  type: http
+  seq: 4
+  tags:
+    - Coach
+
+http:
+  method: POST
+  url: "{{baseUrl}}/coach/turns/stream/"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: text/event-stream
+  body:
+    type: json
+    data: |-
+      {
+        "page_context": {
+          "page_type": "recovery"
+        },
+        "message": "How should I think about today's recovery before training?"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: SSE Response
+    description: Creates or reuses the active recovery coach conversation.
+    request:
+      url: "{{baseUrl}}/coach/turns/stream/"
+      method: POST
+      headers:
+        - name: Content-Type
+          value: application/json
+        - name: Accept
+          value: text/event-stream
+      body:
+        type: json
+        data: |-
+          {
+            "page_context": {
+              "page_type": "recovery"
+            },
+            "message": "How should I think about today's recovery before training?"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: text/event-stream
+      body:
+        type: text
+        data: |-
+          event: conversation_started
+          data: {"conversation_id":"{{coachConversationId}}","page_context":{"page_type":"recovery","context_id":""}}
+
+          event: assistant_done
+          data: {"message":{"id":"{{coachMessageId}}","role":"assistant","content":"..."}}

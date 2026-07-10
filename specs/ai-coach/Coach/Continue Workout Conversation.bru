@@ -1,0 +1,34 @@
+meta {
+  name: Continue Workout Conversation
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/coach/turns/stream/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "conversation_id": "{{coachConversationId}}",
+    "page_context": {
+      "page_type": "workout",
+      "context_id": "{{workoutId}}"
+    },
+    "message": "Can you explain that in simpler terms?"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}

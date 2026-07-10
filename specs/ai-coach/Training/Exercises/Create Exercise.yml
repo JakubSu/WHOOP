@@ -1,0 +1,29 @@
+info:
+  name: "Create Exercise"
+  type: "http"
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/exercises/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "name": "Bench Press",
+        "default_sets": 4,
+        "default_reps": 8,
+        "muscle_group": "Chest",
+        "default_time": 0,
+        "notes": "Pause reps."
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

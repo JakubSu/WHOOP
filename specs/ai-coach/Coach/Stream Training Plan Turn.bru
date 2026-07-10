@@ -1,0 +1,33 @@
+meta {
+  name: Stream Training Plan Turn
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/coach/turns/stream/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "page_context": {
+      "page_type": "training_plan",
+      "context_id": "{{trainingPlanId}}"
+    },
+    "message": "Summarize the next few workouts in this plan and tell me where to focus."
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}

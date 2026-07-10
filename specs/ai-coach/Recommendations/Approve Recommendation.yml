@@ -1,0 +1,24 @@
+info:
+  name: "Approve Recommendation"
+  type: "http"
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/recommendations/{{recommendationId}}/operations/{{recommendationOperationId}}/approve/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "expected_workout_version": "2026-06-10T00:00:00Z"
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

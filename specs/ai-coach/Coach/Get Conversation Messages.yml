@@ -1,0 +1,60 @@
+info:
+  name: Get Conversation Messages
+  type: http
+  seq: 6
+  tags:
+    - Coach
+
+http:
+  method: GET
+  url: "{{baseUrl}}/coach/conversations/{{coachConversationId}}/messages/"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Persisted user and assistant messages for the authenticated owner.
+    request:
+      url: "{{baseUrl}}/coach/conversations/{{coachConversationId}}/messages/"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "conversation_id": "{{coachConversationId}}",
+            "messages": [
+              {
+                "id": "{{coachMessageId}}",
+                "role": "assistant",
+                "content": "...",
+                "metadata_json": {
+                  "safety_flags": [],
+                  "ui_actions": []
+                },
+                "recommendation_id": null,
+                "created_at": "2026-07-09T00:00:00+00:00"
+              }
+            ]
+          }
+  - name: 404 Response
+    description: Conversation does not exist or does not belong to the authenticated user.
+    request:
+      url: "{{baseUrl}}/coach/conversations/{{coachConversationId}}/messages/"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""

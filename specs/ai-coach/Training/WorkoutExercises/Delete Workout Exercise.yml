@@ -1,0 +1,15 @@
+info:
+  name: "Delete Workout Exercise"
+  type: "http"
+  seq: 6
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/workout-exercises/{{workoutExerciseId}}/"
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

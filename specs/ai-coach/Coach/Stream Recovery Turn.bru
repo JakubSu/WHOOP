@@ -1,0 +1,32 @@
+meta {
+  name: Stream Recovery Turn
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/coach/turns/stream/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "page_context": {
+      "page_type": "recovery"
+    },
+    "message": "How should I think about today's recovery before training?"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}

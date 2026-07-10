@@ -1,0 +1,15 @@
+info:
+  name: "Delete Training Plan"
+  type: "http"
+  seq: 6
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/training-plans/{{trainingPlanId}}/"
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

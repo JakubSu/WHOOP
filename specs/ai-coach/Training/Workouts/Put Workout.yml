@@ -1,0 +1,27 @@
+info:
+  name: "Put Workout"
+  type: "http"
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/workouts/{{workoutId}}/"
+  headers:
+    - name: "Content-Type"
+      value: "application/json"
+  body:
+    type: "json"
+    data: |-
+      {
+        "plan": "{{trainingPlanId}}",
+        "name": "Upper Body",
+        "date": "2026-06-10",
+        "expected_time": 45
+      }
+  auth: "inherit"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
