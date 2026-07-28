@@ -32,6 +32,12 @@ operations that the user can approve or reject.
 - Treat pain or injury language as a temporary constraint plus a safety
   boundary, not as medical advice.
 - Persist final messages and key artifacts, not every streamed event.
+- Keep the opened coach chat on its current conversation during navigation.
+  Show a subtle current-screen context indicator, and send the latest
+  `page_context` only when the user submits the next message.
+- On first open for a coach-capable screen, load persisted messages for the
+  active conversation when one exists. If no conversation exists for that screen
+  context, show an empty starter state.
 
 ## Existing System Fit
 
@@ -170,6 +176,17 @@ GET /api/v1/coach/conversations/:conversationId/messages/
 
 Returns persisted user/assistant messages and linked recommendation IDs. This is
 for loading prior chat history, not replaying old stream events.
+
+### Get Active Conversation For Page Context
+
+```http
+GET /api/v1/coach/conversations/active/?page_type=workout&context_id=workout-uuid
+```
+
+Returns `200` with the active conversation summary and messages when an active
+conversation exists for the authenticated user and page context. Returns `204`
+when no conversation exists, allowing the frontend to show an empty starter
+state without creating a conversation before the user's first message.
 
 ## SSE Event Types
 
@@ -451,6 +468,39 @@ Add a shared coach panel/component that can be opened from:
 - Training Plan
 - Recovery/WHOOP
 
+The closed coach launcher is fixed at the bottom of the phone UI. Opening it
+rolls the coach into a roughly 90%-height overlay. The opened overlay survives
+screen switches and navigation. Navigation does not immediately swap the visible
+conversation; instead, the UI keeps the current conversation visible, displays a
+subtle indicator for the current screen context, and includes the latest
+`page_context` on the next submitted turn.
+
+The collapsed launcher should show a compact coach label with the current
+screen context, such as `Coach · Today` or `Coach · Plan`. For the MVO, do not
+show message previews or unread state. If a turn is streaming while the coach is
+collapsed, show a small active state such as `Coach is thinking`.
+
+The coach should allow only one active streamed turn at a time. While a turn is
+streaming, disable the input and send button and show the active thinking state.
+
+If the user submits a message after navigating to a different coach context, the
+frontend switches to the conversation for the latest `page_context` before
+sending. It should load that conversation if it exists, or start an empty one if
+it does not, then append the new user message there. This keeps the visible chat
+stable while reading, but ensures every submitted turn belongs to the backend
+conversation scope for the current screen.
+
+For the MVO, show the coach launcher only on screens that can produce a valid
+coach `page_context`: Today's Workout (`/training`), Individual Workout
+(`/workouts/:workoutId`), Training Plan (`/plan`), and the future
+Recovery/WHOOP screen. Hide it on authentication, WHOOP connection, and any
+screen without a valid page context.
+
+On first open for a coach-capable screen, the frontend should look up the active
+conversation for the current `page_context`. If one exists, render its persisted
+messages; otherwise render an empty starter state. Do not create a conversation
+until the user submits the first turn.
+
 The component sends the current `page_context` with each turn and renders:
 
 - user messages
@@ -462,12 +512,15 @@ The component sends the current `page_context` with each turn and renders:
 
 When a `recommendation_created` event arrives, the UI should render the same
 operation approval/rejection affordances used by the current recommendation
-panel.
+panel. Coach-created recommendation cards must be actionable inside the overlay,
+so the user can approve or reject operations without navigating to the workout
+screen's recommendation panel.
 
 ## Implementation Slices
 
 1. Add `CoachConversation` and `CoachMessage` models.
 2. Add coach serializers and read APIs for conversation history.
+2a. Add an active-conversation lookup API by page context.
 3. Add SSE stream endpoint and event formatting helpers.
 4. Add deterministic context builder for workout context.
 5. Add `CoachOrchestrator` with structured model output.

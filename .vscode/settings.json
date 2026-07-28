@@ -1,6 +1,7 @@
 {
     "python.defaultInterpreterPath": "C:\\Users\\kubas\\miniconda3\\envs\\whoop-api\\python.exe",
     "python.terminal.useEnvFile": true,
+    "python.terminal.activateEnvironment": false,
     "python.analysis.extraPaths": [
         "${workspaceFolder}/services/api"
     ],
@@ -12,5 +13,7 @@
             "name": "whoop-local"
         }
     ],
-    "sqltools.useNodeRuntime": true
+    "sqltools.useNodeRuntime": true,
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda"
 }

@@ -18,6 +18,7 @@ from ai.coach.events import sse_event
 from ai.coach.orchestrator import CoachOrchestrator
 from coaching import services
 from coaching.api.serializers import (
+    CoachActiveConversationRequestSerializer,
     CoachConversationMessagesSerializer,
     CoachTurnStreamRequestSerializer,
 )
@@ -268,5 +269,54 @@ class CoachConversationMessagesAPIView(APIView):
                     }
                     for message in messages
                 ],
+            }
+        )
+
+
+def serialize_conversation_messages(messages: list[CoachMessage]) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": str(message.id),
+            "role": message.role,
+            "content": message.content,
+            "metadata_json": message.metadata_json,
+            "recommendation_id": str(message.recommendation_id)
+            if message.recommendation_id
+            else None,
+            "created_at": message.created_at.isoformat(),
+        }
+        for message in messages
+    ]
+
+
+class CoachActiveConversationAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CoachConversationMessagesSerializer
+
+    def get(self, request: Request) -> Response:
+        serializer = CoachActiveConversationRequestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        validated_data = cast(dict[str, Any], serializer.validated_data)
+        try:
+            conversation = services.find_active_conversation(
+                user_id=str(request.user.id),
+                page_context=validated_data,
+            )
+        except services.CoachValidationError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        if conversation is None:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        messages = services.list_conversation_messages(
+            user_id=str(request.user.id),
+            conversation_id=str(conversation.id),
+        )
+        return Response(
+            {
+                "conversation_id": str(conversation.id),
+                "page_context": {
+                    "page_type": conversation.page_type,
+                    "context_id": conversation.context_id,
+                },
+                "messages": serialize_conversation_messages(messages),
             }
         )

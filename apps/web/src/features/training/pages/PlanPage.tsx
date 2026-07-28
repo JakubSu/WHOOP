@@ -1,12 +1,23 @@
+import { useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { InlineError } from '../../../shared/components/InlineError'
 import { ScrollableStack } from '../../../shared/layout/ScrollableStack'
 import { TrainingLayout } from '../../../shared/layout/TrainingLayout'
+import { useCoachPageContext } from '../../coach/context/CoachOverlayContext'
+import { getCoachPageContextForRoute } from '../../coach/services/coachContext'
 import { WorkoutListItemButton } from '../components/WorkoutListItemButton'
 import { useTrainingPlanPage } from '../hooks/useTrainingPlanPage'
 
 export function PlanPage() {
+  const location = useLocation()
   const { selectedPlan, workoutItems, isLoading, error } = useTrainingPlanPage()
+  const coachContext = useMemo(
+    () =>
+      getCoachPageContextForRoute(location.pathname, { planId: selectedPlan?.id }),
+    [location.pathname, selectedPlan?.id],
+  )
+  useCoachPageContext(coachContext)
 
   return (
     <TrainingLayout>

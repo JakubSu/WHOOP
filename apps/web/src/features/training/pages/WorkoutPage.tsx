@@ -1,10 +1,13 @@
 import { ArrowLeft } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { InlineError } from '../../../shared/components/InlineError'
 import { PrimaryButton } from '../../../shared/components/PrimaryButton'
 import { ScrollableStack } from '../../../shared/layout/ScrollableStack'
 import { TrainingLayout } from '../../../shared/layout/TrainingLayout'
+import { useCoachPageContext } from '../../coach/context/CoachOverlayContext'
+import { getCoachPageContextForRoute } from '../../coach/services/coachContext'
 import { RecommendationPanel } from '../../recommendations/components/RecommendationPanel'
 import { useWorkoutRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
 import { ExerciseCard } from '../components/ExerciseCard'
@@ -16,6 +19,7 @@ import {
 
 export function WorkoutPage() {
   const { workoutId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const {
     resolvedWorkoutId,
@@ -30,6 +34,11 @@ export function WorkoutPage() {
   const recommendation = useWorkoutRecommendation(resolvedWorkoutId)
   const primaryTitle = getWorkoutScreenTitle(workout?.date ?? null, isToday)
   const eyebrow = getWorkoutScreenEyebrow(landingMessage)
+  const coachContext = useMemo(
+    () => getCoachPageContextForRoute(location.pathname),
+    [location.pathname],
+  )
+  useCoachPageContext(coachContext)
 
   return (
     <TrainingLayout>

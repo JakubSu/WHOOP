@@ -25,3 +25,7 @@ Otherwise it shows the closest upcoming planned workout and a header stating tha
 On the workout detail screen, the primary title is `Today` when the workout is scheduled for the current local date.
 Otherwise the primary title is the formatted workout date.
 The secondary title is always the workout name.
+
+### Coach Overlay
+A persistent AI coach chat surface opened from the bottom coach launcher.
+It occupies about 90% of the phone viewport height and remains available across training screen navigation.

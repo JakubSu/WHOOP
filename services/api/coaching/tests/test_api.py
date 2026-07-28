@@ -83,6 +83,43 @@ class CoachApiTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_active_conversation_lookup_returns_messages_without_creating_conversation(
+        self,
+    ) -> None:
+        empty_response = self.client.get(
+            reverse("coach-active-conversation"),
+            {
+                "page_type": "workout",
+                "context_id": str(self.workout.id),
+            },
+        )
+
+        self.assertEqual(empty_response.status_code, 204)
+        self.assertEqual(CoachConversation.objects.count(), 0)
+
+        conversation = CoachConversation.objects.create(
+            user_id=str(self.user.id),
+            page_type=CoachConversation.PageType.WORKOUT,
+            context_id=str(self.workout.id),
+        )
+        conversation.messages.create(role="user", content="What should I focus on?")
+        conversation.messages.create(role="assistant", content="Keep the bench crisp.")
+
+        response = self.client.get(
+            reverse("coach-active-conversation"),
+            {
+                "page_type": "workout",
+                "context_id": str(self.workout.id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["conversation_id"], str(conversation.id))
+        self.assertEqual(
+            [message["content"] for message in response.json()["messages"]],
+            ["What should I focus on?", "Keep the bench crisp."],
+        )
+
     @patch("whoop.services.create_summary_service")
     def test_streamed_turn_creates_conversation_messages_and_ordered_sse_events(
         self,

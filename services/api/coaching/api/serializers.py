@@ -12,6 +12,11 @@ class CoachTurnStreamRequestSerializer(serializers.Serializer):
     message = serializers.CharField(allow_blank=False)
 
 
+class CoachActiveConversationRequestSerializer(serializers.Serializer):
+    page_type = serializers.CharField()
+    context_id = serializers.CharField(required=False, allow_blank=True)
+
+
 class CoachMessageSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     role = serializers.CharField(read_only=True)

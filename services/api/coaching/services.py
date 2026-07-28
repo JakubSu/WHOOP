@@ -98,3 +98,21 @@ def list_conversation_messages(
         .select_related("conversation")
         .order_by("created_at")
     )
+
+
+def find_active_conversation(
+    *,
+    user_id: str,
+    page_context: dict[str, Any],
+) -> CoachConversation | None:
+    normalized = normalize_page_context(page_context)
+    return (
+        CoachConversation.objects.filter(
+            user_id=user_id,
+            page_type=normalized["page_type"],
+            context_id=normalized["context_id"],
+            status=CoachConversation.Status.ACTIVE,
+        )
+        .order_by("-last_message_at", "-created_at")
+        .first()
+    )
