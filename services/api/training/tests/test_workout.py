@@ -27,17 +27,17 @@ class WorkoutServiceTests(TestCase):
         self.assertEqual(Workout.objects.count(), starting_count + 1)
 
     def test_update_workout_expected_time(self) -> None:
-        workout = services.create_workout({"name": "Upper Body"}, user_id=self.user_id)
+        workout = services.create_workout(
+            {"name": "Upper Body", "date": "2026-06-09"},
+            user_id=self.user_id,
+        )
         updated = services.update_workout(workout, {"expected_time": 60}, user_id=self.user_id)
         self.assertEqual(updated.expected_time, 60)
 
-    def test_workout_in_plan_requires_date(self) -> None:
+    def test_workout_requires_date(self) -> None:
         training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
 
-        with self.assertRaisesMessage(
-            ValueError,
-            "Planned workouts must have a date.",
-        ):
+        with self.assertRaises(ValueError):
             services.create_workout(
                 {
                     "plan": str(training_plan.id),

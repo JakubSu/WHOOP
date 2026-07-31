@@ -10,17 +10,16 @@ from rest_framework.views import APIView
 
 from training import services
 from training.api.serializers import (
-    WorkoutExercisePageSerializer,
-    WorkoutLandingSerializer,
-    WorkoutSerializer,
     WorkoutErrorDetailSerializer,
     WorkoutLandingQuerySerializer,
+    WorkoutLandingSerializer,
+    WorkoutSerializer,
 )
 from training.api.views.helpers import validated_data_as_dict
 
 
 class WorkoutCollectionAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = WorkoutSerializer
 
     @extend_schema(
@@ -58,7 +57,7 @@ class WorkoutCollectionAPIView(APIView):
 
 
 class WorkoutDetailAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = WorkoutSerializer
 
     @extend_schema(
@@ -161,35 +160,8 @@ class WorkoutDetailAPIView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class WorkoutExercisePageCollectionAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = WorkoutExercisePageSerializer
-
-    @extend_schema(
-        tags=["Training"],
-        summary="List workout exercises for workout",
-        description="Returns the expanded workout exercise entries for a specific workout.",
-        responses={
-            200: WorkoutExercisePageSerializer(many=True),
-            404: OpenApiResponse(
-                response=WorkoutErrorDetailSerializer, description="Workout not found."
-            ),
-        },
-    )
-    def get(self, request: Request, pk: str) -> Response:
-        workout = services.get_workout(pk, str(request.user.id))
-        if workout is None:
-            raise NotFound()
-        workout_exercises = services.list_workout_exercises_for_workout(
-            pk, str(request.user.id)
-        )
-        return Response(
-            WorkoutExercisePageSerializer(workout_exercises, many=True).data
-        )
-
-
 class WorkoutLandingAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = WorkoutLandingSerializer
 
     @extend_schema(

@@ -1,17 +1,25 @@
 from datetime import date
 from typing import Any
 
+from django.db.models import Count
+
 from training.domain import WorkoutLanding
 from training.models import TrainingPlan, Workout
 
 
 def list_workouts(user_id: str) -> list[Workout]:
-    return list(Workout.objects.filter(user_id=user_id).order_by("date", "name"))
+    return list(
+        Workout.objects.filter(user_id=user_id)
+        .annotate(exercise_count=Count("workout_exercises"))
+        .order_by("date", "name")
+    )
 
 
 def get_workout(workout_id: str, user_id: str) -> Workout | None:
     try:
-        return Workout.objects.get(pk=workout_id, user_id=user_id)
+        return Workout.objects.annotate(exercise_count=Count("workout_exercises")).get(
+            pk=workout_id, user_id=user_id
+        )
     except Workout.DoesNotExist:
         return None
 
@@ -39,7 +47,9 @@ def delete_workout(workout: Workout) -> None:
 def get_workout_landing(user_id: str, today_value: str | date) -> WorkoutLanding | None:
     today = _coerce_date(today_value)
     workouts = list(
-        Workout.objects.filter(user_id=user_id, plan__isnull=False, date__isnull=False).order_by("date", "name")
+        Workout.objects.filter(user_id=user_id, plan__isnull=False).order_by(
+            "date", "name"
+        )
     )
     if not workouts:
         return None
@@ -53,7 +63,7 @@ def get_workout_landing(user_id: str, today_value: str | date) -> WorkoutLanding
             message=None,
         )
 
-    upcoming_workout = next((workout for workout in workouts if workout.date and workout.date > today), None)
+    upcoming_workout = next((workout for workout in workouts if workout.date > today), None)
     if upcoming_workout is None:
         return WorkoutLanding(
             workout=workouts[-1],
@@ -94,8 +104,8 @@ def _normalized_workout_payload(
         elif existing is not None:
             payload[field] = getattr(existing, field)
 
-    if payload.get("plan") is not None and payload.get("date") is None:
-        raise ValueError("Planned workouts must have a date.")
+    if payload.get("date") is None:
+        raise ValueError("Workout date is required.")
 
     return payload
 

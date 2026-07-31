@@ -1,4 +1,6 @@
 import uuid
+from typing import ClassVar
+
 from django.db import models
 
 
@@ -16,6 +18,7 @@ class WorkoutExercise(models.Model):
     weight = models.DecimalField(max_digits=7, decimal_places=2, blank=True, null=True)
     weight_unit = models.CharField(max_length=16, default="lb")
     note = models.TextField(blank=True, default="")
+    sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -23,7 +26,7 @@ class WorkoutExercise(models.Model):
     exercise_id: uuid.UUID
 
     class Meta:
-        ordering = ["workout", "exercise__name"]
+        ordering: ClassVar[list[str]] = ["workout", "sort_order", "created_at", "exercise__name"]
 
     def __str__(self) -> str:
         return f"{self.workout.name}: {self.exercise.name}"

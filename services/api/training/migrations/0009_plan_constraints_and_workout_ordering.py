@@ -30,11 +30,11 @@ def merge_duplicate_training_plans(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
+    dependencies = [  # noqa: RUF012
         ("training", "0008_seed_athlete_user"),
     ]
 
-    operations = [
+    operations = [  # noqa: RUF012
         migrations.AlterModelOptions(
             name="workout",
             options={"ordering": ["date", "name"]},

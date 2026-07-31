@@ -3,8 +3,8 @@ import uuid
 from decimal import Decimal
 from pathlib import Path
 
-from django.db import migrations, models
 import django.db.models.deletion
+from django.db import migrations, models
 
 
 def seed_exercise_bank(apps, schema_editor):
@@ -30,11 +30,11 @@ def seed_exercise_bank(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
+    dependencies = [  # noqa: RUF012
         ("training", "0002_workout"),
     ]
 
-    operations = [
+    operations = [  # noqa: RUF012
         migrations.CreateModel(
             name="TrainingPlan",
             fields=[

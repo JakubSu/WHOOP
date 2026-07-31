@@ -1,22 +1,17 @@
-from training.api.views.helpers import validated_data_as_dict
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import permissions, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import serializers
 
 from training import services
-from training.api.serializers import ExerciseSerializer
-
-
-class ExerciseErrorDetailSerializer(serializers.Serializer):
-    detail = serializers.CharField()
+from training.api.serializers import ExerciseErrorDetailSerializer, ExerciseSerializer
+from training.api.views.helpers import validated_data_as_dict
 
 
 class ExerciseCollectionAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = ExerciseSerializer
 
     @extend_schema(
@@ -36,21 +31,27 @@ class ExerciseCollectionAPIView(APIView):
         request=ExerciseSerializer,
         responses={
             201: ExerciseSerializer,
-            400: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Validation error."),
+            400: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer, description="Validation error."
+            ),
         },
     )
     def post(self, request: Request) -> Response:
         serializer = ExerciseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            exercise = services.create_exercise(validated_data_as_dict(serializer), user_id=str(request.user.id))
+            exercise = services.create_exercise(
+                validated_data_as_dict(serializer), user_id=str(request.user.id)
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
-        return Response(ExerciseSerializer(exercise).data, status=status.HTTP_201_CREATED)
+        return Response(
+            ExerciseSerializer(exercise).data, status=status.HTTP_201_CREATED
+        )
 
 
 class ExerciseDetailAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = ExerciseSerializer
 
     @extend_schema(
@@ -59,7 +60,10 @@ class ExerciseDetailAPIView(APIView):
         description="Returns a single exercise visible to the authenticated user.",
         responses={
             200: ExerciseSerializer,
-            404: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Exercise not found."),
+            404: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer,
+                description="Exercise not found.",
+            ),
         },
     )
     def get(self, request: Request, pk: str) -> Response:
@@ -75,8 +79,13 @@ class ExerciseDetailAPIView(APIView):
         request=ExerciseSerializer,
         responses={
             200: ExerciseSerializer,
-            400: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Validation error."),
-            404: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Exercise not found."),
+            400: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer, description="Validation error."
+            ),
+            404: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer,
+                description="Exercise not found.",
+            ),
         },
     )
     def patch(self, request: Request, pk: str) -> Response:
@@ -87,7 +96,11 @@ class ExerciseDetailAPIView(APIView):
         serializer = ExerciseSerializer(exercise, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         try:
-            updated = services.update_exercise(exercise, validated_data_as_dict(serializer), user_id=str(request.user.id))
+            updated = services.update_exercise(
+                exercise,
+                validated_data_as_dict(serializer),
+                user_id=str(request.user.id),
+            )
         except ValueError as exc:
             raise NotFound(str(exc)) from exc
         return Response(ExerciseSerializer(updated).data)
@@ -99,8 +112,13 @@ class ExerciseDetailAPIView(APIView):
         request=ExerciseSerializer,
         responses={
             200: ExerciseSerializer,
-            400: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Validation error."),
-            404: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Exercise not found."),
+            400: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer, description="Validation error."
+            ),
+            404: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer,
+                description="Exercise not found.",
+            ),
         },
     )
     def put(self, request: Request, pk: str) -> Response:
@@ -111,7 +129,11 @@ class ExerciseDetailAPIView(APIView):
         serializer = ExerciseSerializer(exercise, data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            updated = services.update_exercise(exercise, validated_data_as_dict(serializer), user_id=str(request.user.id))
+            updated = services.update_exercise(
+                exercise,
+                validated_data_as_dict(serializer),
+                user_id=str(request.user.id),
+            )
         except ValueError as exc:
             raise NotFound(str(exc)) from exc
         return Response(ExerciseSerializer(updated).data)
@@ -122,7 +144,10 @@ class ExerciseDetailAPIView(APIView):
         description="Deletes an exercise visible to the authenticated user.",
         responses={
             204: OpenApiResponse(description="Exercise deleted."),
-            404: OpenApiResponse(response=ExerciseErrorDetailSerializer, description="Exercise not found."),
+            404: OpenApiResponse(
+                response=ExerciseErrorDetailSerializer,
+                description="Exercise not found.",
+            ),
         },
     )
     def delete(self, request: Request, pk: str) -> Response:

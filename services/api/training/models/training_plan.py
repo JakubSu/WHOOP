@@ -1,11 +1,12 @@
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models import Q
 
 if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
+
     from .workout import Workout
 
 
@@ -21,8 +22,8 @@ class TrainingPlan(models.Model):
     workouts: "RelatedManager[Workout]"
 
     class Meta:
-        ordering = ["-created_at", "name"]
-        constraints = [
+        ordering: ClassVar[list[str]] = ["-created_at", "name"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(
                 fields=["user_id"],
                 condition=~Q(user_id=""),

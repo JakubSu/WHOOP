@@ -1,10 +1,11 @@
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
 if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
+
     from .workout_exercise import WorkoutExercise
 
 
@@ -19,7 +20,7 @@ class Workout(models.Model):
         related_name="workouts",
     )
     name = models.CharField(max_length=200)
-    date = models.DateField(null=True, blank=True)
+    date = models.DateField()
     expected_time = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -28,13 +29,7 @@ class Workout(models.Model):
     workout_exercises: "RelatedManager[WorkoutExercise]"
 
     class Meta:
-        ordering = ["date", "name"]
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(plan__isnull=True) | models.Q(date__isnull=False),
-                name="planned_workout_requires_date",
-            ),
-        ]
+        ordering: ClassVar[list[str]] = ["date", "name"]
 
     def __str__(self) -> str:
         return self.name
