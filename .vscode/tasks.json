@@ -70,6 +70,43 @@
           "endsPattern": "Local:\\s+http://localhost:5173/"
         }
       }
+    },
+    {
+      "label": "Java API: Start Local Postgres",
+      "type": "shell",
+      "command": "docker compose -f services/aicoach-api/compose.local.yml up -d aicoach-api-db",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Java API: Run Spring Boot",
+      "type": "shell",
+      "command": ".\\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local",
+      "options": {
+        "cwd": "${workspaceFolder}/services/aicoach-api"
+      },
+      "dependsOn": "Java API: Start Local Postgres",
+      "problemMatcher": []
+    },
+    {
+      "label": "Java API: Test",
+      "type": "shell",
+      "command": ".\\mvnw.cmd test",
+      "options": {
+        "cwd": "${workspaceFolder}/services/aicoach-api"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Java API: Stop Local Postgres",
+      "type": "shell",
+      "command": "docker compose -f services/aicoach-api/compose.local.yml down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

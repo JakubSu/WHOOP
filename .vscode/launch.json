@@ -22,6 +22,20 @@
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}/apps/web",
       "preLaunchTask": "Web: Run Vite"
+    },
+    {
+      "name": "Java API: Run Spring Boot",
+      "type": "java",
+      "request": "launch",
+      "mainClass": "com.jakubsuran.aicoachapi.AicoachApiApplication",
+      "projectName": "aicoach-api",
+      "cwd": "${workspaceFolder}/services/aicoach-api",
+      "args": "--spring.profiles.active=local",
+      "preLaunchTask": "Java API: Start Local Postgres",
+      "postDebugTask": "Java API: Stop Local Postgres",
+      "env": {
+        "SPRING_PROFILES_ACTIVE": "local"
+      }
     }
   ]
 }

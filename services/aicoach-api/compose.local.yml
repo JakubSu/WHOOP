@@ -1,0 +1,20 @@
+services:
+  aicoach-api-db:
+    image: postgres:16-alpine
+    container_name: aicoach-api-db
+    environment:
+      POSTGRES_DB: whoop_ai_coach
+      POSTGRES_USER: whoop_ai_coach
+      POSTGRES_PASSWORD: whoop_ai_coach
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whoop_ai_coach -d whoop_ai_coach"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - aicoach_api_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  aicoach_api_postgres_data:
