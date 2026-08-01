@@ -8,8 +8,11 @@ type AuthRedirectLinkProps = {
 
 export function AuthRedirectLink({ prompt, label, to }: AuthRedirectLinkProps) {
   return (
-    <p className="auth-redirect">
-      {prompt} <Link to={to}>{label}</Link>
+    <p className="mt-6 text-center text-sm text-muted-foreground">
+      {prompt}{' '}
+      <Link className="font-semibold text-primary underline-offset-4 hover:underline" to={to}>
+        {label}
+      </Link>
     </p>
   )
 }
