@@ -1,29 +1,25 @@
-from recommendation.services.workout_recommendation import (
+from recommendation.services.recommendation import (
     RecommendationConflict,
     RecommendationNotFound,
     RecommendationValidationError,
-    approve_recommendation,
-    approve_recommendation_operation,
-    build_workout_recommendation_context,
+    accept_recommendation,
     create_recommendation_from_workout_patch,
-    generate_recommendation_for_workout,
     get_recommendation,
+    list_recommendations,
     reject_recommendation,
-    reject_recommendation_operation,
     serialize_recommendation,
+    update_recommendation_status,
 )
 
 __all__ = [
     "RecommendationConflict",
     "RecommendationNotFound",
     "RecommendationValidationError",
-    "approve_recommendation",
-    "approve_recommendation_operation",
-    "build_workout_recommendation_context",
+    "accept_recommendation",
     "create_recommendation_from_workout_patch",
-    "generate_recommendation_for_workout",
     "get_recommendation",
+    "list_recommendations",
     "reject_recommendation",
-    "reject_recommendation_operation",
     "serialize_recommendation",
+    "update_recommendation_status",
 ]

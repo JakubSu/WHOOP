@@ -13,10 +13,10 @@ from ai.infrastructure.llm_provider import LLMProvider
 from ai.infrastructure.models import LLMRequestMetadata
 from ai.infrastructure.prompt_loader import FileSystemPromptLoader, PromptLoader
 from ai.infrastructure.services import get_llm_provider
+from ai.recommendation.services.recommendation_tools import propose_workout_changes
 from recommendation.models import Recommendation
-from recommendation.services.workout_recommendation import (
+from recommendation.services import (
     RecommendationValidationError,
-    create_recommendation_from_workout_patch,
 )
 
 
@@ -209,13 +209,13 @@ class CoachOrchestrator:
                 }
             )
             logger.info(
-                "coach_turn_recommendation_create_started user_id=%s conversation_id=%s workout_id=%s operations=%s",
+                "coach_turn_recommendation_create_started user_id=%s conversation_id=%s workout_id=%s operation=%s",
                 user_id,
                 conversation_id,
                 workout_id,
-                len(draft.workout_patch.operations),
+                draft.workout_patch.operation.op,
             )
-            recommendation = create_recommendation_from_workout_patch(
+            recommendation = propose_workout_changes(
                 user_id=user_id,
                 workout_id=workout_id,
                 draft=draft.workout_patch,

@@ -64,12 +64,10 @@ class WorkoutPatchGeneratorTests(SimpleTestCase):
             {
                 "summary": "Reduce fatigue.",
                 "reason": "Recovery is low.",
-                "operations": [
-                    {
-                        "op": "remove_exercise",
-                        "workout_exercise_id": "workout-exercise-1",
-                    }
-                ],
+                "operation": {
+                    "op": "remove_exercise",
+                    "workout_exercise_id": "workout-exercise-1",
+                },
             }
         )
         prompt_loader = FakePromptLoader()
@@ -102,13 +100,11 @@ class WorkoutPatchGeneratorTests(SimpleTestCase):
         provider = FakeProvider(
             {
                 "summary": "Update workout.",
-                "operations": [
-                    {
-                        "op": "update_exercise",
-                        "workout_exercise_id": "workout-exercise-1",
-                        "changes": {"sets": 3},
-                    }
-                ],
+                "operation": {
+                    "op": "update_exercise",
+                    "workout_exercise_id": "workout-exercise-1",
+                    "changes": {"sets": 3},
+                },
             }
         )
 
@@ -117,10 +113,10 @@ class WorkoutPatchGeneratorTests(SimpleTestCase):
             prompt_loader=FakePromptLoader(),
         ).generate({"current_workout": {"id": "workout-1"}})
 
-        self.assertEqual(result.operations[0].op, "update_exercise")
+        self.assertEqual(result.operation.op, "update_exercise")
 
     def test_generator_rejects_invalid_structured_output(self) -> None:
-        provider = FakeProvider({"summary": "Invalid.", "operations": [{"op": "unknown"}]})
+        provider = FakeProvider({"summary": "Invalid.", "operation": {"op": "unknown"}})
 
         with self.assertRaises(ValueError):
             WorkoutPatchGenerator(

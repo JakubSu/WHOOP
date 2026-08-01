@@ -29,7 +29,11 @@ class CoachServiceTests(TestCase):
     def setUp(self) -> None:
         self.exercise = Exercise.objects.create(name="Bench Press", user_id=self.user_id)
         self.replacement = Exercise.objects.create(name="Goblet Squat", user_id="")
-        self.workout = Workout.objects.create(name="Upper Body", user_id=self.user_id)
+        self.workout = Workout.objects.create(
+            name="Upper Body",
+            date="2026-06-09",
+            user_id=self.user_id,
+        )
         self.workout_exercise = WorkoutExercise.objects.create(
             workout=self.workout,
             exercise=self.exercise,
@@ -45,7 +49,11 @@ class CoachServiceTests(TestCase):
         )
 
     def test_workout_context_rejects_another_users_workout(self) -> None:
-        other_workout = Workout.objects.create(name="Other", user_id=self.other_user_id)
+        other_workout = Workout.objects.create(
+            name="Other",
+            date="2026-06-09",
+            user_id=self.other_user_id,
+        )
 
         with self.assertRaises(RecommendationNotFound):
             CoachContextBuilder().build(
@@ -67,13 +75,11 @@ class CoachServiceTests(TestCase):
                 "answer": "Reduce volume.",
                 "workout_patch": {
                     "summary": "Reduce volume.",
-                    "operations": [
-                        {
-                            "op": "update_exercise",
-                            "workout_exercise_id": str(self.workout_exercise.id),
-                            "changes": {"sets": 3},
-                        }
-                    ],
+                    "operation": {
+                        "op": "update_exercise",
+                        "workout_exercise_id": str(self.workout_exercise.id),
+                        "changes": {"sets": 3},
+                    },
                 },
             }
         )
@@ -99,13 +105,11 @@ class CoachServiceTests(TestCase):
                 "answer": "Open the workout first.",
                 "workout_patch": {
                     "summary": "Invalid from plan.",
-                    "operations": [
-                        {
-                            "op": "update_exercise",
-                            "workout_exercise_id": str(self.workout_exercise.id),
-                            "changes": {"sets": 3},
-                        }
-                    ],
+                    "operation": {
+                        "op": "update_exercise",
+                        "workout_exercise_id": str(self.workout_exercise.id),
+                        "changes": {"sets": 3},
+                    },
                 },
             }
         )
@@ -121,7 +125,11 @@ class CoachServiceTests(TestCase):
             )
 
     def test_unauthorized_navigation_actions_are_rejected(self) -> None:
-        other_workout = Workout.objects.create(name="Other", user_id=self.other_user_id)
+        other_workout = Workout.objects.create(
+            name="Other",
+            date="2026-06-09",
+            user_id=self.other_user_id,
+        )
 
         actions = AuthorizeUiActionService().authorize(
             user_id=self.user_id,

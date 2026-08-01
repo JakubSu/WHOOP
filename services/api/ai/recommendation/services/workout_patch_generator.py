@@ -4,7 +4,6 @@ from ai.infrastructure.prompt_loader import FileSystemPromptLoader, PromptLoader
 from ai.infrastructure.services import get_llm_provider
 from ai.recommendation.schemas import WorkoutPatchDraft
 
-
 PROMPT_NAMESPACE = "recommendation"
 PROMPT_NAME = "workout_patch_recommendation"
 PROMPT_VERSION = "v1"

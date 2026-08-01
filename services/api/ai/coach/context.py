@@ -4,11 +4,13 @@ from datetime import date
 from typing import Any
 
 from coaching.models import CoachConversation
+from ai.recommendation.services.recommendation_tools import (
+    build_workout_recommendation_context,
+)
 from recommendation.models import Recommendation
-from recommendation.services.workout_recommendation import (
+from recommendation.services import (
     RecommendationNotFound,
     RecommendationValidationError,
-    build_workout_recommendation_context,
 )
 from training import services as training_services
 from training.models import TrainingPlan, Workout

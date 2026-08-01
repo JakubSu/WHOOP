@@ -36,7 +36,11 @@ class CoachApiTests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(self.user)
         self.exercise = Exercise.objects.create(name="Bench Press", user_id=str(self.user.id))
-        self.workout = Workout.objects.create(name="Upper Body", user_id=str(self.user.id))
+        self.workout = Workout.objects.create(
+            name="Upper Body",
+            date="2026-06-09",
+            user_id=str(self.user.id),
+        )
         self.workout_exercise = WorkoutExercise.objects.create(
             workout=self.workout,
             exercise=self.exercise,
@@ -136,14 +140,12 @@ class CoachApiTests(TestCase):
                 "workout_patch": {
                     "summary": "Reduce pressing volume.",
                     "reason": "Recovery is lower today.",
-                    "operations": [
-                        {
-                            "op": "update_exercise",
-                            "workout_exercise_id": str(self.workout_exercise.id),
-                            "changes": {"sets": 3},
-                            "reason": "Keep the movement but lower volume.",
-                        }
-                    ],
+                    "operation": {
+                        "op": "update_exercise",
+                        "workout_exercise_id": str(self.workout_exercise.id),
+                        "changes": {"sets": 3},
+                        "reason": "Keep the movement but lower volume.",
+                    },
                 },
             }
         )
