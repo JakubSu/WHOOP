@@ -10,6 +10,8 @@ from training.api.serializers.workout import (
     WorkoutErrorDetailSerializer,
     WorkoutLandingQuerySerializer,
     WorkoutLandingSerializer,
+    WorkoutListPageSerializer,
+    WorkoutListQuerySerializer,
     WorkoutSerializer,
 )
 from training.api.serializers.workout_exercise import (
@@ -29,5 +31,7 @@ __all__ = [
     "WorkoutExerciseSerializer",
     "WorkoutLandingQuerySerializer",
     "WorkoutLandingSerializer",
+    "WorkoutListPageSerializer",
+    "WorkoutListQuerySerializer",
     "WorkoutSerializer",
 ]

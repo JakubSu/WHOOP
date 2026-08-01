@@ -19,6 +19,7 @@ from training.services.workout import (
     get_workout,
     get_workout_landing,
     list_workouts,
+    list_workouts_page,
     update_workout,
 )
 from training.services.workout_exercise import (
@@ -48,6 +49,7 @@ __all__ = [
     "list_training_plans",
     "list_workout_exercises_for_workout",
     "list_workouts",
+    "list_workouts_page",
     "update_exercise",
     "update_training_plan",
     "update_workout",

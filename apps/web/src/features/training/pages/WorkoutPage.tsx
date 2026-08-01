@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
@@ -12,10 +12,7 @@ import { RecommendationPanel } from '../../recommendations/components/Recommenda
 import { useWorkoutRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
 import { ExerciseCard } from '../components/ExerciseCard'
 import { useWorkoutPage } from '../hooks/useWorkoutPage'
-import {
-  getWorkoutScreenEyebrow,
-  getWorkoutScreenTitle,
-} from '../services/formatters'
+import { getWorkoutScreenTitle } from '../services/formatters'
 
 export function WorkoutPage() {
   const { workoutId } = useParams()
@@ -24,16 +21,16 @@ export function WorkoutPage() {
   const {
     resolvedWorkoutId,
     workout,
+    previousWorkout,
+    nextWorkout,
     exerciseDisplays,
     isToday,
-    landingMessage,
     isLoading,
     error,
   } =
     useWorkoutPage(workoutId)
   const recommendation = useWorkoutRecommendation(resolvedWorkoutId)
   const primaryTitle = getWorkoutScreenTitle(workout?.date ?? null, isToday)
-  const eyebrow = getWorkoutScreenEyebrow(landingMessage)
   const coachContext = useMemo(
     () => getCoachPageContextForRoute(location.pathname),
     [location.pathname],
@@ -45,18 +42,40 @@ export function WorkoutPage() {
       <section className="training-content workout-content">
         <div className="section-heading">
           <div className="section-heading__actions">
-            <p className="eyebrow">{eyebrow}</p>
-            <PrimaryButton
-              className="secondary-action back-to-plan-button"
-              type="button"
-              onClick={() => navigate('/plan')}
-            >
-              <ArrowLeft aria-hidden="true" size={17} />
-              My Plan
-            </PrimaryButton>
+            <p className="eyebrow">Workout</p>
           </div>
-          <h1>{workout ? primaryTitle : 'Workout'}</h1>
-          {workout ? <p className="muted">{workout.name}</p> : null}
+          <div className="workout-title-nav">
+            <button
+              className="workout-nav-button"
+              type="button"
+              aria-label="Previous workout"
+              disabled={!previousWorkout}
+              onClick={() => {
+                if (previousWorkout) {
+                  navigate(`/workouts/${previousWorkout.id}`)
+                }
+              }}
+            >
+              <ChevronLeft aria-hidden="true" size={21} />
+            </button>
+            <div className="workout-title-nav__title">
+              <h1>{workout ? primaryTitle : 'Workout'}</h1>
+              {workout ? <p className="muted">{workout.name}</p> : null}
+            </div>
+            <button
+              className="workout-nav-button"
+              type="button"
+              aria-label="Next workout"
+              disabled={!nextWorkout}
+              onClick={() => {
+                if (nextWorkout) {
+                  navigate(`/workouts/${nextWorkout.id}`)
+                }
+              }}
+            >
+              <ChevronRight aria-hidden="true" size={21} />
+            </button>
+          </div>
         </div>
         <div className="workout-status-stack">
           {isLoading ? <p className="muted">Loading workout...</p> : null}

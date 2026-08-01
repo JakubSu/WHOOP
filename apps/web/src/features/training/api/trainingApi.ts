@@ -5,15 +5,38 @@ import {
   type WorkoutLanding,
   type Workout,
   type WorkoutExercise,
+  type WorkoutListPage,
   type WorkoutListItem,
 } from '../types'
+
+type ListWorkoutsParams = {
+  startDate?: string
+  endDate?: string
+  page?: number
+  pageSize?: number
+}
 
 export function listTrainingPlans() {
   return apiRequest<TrainingPlan[]>('/training-plans/')
 }
 
-export function listWorkouts() {
-  return apiRequest<Workout[]>('/workouts/')
+export function listWorkouts(params: ListWorkoutsParams = {}) {
+  const query = new URLSearchParams()
+  if (params.startDate) {
+    query.set('startDate', params.startDate)
+  }
+  if (params.endDate) {
+    query.set('endDate', params.endDate)
+  }
+  if (params.page) {
+    query.set('page', String(params.page))
+  }
+  if (params.pageSize) {
+    query.set('pageSize', String(params.pageSize))
+  }
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  return apiRequest<WorkoutListPage>(`/workouts/${suffix}`)
 }
 
 export function getWorkoutLanding(today: string) {

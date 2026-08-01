@@ -13,9 +13,13 @@ from training.api.serializers import (
     WorkoutErrorDetailSerializer,
     WorkoutLandingQuerySerializer,
     WorkoutLandingSerializer,
+    WorkoutListPageSerializer,
+    WorkoutListQuerySerializer,
     WorkoutSerializer,
 )
 from training.api.views.helpers import validated_data_as_dict
+
+DEFAULT_PAGE_SIZE = 50
 
 
 class WorkoutCollectionAPIView(APIView):
@@ -24,13 +28,33 @@ class WorkoutCollectionAPIView(APIView):
 
     @extend_schema(
         tags=["Training"],
+        operation_id="training_workouts_list",
         summary="List workouts",
-        description="Returns all workouts owned by the authenticated user.",
-        responses={200: WorkoutSerializer(many=True)},
+        description="Returns paginated workouts owned by the authenticated user.",
+        parameters=[WorkoutListQuerySerializer],
+        responses={200: WorkoutListPageSerializer},
     )
     def get(self, request: Request) -> Response:
-        workouts = services.list_workouts(str(request.user.id))
-        return Response(WorkoutSerializer(workouts, many=True).data)
+        query_serializer = WorkoutListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        query_data = validated_data_as_dict(query_serializer)
+        page = int(query_data.get("page") or 1)
+        page_size = int(query_data.get("pageSize") or DEFAULT_PAGE_SIZE)
+        count, workouts = services.list_workouts_page(
+            str(request.user.id),
+            start_date=query_data.get("startDate"),
+            end_date=query_data.get("endDate"),
+            page=page,
+            page_size=page_size,
+        )
+        return Response(
+            {
+                "count": count,
+                "page": page,
+                "page_size": page_size,
+                "results": WorkoutSerializer(workouts, many=True).data,
+            }
+        )
 
     @extend_schema(
         tags=["Training"],
@@ -62,6 +86,7 @@ class WorkoutDetailAPIView(APIView):
 
     @extend_schema(
         tags=["Training"],
+        operation_id="training_workouts_retrieve",
         summary="Get workout",
         description="Returns a single workout owned by the authenticated user.",
         responses={

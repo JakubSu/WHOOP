@@ -486,6 +486,45 @@ a:hover {
   letter-spacing: 0;
 }
 
+.workout-title-nav {
+  display: grid;
+  grid-template-columns: 2.45rem minmax(0, 1fr) 2.45rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.workout-title-nav__title {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 0.2rem;
+  text-align: center;
+}
+
+.workout-title-nav__title h1,
+.workout-title-nav__title p {
+  overflow-wrap: anywhere;
+}
+
+.workout-nav-button {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  color: #111111;
+  background: #ffffff;
+}
+
+.workout-nav-button:hover:not(:disabled) {
+  background: #f5fff9;
+}
+
+.workout-nav-button:disabled {
+  opacity: 0.36;
+}
+
 .back-to-plan-button {
   min-height: 2.35rem;
   padding: 0 0.8rem;

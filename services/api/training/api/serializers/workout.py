@@ -35,6 +35,46 @@ class WorkoutErrorDetailSerializer(serializers.Serializer):
     detail = serializers.CharField()
 
 
+class WorkoutListQuerySerializer(serializers.Serializer):
+    startDate = serializers.DateField(
+        required=False,
+        help_text="Inclusive start date for workout list filtering.",
+    )
+    endDate = serializers.DateField(
+        required=False,
+        help_text="Inclusive end date for workout list filtering.",
+    )
+    page = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        default=1,
+        help_text="One-based page number for paginated workout list responses.",
+    )
+    pageSize = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=200,
+        default=50,
+        help_text="Number of workouts per page for paginated workout list responses.",
+    )
+
+    def validate(self, attrs):
+        start_date = attrs.get("startDate")
+        end_date = attrs.get("endDate")
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError(
+                {"detail": "startDate must be before or equal to endDate."}
+            )
+        return attrs
+
+
+class WorkoutListPageSerializer(serializers.Serializer):
+    count = serializers.IntegerField(read_only=True)
+    page = serializers.IntegerField(read_only=True)
+    page_size = serializers.IntegerField(read_only=True)
+    results = WorkoutSerializer(many=True, read_only=True)
+
+
 class WorkoutLandingQuerySerializer(serializers.Serializer):
     today = serializers.DateField()
 

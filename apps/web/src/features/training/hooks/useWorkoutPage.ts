@@ -2,9 +2,20 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getWorkout,
   getWorkoutLanding,
+  listWorkouts,
   listWorkoutExercises,
 } from '../api/trainingApi'
-import { buildExerciseDisplays, getLocalDateIso, isDateToday } from '../services/formatters'
+import {
+  addDaysIso,
+  buildExerciseDisplays,
+  getLocalDateIso,
+  getWorkoutNavigation,
+  isDateToday,
+} from '../services/formatters'
+
+const WORKOUT_NAVIGATION_DAYS_BEFORE = 28
+const WORKOUT_NAVIGATION_DAYS_AFTER = 28
+const WORKOUT_NAVIGATION_PAGE_SIZE = 100
 
 export function useWorkoutPage(workoutId: string | undefined) {
   const today = getLocalDateIso()
@@ -31,15 +42,38 @@ export function useWorkoutPage(workoutId: string | undefined) {
   )
   const currentWorkout = workout.data ?? selectedWorkout
   const isToday = selectedWorkout?.is_today ?? isDateToday(currentWorkout?.date ?? null, today)
+  const navigationDate = currentWorkout?.date ?? null
+  const startDate = navigationDate
+    ? addDaysIso(navigationDate, -WORKOUT_NAVIGATION_DAYS_BEFORE)
+    : null
+  const endDate = navigationDate
+    ? addDaysIso(navigationDate, WORKOUT_NAVIGATION_DAYS_AFTER)
+    : null
+  const workouts = useQuery({
+    queryKey: ['workouts', 'window', startDate, endDate],
+    queryFn: () =>
+      listWorkouts({
+        startDate: startDate ?? undefined,
+        endDate: endDate ?? undefined,
+        page: 1,
+        pageSize: WORKOUT_NAVIGATION_PAGE_SIZE,
+      }),
+    enabled: Boolean(startDate && endDate),
+  })
+  const navigation = getWorkoutNavigation(
+    workouts.data?.results ?? [],
+    resolvedWorkoutId,
+  )
 
   return {
     resolvedWorkoutId,
     workout: currentWorkout,
+    previousWorkout: navigation.previousWorkout,
+    nextWorkout: navigation.nextWorkout,
     exerciseDisplays,
     isToday,
-    landingMessage: landing.data?.message ?? null,
     isLoading:
-      landing.isLoading || workout.isLoading || workoutExercises.isLoading,
-    error: landing.error ?? workout.error ?? workoutExercises.error,
+      workouts.isLoading || landing.isLoading || workout.isLoading || workoutExercises.isLoading,
+    error: workouts.error ?? landing.error ?? workout.error ?? workoutExercises.error,
   }
 }
