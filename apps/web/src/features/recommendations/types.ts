@@ -1,8 +1,7 @@
 export type RecommendationStatus =
   | 'pending'
-  | 'accepted'
+  | 'applied'
   | 'rejected'
-  | 'partial'
   | 'stale'
   | 'failed'
 
@@ -11,6 +10,11 @@ export type RecommendationOperationType =
   | 'update_exercise'
   | 'remove_exercise'
   | 'add_exercise'
+  | 'move_exercise'
+  | 'add_workout'
+  | 'remove_workout'
+  | 'update_workout'
+  | 'revise_workout'
 
 export type RecommendationOperationStatus =
   | 'pending'

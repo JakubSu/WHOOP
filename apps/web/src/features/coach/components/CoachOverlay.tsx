@@ -19,6 +19,7 @@ import {
 import { RecommendationPanel } from '../../recommendations/components/RecommendationPanel'
 import {
   approveRecommendationOperation,
+  normalizeRecommendation,
   rejectRecommendationOperation,
 } from '../../recommendations/api/recommendationApi'
 import { type Recommendation } from '../../recommendations/types'
@@ -211,10 +212,11 @@ export function CoachOverlay() {
         return appendAssistantDelta(state, streamEvent.data.text)
       }
       if (streamEvent.event === 'recommendation_created') {
+        const recommendation = normalizeRecommendation(streamEvent.data.recommendation)
         return appendItem(state, {
-          id: `recommendation-${streamEvent.data.recommendation.id}`,
+          id: `recommendation-${recommendation.id}`,
           type: 'recommendation',
-          recommendation: streamEvent.data.recommendation,
+          recommendation,
         })
       }
       if (streamEvent.event === 'assistant_done') {

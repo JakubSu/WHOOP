@@ -26,13 +26,21 @@ export type WorkoutLanding = {
 export type WorkoutExercise = {
   id: string
   workout: string
-  exercise: string
+  exercise: string | ExerciseSummary
   sets: number
   reps: number
   time: number
+  sort_order: number
   weight: string | null
   weight_unit: string
   note: string
+}
+
+export type ExerciseSummary = {
+  id: string
+  name: string
+  prescription_type: 'strength' | 'timed'
+  muscle_group: string
 }
 
 export type Exercise = {

@@ -57,12 +57,15 @@ export function formatExpectedTime(minutes: number | null) {
 
 export function buildExerciseDisplays(
   workoutExercises: WorkoutExercise[],
-  exercises: Exercise[],
+  exercises: Exercise[] = [],
 ): WorkoutExerciseDisplay[] {
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]))
 
   return workoutExercises.map((workoutExercise) => {
-    const exercise = exerciseById.get(workoutExercise.exercise)
+    const exercise =
+      typeof workoutExercise.exercise === 'string'
+        ? exerciseById.get(workoutExercise.exercise)
+        : workoutExercise.exercise
     return {
       ...workoutExercise,
       exerciseName: exercise?.name ?? 'Exercise',

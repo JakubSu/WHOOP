@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getWorkout,
   getWorkoutLanding,
-  listExercises,
   listWorkoutExercises,
 } from '../api/trainingApi'
 import { buildExerciseDisplays, getLocalDateIso, isDateToday } from '../services/formatters'
@@ -22,20 +21,13 @@ export function useWorkoutPage(workoutId: string | undefined) {
     enabled: Boolean(resolvedWorkoutId),
   })
   const workoutExercises = useQuery({
-    queryKey: ['workout-exercises'],
-    queryFn: listWorkoutExercises,
-  })
-  const exercises = useQuery({
-    queryKey: ['exercises'],
-    queryFn: listExercises,
+    queryKey: ['workout-exercises', resolvedWorkoutId],
+    queryFn: () => listWorkoutExercises(resolvedWorkoutId ?? ''),
+    enabled: Boolean(resolvedWorkoutId),
   })
 
-  const filteredWorkoutExercises = (workoutExercises.data ?? []).filter(
-    (item) => item.workout === resolvedWorkoutId,
-  )
   const exerciseDisplays = buildExerciseDisplays(
-    filteredWorkoutExercises,
-    exercises.data ?? [],
+    workoutExercises.data ?? [],
   )
   const currentWorkout = workout.data ?? selectedWorkout
   const isToday = selectedWorkout?.is_today ?? isDateToday(currentWorkout?.date ?? null, today)
@@ -47,7 +39,7 @@ export function useWorkoutPage(workoutId: string | undefined) {
     isToday,
     landingMessage: landing.data?.message ?? null,
     isLoading:
-      landing.isLoading || workout.isLoading || workoutExercises.isLoading || exercises.isLoading,
-    error: landing.error ?? workout.error ?? workoutExercises.error ?? exercises.error,
+      landing.isLoading || workout.isLoading || workoutExercises.isLoading,
+    error: landing.error ?? workout.error ?? workoutExercises.error,
   }
 }

@@ -28,8 +28,8 @@ export function listTrainingPlanWorkouts(planId: string) {
   return apiRequest<WorkoutListItem[]>(`/training-plans/${planId}/workouts/`)
 }
 
-export function listWorkoutExercises() {
-  return apiRequest<WorkoutExercise[]>('/workout-exercises/')
+export function listWorkoutExercises(workoutId: string) {
+  return apiRequest<WorkoutExercise[]>(`/workouts/${workoutId}/exercises/`)
 }
 
 export function listExercises() {
