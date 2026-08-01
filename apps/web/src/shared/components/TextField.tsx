@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { Input, Label } from './ui'
 
 type TextFieldProps = {
   label: string
@@ -20,9 +21,9 @@ export function TextField({
   const id = useId()
 
   return (
-    <label className="field" htmlFor={id}>
-      <span>{label}</span>
-      <input
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
         id={id}
         name={name}
         type={type}
@@ -30,6 +31,6 @@ export function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
-    </label>
+    </div>
   )
 }

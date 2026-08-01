@@ -1,7 +1,8 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Clock3, Dumbbell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { formatExpectedTime, formatWeekdayDate } from '../services/formatters'
 import { type WorkoutListItem } from '../types'
+import { Card } from '../../../shared/components/ui'
 
 type WorkoutListItemButtonProps = {
   workout: WorkoutListItem
@@ -11,19 +12,30 @@ export function WorkoutListItemButton({ workout }: WorkoutListItemButtonProps) {
   const navigate = useNavigate()
 
   return (
-    <button
-      className="workout-row"
-      type="button"
-      onClick={() => navigate(`/workouts/${workout.id}`)}
-    >
-      <span>
-        <strong>{formatWeekdayDate(workout.date)}</strong>
-        <small>
-          {workout.name} | {workout.exercise_count} exercises |{' '}
-          {formatExpectedTime(workout.expected_time)}
-        </small>
-      </span>
-      <ChevronRight aria-hidden="true" size={18} />
-    </button>
+    <Card className="overflow-hidden transition-colors hover:border-muted-foreground/40">
+      <button
+        className="flex w-full items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        type="button"
+        onClick={() => navigate(`/workouts/${workout.id}`)}
+      >
+        <span className="min-w-0 flex-1">
+          <strong className="block truncate text-[15px] font-semibold tracking-tight text-foreground">
+            {workout.name}
+          </strong>
+          <span className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Dumbbell aria-hidden="true" size={14} className="text-primary/70" />
+              {workout.exercise_count} {workout.exercise_count === 1 ? 'exercise' : 'exercises'}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 aria-hidden="true" size={14} className="text-primary/70" />
+              {formatExpectedTime(workout.expected_time)}
+            </span>
+          </span>
+        </span>
+        <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted-foreground" />
+        <span className="sr-only">Open {formatWeekdayDate(workout.date)} workout</span>
+      </button>
+    </Card>
   )
 }

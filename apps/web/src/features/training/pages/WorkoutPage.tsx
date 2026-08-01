@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { InlineError } from '../../../shared/components/InlineError'
 import { PrimaryButton } from '../../../shared/components/PrimaryButton'
+import { Button } from '../../../shared/components/ui'
 import { ScrollableStack } from '../../../shared/layout/ScrollableStack'
 import { TrainingLayout } from '../../../shared/layout/TrainingLayout'
 import { useCoachPageContext } from '../../coach/context/CoachOverlayContext'
@@ -12,7 +13,7 @@ import { RecommendationPanel } from '../../recommendations/components/Recommenda
 import { useWorkoutRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
 import { ExerciseCard } from '../components/ExerciseCard'
 import { useWorkoutPage } from '../hooks/useWorkoutPage'
-import { getWorkoutScreenTitle } from '../services/formatters'
+import { formatWeekdayDate } from '../services/formatters'
 
 export function WorkoutPage() {
   const { workoutId } = useParams()
@@ -30,7 +31,7 @@ export function WorkoutPage() {
   } =
     useWorkoutPage(workoutId)
   const recommendation = useWorkoutRecommendation(resolvedWorkoutId)
-  const primaryTitle = getWorkoutScreenTitle(workout?.date ?? null, isToday)
+  const workoutDate = isToday ? 'Today' : formatWeekdayDate(workout?.date ?? null)
   const coachContext = useMemo(
     () => getCoachPageContextForRoute(location.pathname),
     [location.pathname],
@@ -39,12 +40,26 @@ export function WorkoutPage() {
 
   return (
     <TrainingLayout>
-      <section className="training-content workout-content">
-        <div className="section-heading">
-          <div className="section-heading__actions">
-            <p className="eyebrow">Workout</p>
-            <PrimaryButton
-              className="secondary-action back-to-week-button"
+      <section className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6">
+        <header className="mb-6 border-b border-border pb-5">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.16em] text-primary">Workout</p>
+          <div className="mt-2 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+            <Button
+              aria-label="Previous workout"
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!previousWorkout}
+              onClick={() => {
+                if (previousWorkout) {
+                  navigate(`/workouts/${previousWorkout.id}`)
+                }
+              }}
+            >
+              <ChevronLeft aria-hidden="true" size={20} />
+            </Button>
+            <button
+              className="min-w-0 rounded-md px-2 py-1 text-center outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
               type="button"
               disabled={!workout?.date}
               onClick={() => {
@@ -53,31 +68,24 @@ export function WorkoutPage() {
                 }
               }}
             >
-              Week
-            </PrimaryButton>
-          </div>
-          <div className="workout-title-nav">
-            <button
-              className="workout-nav-button"
-              type="button"
-              aria-label="Previous workout"
-              disabled={!previousWorkout}
-              onClick={() => {
-                if (previousWorkout) {
-                  navigate(`/workouts/${previousWorkout.id}`)
-                }
-              }}
-            >
-              <ChevronLeft aria-hidden="true" size={21} />
+              <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                {workout?.name ?? 'Workout'}
+              </h1>
+              {workout ? (
+                <p className="mt-1 truncate text-sm text-muted-foreground">{workoutDate}</p>
+              ) : null}
+              {!isLoading ? (
+                <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-primary">
+                  {exerciseDisplays.length} {exerciseDisplays.length === 1 ? 'exercise' : 'exercises'}
+                </p>
+              ) : null}
+              <span className="sr-only">Open this workout's week</span>
             </button>
-            <div className="workout-title-nav__title">
-              <h1>{workout ? primaryTitle : 'Workout'}</h1>
-              {workout ? <p className="muted">{workout.name}</p> : null}
-            </div>
-            <button
-              className="workout-nav-button"
-              type="button"
+            <Button
               aria-label="Next workout"
+              type="button"
+              variant="ghost"
+              size="icon"
               disabled={!nextWorkout}
               onClick={() => {
                 if (nextWorkout) {
@@ -85,10 +93,10 @@ export function WorkoutPage() {
                 }
               }}
             >
-              <ChevronRight aria-hidden="true" size={21} />
-            </button>
+              <ChevronRight aria-hidden="true" size={20} />
+            </Button>
           </div>
-        </div>
+        </header>
         <div className="workout-status-stack">
           {isLoading ? <p className="muted">Loading workout...</p> : null}
           <InlineError message={error ? getErrorMessage(error) : null} />

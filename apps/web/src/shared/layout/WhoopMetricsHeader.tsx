@@ -20,8 +20,8 @@ export function WhoopMetricsHeader() {
   const data = summary.data
 
   return (
-    <header className="training-header">
-      <div className="metrics-group" aria-label="WHOOP metrics">
+    <header className="mb-5 grid grid-cols-[1fr_auto] items-start gap-3">
+      <div className="grid grid-cols-3 gap-2" aria-label="WHOOP metrics">
         <WhoopMetricRing
           label="Sleep"
           value={data?.sleep_performance_percent ?? null}
@@ -42,7 +42,7 @@ export function WhoopMetricsHeader() {
           max={21}
           color="#0093E7"
         />
-        <span className="powered-by">Powered by WHOOP</span>
+        <span className="col-span-3 text-[.65rem] font-bold uppercase text-muted-foreground">Powered by WHOOP</span>
       </div>
       <UserProfileButton />
     </header>
