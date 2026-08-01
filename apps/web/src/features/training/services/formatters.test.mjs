@@ -28,6 +28,49 @@ test('date helpers keep explicit null fallbacks and same-day detection stable', 
   assert.equal(formatters.isDateToday('2026-06-11', '2026-06-10'), false)
 })
 
+test('week helpers use Monday through Sunday ranges', () => {
+  assert.equal(formatters.getWeekStartIso('2026-07-29'), '2026-07-27')
+  assert.equal(formatters.getWeekStartIso('2026-08-02'), '2026-07-27')
+  assert.equal(formatters.getWeekEndIso('2026-07-29'), '2026-08-02')
+  assert.deepEqual(formatters.getWeekDates('2026-07-29'), [
+    '2026-07-27',
+    '2026-07-28',
+    '2026-07-29',
+    '2026-07-30',
+    '2026-07-31',
+    '2026-08-01',
+    '2026-08-02',
+  ])
+})
+
+test('week range helpers format visible and prefetched date windows', () => {
+  assert.equal(formatters.formatWeekRange('2026-07-27'), 'Jul 27 - Aug 2')
+  assert.deepEqual(formatters.getWeekWindowRange('2026-07-27'), {
+    startDate: '2026-07-13',
+    endDate: '2026-08-16',
+  })
+})
+
+test('workouts are grouped by scheduled date', () => {
+  const monday = workout('monday', '2026-07-27', 'Lower')
+  const secondMonday = workout('second-monday', '2026-07-27', 'Core')
+  const wednesday = workout('wednesday', '2026-07-29', 'Upper')
+  const unscheduled = workout('unscheduled', null, 'Draft')
+
+  assert.deepEqual(
+    formatters.groupWorkoutsByDate([
+      monday,
+      wednesday,
+      unscheduled,
+      secondMonday,
+    ]),
+    {
+      '2026-07-27': [monday, secondMonday],
+      '2026-07-29': [wednesday],
+    },
+  )
+})
+
 test('workout navigation uses date order with stable tie breakers', () => {
   const workouts = [
     workout('third', '2026-06-12', 'Push'),

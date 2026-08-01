@@ -62,7 +62,7 @@ export type WorkoutListPage = {
   count: number
   page: number
   page_size: number
-  results: Workout[]
+  results: WorkoutListItem[]
 }
 
 export type WorkoutExerciseDisplay = WorkoutExercise & {

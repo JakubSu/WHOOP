@@ -43,6 +43,18 @@ export function WorkoutPage() {
         <div className="section-heading">
           <div className="section-heading__actions">
             <p className="eyebrow">Workout</p>
+            <PrimaryButton
+              className="secondary-action back-to-week-button"
+              type="button"
+              disabled={!workout?.date}
+              onClick={() => {
+                if (workout?.date) {
+                  navigate(`/week?date=${workout.date}`)
+                }
+              }}
+            >
+              Week
+            </PrimaryButton>
           </div>
           <div className="workout-title-nav">
             <button

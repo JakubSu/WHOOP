@@ -3,7 +3,6 @@ import { matchPath } from 'react-router-dom'
 export type CoachPageType =
   | 'today_workout'
   | 'workout'
-  | 'training_plan'
   | 'recovery'
 
 export type CoachPageContext = {
@@ -34,9 +33,6 @@ export function labelForCoachContext(context: CoachPageContext | null) {
   if (context.page_type === 'today_workout') {
     return 'Today'
   }
-  if (context.page_type === 'training_plan') {
-    return 'Plan'
-  }
   if (context.page_type === 'recovery') {
     return 'Recovery'
   }
@@ -44,12 +40,7 @@ export function labelForCoachContext(context: CoachPageContext | null) {
   return 'Workout'
 }
 
-export function getCoachPageContextForRoute(
-  pathname: string,
-  options: {
-    planId?: string | null
-  } = {},
-): CoachPageContext | null {
+export function getCoachPageContextForRoute(pathname: string): CoachPageContext | null {
   if (pathname === '/training') {
     return {
       page_type: 'today_workout',
@@ -63,13 +54,6 @@ export function getCoachPageContextForRoute(
     return {
       page_type: 'workout',
       context_id: workoutId,
-    }
-  }
-
-  if (pathname === '/plan' && options.planId) {
-    return {
-      page_type: 'training_plan',
-      context_id: options.planId,
     }
   }
 

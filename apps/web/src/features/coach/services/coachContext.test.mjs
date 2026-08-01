@@ -35,14 +35,7 @@ test('coach context is only produced for coach-capable routes', () => {
     page_type: 'workout',
     context_id: 'w-1',
   })
-  assert.deepEqual(
-    coachContext.getCoachPageContextForRoute('/plan', { planId: 'plan-1' }),
-    {
-      page_type: 'training_plan',
-      context_id: 'plan-1',
-    },
-  )
-  assert.equal(coachContext.getCoachPageContextForRoute('/plan'), null)
+  assert.equal(coachContext.getCoachPageContextForRoute('/week'), null)
   assert.equal(coachContext.getCoachPageContextForRoute('/login'), null)
   assert.equal(coachContext.getCoachPageContextForRoute('/connect-whoop'), null)
 })
@@ -55,11 +48,5 @@ test('coach launcher labels the current context compactly', () => {
     }),
     'Today',
   )
-  assert.equal(
-    coachContext.labelForCoachContext({
-      page_type: 'training_plan',
-      context_id: 'plan-1',
-    }),
-    'Plan',
-  )
+  assert.equal(coachContext.labelForCoachContext(null), 'Coach')
 })

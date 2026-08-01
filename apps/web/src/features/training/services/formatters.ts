@@ -3,6 +3,7 @@ import {
   type Workout,
   type WorkoutExercise,
   type WorkoutExerciseDisplay,
+  type WorkoutListItem,
 } from '../types'
 
 export function formatDate(value: string | null) {
@@ -39,6 +40,63 @@ export function getLocalDateIso() {
 export function addDaysIso(value: string, days: number) {
   const date = new Date(`${value}T00:00:00`)
   date.setDate(date.getDate() + days)
+  return dateToIso(date)
+}
+
+export function getWeekStartIso(value: string) {
+  const date = new Date(`${value}T00:00:00`)
+  const daysSinceMonday = (date.getDay() + 6) % 7
+  date.setDate(date.getDate() - daysSinceMonday)
+  return dateToIso(date)
+}
+
+export function getWeekEndIso(value: string) {
+  return addDaysIso(getWeekStartIso(value), 6)
+}
+
+export function getWeekDates(value: string) {
+  const startDate = getWeekStartIso(value)
+  return Array.from({ length: 7 }, (_, index) => addDaysIso(startDate, index))
+}
+
+export function getWeekWindowRange(weekStartDate: string, weeksBefore = 2, weeksAfter = 2) {
+  return {
+    startDate: addDaysIso(weekStartDate, -7 * weeksBefore),
+    endDate: addDaysIso(weekStartDate, 6 + 7 * weeksAfter),
+  }
+}
+
+export function formatWeekRange(weekStartDate: string) {
+  const startDate = new Date(`${getWeekStartIso(weekStartDate)}T00:00:00`)
+  const endDate = new Date(`${getWeekEndIso(weekStartDate)}T00:00:00`)
+  const monthDayFormatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  const dayFormatter = new Intl.DateTimeFormat('en-US', { day: 'numeric' })
+
+  if (startDate.getFullYear() === endDate.getFullYear() && startDate.getMonth() === endDate.getMonth()) {
+    return `${monthDayFormatter.format(startDate)} - ${dayFormatter.format(endDate)}`
+  }
+
+  return `${monthDayFormatter.format(startDate)} - ${monthDayFormatter.format(endDate)}`
+}
+
+export function groupWorkoutsByDate(workouts: WorkoutListItem[]) {
+  return workouts.reduce<Record<string, WorkoutListItem[]>>((groupedWorkouts, workout) => {
+    if (!workout.date) {
+      return groupedWorkouts
+    }
+
+    const dateWorkouts = groupedWorkouts[workout.date] ?? []
+    return {
+      ...groupedWorkouts,
+      [workout.date]: [...dateWorkouts, workout],
+    }
+  }, {})
+}
+
+function dateToIso(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')

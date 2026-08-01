@@ -462,6 +462,10 @@ a:hover {
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
 }
 
+.week-content {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
 .workout-status-stack {
   display: grid;
   gap: 0.7rem;
@@ -525,7 +529,8 @@ a:hover {
   opacity: 0.36;
 }
 
-.back-to-plan-button {
+.back-to-plan-button,
+.back-to-week-button {
   min-height: 2.35rem;
   padding: 0 0.8rem;
   font-size: 0.88rem;
@@ -592,6 +597,49 @@ a:hover {
 
 .workout-row:hover {
   background: #f5fff9;
+}
+
+.week-day {
+  display: grid;
+  gap: 0.55rem;
+  border: 2px solid #111111;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #f8faf4;
+}
+
+.week-day__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.week-day__heading strong {
+  font-size: 1.08rem;
+}
+
+.week-day__heading span,
+.week-day__empty {
+  color: #666666;
+  font-weight: 800;
+}
+
+.week-day__workouts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.week-day__workouts .workout-row {
+  background: #ffffff;
+}
+
+.week-day__empty {
+  margin: 0;
+  border: 1px dashed rgba(17, 17, 17, 0.24);
+  border-radius: 8px;
+  padding: 0.7rem;
+  background: #ffffff;
 }
 
 .recommendation-panel {

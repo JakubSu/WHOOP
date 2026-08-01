@@ -1,12 +1,10 @@
 import { apiRequest } from '../../../shared/api/apiClient'
 import {
   type Exercise,
-  type TrainingPlan,
   type WorkoutLanding,
   type Workout,
   type WorkoutExercise,
   type WorkoutListPage,
-  type WorkoutListItem,
 } from '../types'
 
 type ListWorkoutsParams = {
@@ -14,10 +12,6 @@ type ListWorkoutsParams = {
   endDate?: string
   page?: number
   pageSize?: number
-}
-
-export function listTrainingPlans() {
-  return apiRequest<TrainingPlan[]>('/training-plans/')
 }
 
 export function listWorkouts(params: ListWorkoutsParams = {}) {
@@ -45,10 +39,6 @@ export function getWorkoutLanding(today: string) {
 
 export function getWorkout(workoutId: string) {
   return apiRequest<Workout>(`/workouts/${workoutId}/`)
-}
-
-export function listTrainingPlanWorkouts(planId: string) {
-  return apiRequest<WorkoutListItem[]>(`/training-plans/${planId}/workouts/`)
 }
 
 export function listWorkoutExercises(workoutId: string) {
