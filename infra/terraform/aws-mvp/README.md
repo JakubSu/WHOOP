@@ -8,7 +8,7 @@ This stack provisions the single-instance AWS deployment:
 - Production secrets and app parameters in SSM Parameter Store
 - Docker container logs in CloudWatch Logs
 - EC2 IAM role scoped to the app SSM parameters
-- GitHub Actions OIDC role for SSM-based app deployments without stored AWS keys
+- GitHub Actions OIDC role for building immutable ECR images and SSM-based app deployments without stored AWS keys
 - Daily EBS snapshots for the instance root volume
 
 ## Layout
@@ -26,7 +26,7 @@ This stack provisions the single-instance AWS deployment:
 5. Run `terraform apply`.
 6. Confirm the Cloudflare DNS record is proxied.
 7. Copy the `github_actions_role_arn` output into the GitHub `production` environment variable `AWS_ROLE_TO_ASSUME`.
-8. Deploy the app with `infra/scripts/deploy_backend.ps1` or the GitHub Actions workflow.
+8. Configure the GitHub `production` environment variables listed below, then deploy with the GitHub Actions workflow.
 
 ## Runtime
 
@@ -40,27 +40,17 @@ Terraform reads Cloudflare's current proxy IP ranges through the Cloudflare prov
 
 ## App Deployment
 
-`infra/scripts/deploy_backend.ps1` and `infra/scripts/deploy_backend_macos.sh` send an SSM Run Command to the EC2 instance and ask the host to pull the application code from Git. By default they pull `https://github.com/JakubSu/WHOOP.git` on `main`.
+GitHub Actions is the only production deployment path. A push to `main` validates the code, builds the web and API images, publishes them to the private ECR repositories, and deploys their immutable digests through SSM. A workflow dispatch can deploy another branch; it resolves that branch to one commit before validation, build, and deployment.
 
-PowerShell example:
+Set these GitHub `production` environment variables:
 
-```powershell
-.\infra\scripts\deploy_backend.ps1 `
-  -InstanceId i-0123456789abcdef0 `
-  -AppDomain app.example.com `
-  -AcmeEmail admin@example.com
-```
+- `APP_DOMAIN`
+- `AWS_REGION` (`us-east-1` by default)
+- `AWS_ROLE_TO_ASSUME` (the `github_actions_role_arn` Terraform output)
+- `CADDY_ACME_EMAIL`
+- Optional runtime values: `OPENAI_MODEL`, `POSTGRES_DB`, `POSTGRES_USER`, and `SSM_PARAMETER_PREFIX`
 
-macOS example:
-
-```bash
-infra/scripts/deploy_backend_macos.sh \
-  --instance-id i-0123456789abcdef0 \
-  --app-domain app.example.com \
-  --acme-email admin@example.com
-```
-
-For a private repository, either pass a repository URL the EC2 host can access with `-RepositoryUrl`, or preconfigure repo access on the instance before running the deploy script.
+The EC2 host does not fetch source code or build images. It receives the checked-out Compose configuration and image digests from the workflow, pulls those images from ECR, runs migrations, and starts Docker Compose. ECR lifecycle policies retain only the three newest immutable releases per service.
 
 ## GitHub OIDC Deployment Role
 

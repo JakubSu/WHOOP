@@ -17,6 +17,10 @@ locals {
   github_actions_sub   = "repo:${var.github_repository}:environment:${var.github_actions_environment}"
   cloudwatch_log_group = "${local.ssm_parameter_prefix}/docker"
   host_log_group       = "${local.ssm_parameter_prefix}/host"
+  ecr_repositories = {
+    web = "${var.project_name}/web"
+    api = "${var.project_name}/api"
+  }
   common_tags = merge(
     {
       Project     = var.project_name
@@ -92,6 +96,55 @@ resource "aws_ssm_parameter" "postgres_password" {
   tags = local.common_tags
 }
 
+resource "aws_ecr_repository" "app" {
+  for_each = local.ecr_repositories
+
+  name                 = each.value
+  image_tag_mutability = "IMMUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "AES256"
+  }
+
+  tags = merge(local.common_tags, { Service = each.key })
+}
+
+resource "aws_ecr_lifecycle_policy" "app" {
+  for_each = aws_ecr_repository.app
+
+  repository = each.value.name
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Delete untagged image artifacts after one day."
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 2
+        description  = "Keep the three newest immutable commit releases."
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["sha-"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 3
+        }
+        action = { type = "expire" }
+      },
+    ]
+  })
+}
+
 module "backend" {
   source = "./modules/ec2"
 
@@ -104,6 +157,7 @@ module "backend" {
   cloudwatch_log_retention_days  = var.cloudwatch_log_retention_days
   cloudflare_ipv4_cidrs          = data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks
   cloudflare_ipv6_cidrs          = data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks
+  ecr_repository_arns            = [for repository in aws_ecr_repository.app : repository.arn]
   instance_name                  = "${var.project_name}-${var.environment}-backend"
   instance_type                  = var.ec2_instance_type
   key_pair_name                  = local.ec2_key_pair_name
@@ -379,6 +433,28 @@ data "aws_iam_policy_document" "github_actions_deploy" {
     effect    = "Allow"
     actions   = ["ec2:DescribeInstances"]
     resources = ["*"]
+  }
+
+  statement {
+    sid       = "AuthenticateToEcr"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "PublishReleaseImages"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:CompleteLayerUpload",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+    ]
+    resources = [for repository in aws_ecr_repository.app : repository.arn]
   }
 
   statement {

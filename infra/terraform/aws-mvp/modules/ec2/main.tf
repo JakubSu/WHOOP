@@ -87,6 +87,22 @@ data "aws_iam_policy_document" "cloudwatch_logs_access" {
   }
 }
 
+data "aws_iam_policy_document" "ecr_pull_access" {
+  statement {
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+    ]
+    resources = var.ecr_repository_arns
+  }
+}
+
 data "aws_iam_policy_document" "dlm_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -210,6 +226,12 @@ resource "aws_iam_role_policy" "cloudwatch_logs_access" {
   name   = "${var.instance_name}-cloudwatch-logs-access"
   role   = aws_iam_role.ec2.id
   policy = data.aws_iam_policy_document.cloudwatch_logs_access.json
+}
+
+resource "aws_iam_role_policy" "ecr_pull_access" {
+  name   = "${var.instance_name}-ecr-pull-access"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ecr_pull_access.json
 }
 
 resource "aws_iam_role_policy_attachment" "ssm_managed_instance_core" {

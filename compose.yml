@@ -5,10 +5,7 @@ x-cloudwatch-logging-options: &cloudwatch-logging-options
 
 services:
   caddy:
-    build:
-      context: ./apps/web
-      args:
-        VITE_API_BASE_URL: /api/v1
+    image: ${WEB_IMAGE:?WEB_IMAGE is required}
     depends_on:
       - api
     environment:
@@ -28,8 +25,7 @@ services:
       - caddy_config:/config
 
   api:
-    build:
-      context: ./services/api
+    image: ${API_IMAGE:?API_IMAGE is required}
     depends_on:
       db:
         condition: service_healthy

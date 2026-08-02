@@ -52,3 +52,8 @@ output "github_actions_oidc_subject" {
   description = "Expected GitHub OIDC subject claim allowed to assume the deploy role."
   value       = local.github_actions_sub
 }
+
+output "ecr_repository_urls" {
+  description = "Private ECR repository URLs used for immutable web and API releases."
+  value       = { for name, repository in aws_ecr_repository.app : name => repository.repository_url }
+}
