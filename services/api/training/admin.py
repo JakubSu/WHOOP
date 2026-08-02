@@ -11,6 +11,8 @@ class ExerciseAdmin(admin.ModelAdmin):
         "muscle_group",
         "default_sets",
         "default_reps",
+        "default_weight",
+        "default_weight_unit",
         "default_time",
     )
     search_fields = ("name", "muscle_group", "notes")

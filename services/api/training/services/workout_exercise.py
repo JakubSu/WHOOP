@@ -95,8 +95,8 @@ def _validate_workout_exercise_prescription(payload: dict[str, Any]) -> None:
 
     prescription_type = exercise.prescription_type
     if prescription_type == Exercise.PrescriptionType.TIMED:
-        if payload.get("sets", 0) > 0 or payload.get("reps", 0) > 0 or payload.get("weight") is not None:
-            raise ValueError("Timed exercises can only use time and note.")
+        if payload.get("sets", 0) > 0 or payload.get("reps", 0) > 0:
+            raise ValueError("Timed exercises can only use time, weight, and note.")
         return
 
     if payload.get("time", 0) > 0:

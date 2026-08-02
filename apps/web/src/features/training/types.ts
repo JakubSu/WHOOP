@@ -49,6 +49,8 @@ export type Exercise = {
   prescription_type: 'strength' | 'timed'
   default_sets: number
   default_reps: number
+  default_weight: string | null
+  default_weight_unit: string
   muscle_group: string
   default_time: number
   notes: string

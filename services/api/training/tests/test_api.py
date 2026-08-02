@@ -99,6 +99,8 @@ class MinimalTrainingApiTests(TestCase):
                 "name": "Bench Press",
                 "default_sets": 4,
                 "default_reps": 8,
+                "default_weight": "135.00",
+                "default_weight_unit": "lb",
                 "muscle_group": "Chest",
                 "default_time": 0,
                 "notes": "Pause reps.",
@@ -106,6 +108,8 @@ class MinimalTrainingApiTests(TestCase):
             format="json",
         )
         self.assertEqual(exercise_response.status_code, 201)
+        self.assertEqual(exercise_response.json()["default_weight"], "135.00")
+        self.assertEqual(exercise_response.json()["default_weight_unit"], "lb")
 
         workout_exercise_response = self.client.post(
             reverse("workout-exercise-page-collection", args=[workout_response.json()["id"]]),
@@ -197,6 +201,8 @@ class MinimalTrainingApiTests(TestCase):
             {
                 "exercise": str(exercise.id),
                 "time": 45,
+                "weight": "10.00",
+                "weight_unit": "kg",
                 "note": "Brace.",
             },
             format="json",
@@ -204,6 +210,8 @@ class MinimalTrainingApiTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["time"], 45)
+        self.assertEqual(response.json()["weight"], "10.00")
+        self.assertEqual(response.json()["weight_unit"], "kg")
 
     def test_workout_list_returns_exercise_count_and_date(self) -> None:
         workout = Workout.objects.create(

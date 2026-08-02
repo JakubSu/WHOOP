@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import {
   getWorkout,
   getWorkoutLanding,
@@ -37,8 +38,9 @@ export function useWorkoutPage(workoutId: string | undefined) {
     enabled: Boolean(resolvedWorkoutId),
   })
 
-  const exerciseDisplays = buildExerciseDisplays(
-    workoutExercises.data ?? [],
+  const exerciseDisplays = useMemo(
+    () => buildExerciseDisplays(workoutExercises.data ?? []),
+    [workoutExercises.data],
   )
   const currentWorkout = workout.data ?? selectedWorkout
   const isToday = selectedWorkout?.is_today ?? isDateToday(currentWorkout?.date ?? null, today)

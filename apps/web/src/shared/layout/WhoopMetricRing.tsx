@@ -22,7 +22,7 @@ export function WhoopMetricRing({
       <div
         className="grid size-11 place-items-center rounded-full p-1"
         style={{
-          background: `conic-gradient(${color} ${degrees}deg, #e7e9df 0deg)`,
+          background: `conic-gradient(${color} ${degrees}deg, var(--muted-foreground) 0deg)`,
         }}
       >
         <span className="grid size-8 place-items-center rounded-full bg-card text-xs font-black">

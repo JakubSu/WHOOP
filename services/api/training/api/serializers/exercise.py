@@ -14,6 +14,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
             "prescription_type",
             "default_sets",
             "default_reps",
+            "default_weight",
+            "default_weight_unit",
             "muscle_group",
             "default_time",
             "notes",
@@ -27,6 +29,12 @@ class ExerciseSerializer(serializers.ModelSerializer):
             "default_sets": {"help_text": "Default set count for strength exercises."},
             "default_reps": {
                 "help_text": "Default repetition count for strength exercises."
+            },
+            "default_weight": {
+                "help_text": "Optional default prescribed weight for strength exercises."
+            },
+            "default_weight_unit": {
+                "help_text": "Unit for the default prescribed weight value."
             },
             "muscle_group": {
                 "help_text": "Primary muscle group associated with the exercise."

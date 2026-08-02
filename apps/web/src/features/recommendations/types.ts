@@ -6,15 +6,15 @@ export type RecommendationStatus =
   | 'failed'
 
 export type RecommendationOperationType =
-  | 'replace_exercise'
-  | 'update_exercise'
-  | 'remove_exercise'
   | 'add_exercise'
+  | 'update_exercise'
+  | 'replace_exercise'
   | 'move_exercise'
+  | 'remove_exercise'
   | 'add_workout'
-  | 'remove_workout'
   | 'update_workout'
-  | 'revise_workout'
+  | 'move_workout'
+  | 'remove_workout'
 
 export type RecommendationOperationStatus =
   | 'pending'

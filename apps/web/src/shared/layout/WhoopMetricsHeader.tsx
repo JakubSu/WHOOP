@@ -4,15 +4,15 @@ import { WhoopMetricRing } from './WhoopMetricRing'
 
 function recoveryColor(value: number | null) {
   if (value === null) {
-    return '#A0A7A0'
+    return 'var(--muted-foreground)'
   }
   if (value >= 67) {
-    return '#00F19F'
+    return 'var(--whoop-recovery-good)'
   }
   if (value >= 34) {
-    return '#FFCC00'
+    return 'var(--whoop-recovery-fair)'
   }
-  return '#FF3B30'
+  return 'var(--whoop-recovery-low)'
 }
 
 export function WhoopMetricsHeader() {
@@ -26,7 +26,7 @@ export function WhoopMetricsHeader() {
           label="Sleep"
           value={data?.sleep_performance_percent ?? null}
           max={100}
-          color="#7BA1BB"
+          color="var(--whoop-sleep)"
           unit="%"
         />
         <WhoopMetricRing
@@ -40,7 +40,7 @@ export function WhoopMetricsHeader() {
           label="Strain"
           value={data?.day_strain ?? null}
           max={21}
-          color="#0093E7"
+          color="var(--whoop-strain)"
         />
         <span className="col-span-3 text-[.65rem] font-bold uppercase text-muted-foreground">Powered by WHOOP</span>
       </div>
