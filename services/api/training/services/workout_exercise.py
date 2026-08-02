@@ -5,13 +5,15 @@ from django.db.models import Q
 from training.models import Exercise, Workout, WorkoutExercise
 
 
-def list_workout_exercises(user_id: str) -> list[WorkoutExercise]:
-    return list(WorkoutExercise.objects.select_related("workout", "exercise").filter(workout__user_id=user_id))
-
-
-def get_workout_exercise(workout_exercise_id: str, user_id: str) -> WorkoutExercise | None:
+def get_workout_exercise_for_workout(
+    workout_id: str, workout_exercise_id: str, user_id: str
+) -> WorkoutExercise | None:
     try:
-        return WorkoutExercise.objects.select_related("workout", "exercise").get(pk=workout_exercise_id, workout__user_id=user_id)
+        return WorkoutExercise.objects.select_related("workout", "exercise").get(
+            pk=workout_exercise_id,
+            workout_id=workout_id,
+            workout__user_id=user_id,
+        )
     except WorkoutExercise.DoesNotExist:
         return None
 
@@ -20,7 +22,7 @@ def list_workout_exercises_for_workout(workout_id: str, user_id: str) -> list[Wo
     return list(
         WorkoutExercise.objects.select_related("workout", "exercise")
         .filter(workout_id=workout_id, workout__user_id=user_id)
-        .order_by("created_at", "exercise__name")
+        .order_by("sort_order", "created_at", "exercise__name")
     )
 
 
@@ -67,6 +69,7 @@ def _normalized_workout_exercise_payload(
         "sets",
         "reps",
         "time",
+        "sort_order",
         "weight",
         "weight_unit",
         "note",
@@ -92,8 +95,8 @@ def _validate_workout_exercise_prescription(payload: dict[str, Any]) -> None:
 
     prescription_type = exercise.prescription_type
     if prescription_type == Exercise.PrescriptionType.TIMED:
-        if payload.get("sets", 0) > 0 or payload.get("reps", 0) > 0 or payload.get("weight") is not None:
-            raise ValueError("Timed exercises can only use time and note.")
+        if payload.get("sets", 0) > 0 or payload.get("reps", 0) > 0:
+            raise ValueError("Timed exercises can only use time, weight, and note.")
         return
 
     if payload.get("time", 0) > 0:

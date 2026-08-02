@@ -14,6 +14,8 @@ class ExerciseServiceTests(TestCase):
                 "name": "Push-Up",
                 "default_sets": 3,
                 "default_reps": 12,
+                "default_weight": "135.00",
+                "default_weight_unit": "kg",
                 "muscle_group": "Chest",
                 "default_time": 0,
                 "notes": "Keep core tight.",
@@ -24,6 +26,8 @@ class ExerciseServiceTests(TestCase):
         self.assertEqual(exercise.user_id, self.user_id)
         self.assertEqual(exercise.default_sets, 3)
         self.assertEqual(exercise.default_reps, 12)
+        self.assertEqual(str(exercise.default_weight), "135.00")
+        self.assertEqual(exercise.default_weight_unit, "kg")
         self.assertEqual(exercise.muscle_group, "Chest")
         self.assertEqual(exercise.default_time, 0)
         self.assertEqual(exercise.notes, "Keep core tight.")
@@ -36,9 +40,36 @@ class ExerciseServiceTests(TestCase):
         )
         updated = services.update_exercise(
             exercise,
-            {"default_sets": 4, "default_reps": 10, "default_time": 2},
+            {
+                "default_sets": 4,
+                "default_reps": 10,
+                "default_time": 2,
+            },
             user_id=self.user_id,
         )
         self.assertEqual(updated.default_sets, 4)
         self.assertEqual(updated.default_reps, 10)
         self.assertEqual(updated.default_time, 2)
+
+    def test_update_strength_exercise_default_weight(self) -> None:
+        exercise = services.create_exercise({"name": "Bench Press"}, user_id=self.user_id)
+        updated = services.update_exercise(
+            exercise,
+            {"default_weight": "20.00", "default_weight_unit": "kg"},
+            user_id=self.user_id,
+        )
+        self.assertEqual(str(updated.default_weight), "20.00")
+        self.assertEqual(updated.default_weight_unit, "kg")
+
+    def test_timed_exercise_can_have_default_weight(self) -> None:
+        exercise = services.create_exercise(
+            {
+                "name": "Weighted Plank",
+                "prescription_type": "timed",
+                "default_weight": "10.00",
+                "default_weight_unit": "kg",
+            },
+            user_id=self.user_id,
+        )
+        self.assertEqual(str(exercise.default_weight), "10.00")
+        self.assertEqual(exercise.default_weight_unit, "kg")

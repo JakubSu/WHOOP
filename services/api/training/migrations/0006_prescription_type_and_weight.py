@@ -1,6 +1,5 @@
 from django.db import migrations, models
 
-
 TIMED_EXERCISE_NAMES = {
     "bike intervals",
     "breathing walk",
@@ -46,12 +45,12 @@ def reverse_prescriptions(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
+    dependencies = [  # noqa: RUF012
         ("training", "0005_minimal_training_schema"),
         ("recommendation", "0002_seed_demo_training_plan"),
     ]
 
-    operations = [
+    operations = [  # noqa: RUF012
         migrations.AddField(
             model_name="exercise",
             name="prescription_type",

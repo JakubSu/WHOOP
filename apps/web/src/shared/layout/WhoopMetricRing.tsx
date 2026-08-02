@@ -18,19 +18,19 @@ export function WhoopMetricRing({
   const displayValue = value === null ? '--' : Math.round(value)
 
   return (
-    <div className="metric-ring">
+    <div className="grid justify-items-center gap-1">
       <div
-        className="metric-ring__dial"
+        className="grid size-11 place-items-center rounded-full p-1"
         style={{
-          background: `conic-gradient(${color} ${degrees}deg, #e7e9df 0deg)`,
+          background: `conic-gradient(${color} ${degrees}deg, var(--muted-foreground) 0deg)`,
         }}
       >
-        <span>
+        <span className="grid size-8 place-items-center rounded-full bg-card text-xs font-black">
           {displayValue}
           {value !== null ? unit : ''}
         </span>
       </div>
-      <span className="metric-ring__label">{label}</span>
+      <span className="text-[.65rem] font-bold text-muted-foreground">{label}</span>
     </div>
   )
 }

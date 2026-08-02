@@ -24,7 +24,11 @@ class TrainingApiOwnershipTests(TestCase):
     def test_workout_create_uses_authenticated_user_id(self) -> None:
         response = self.client.post(
             reverse("workout-collection"),
-            {"name": "Upper Body", "user_id": str(self.other_user.id)},
+            {
+                "name": "Upper Body",
+                "date": "2026-06-09",
+                "user_id": str(self.other_user.id),
+            },
             format="json",
         )
 
@@ -34,17 +38,21 @@ class TrainingApiOwnershipTests(TestCase):
         self.assertNotIn("user_id", response.json())
 
     def test_workout_list_is_scoped_to_authenticated_user(self) -> None:
-        Workout.objects.create(name="Mine", user_id=str(self.user.id))
-        Workout.objects.create(name="Theirs", user_id=str(self.other_user.id))
+        Workout.objects.create(name="Mine", date="2026-06-09", user_id=str(self.user.id))
+        Workout.objects.create(name="Theirs", date="2026-06-09", user_id=str(self.other_user.id))
 
         response = self.client.get(reverse("workout-collection"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()), 1)
-        self.assertEqual(response.json()[0]["name"], "Mine")
+        self.assertEqual(response.json()["count"], 1)
+        self.assertEqual(response.json()["results"][0]["name"], "Mine")
 
     def test_detail_does_not_return_other_user_workout(self) -> None:
-        workout = Workout.objects.create(name="Theirs", user_id=str(self.other_user.id))
+        workout = Workout.objects.create(
+            name="Theirs",
+            date="2026-06-09",
+            user_id=str(self.other_user.id),
+        )
 
         response = self.client.get(reverse("workout-detail", args=[workout.id]))
 
@@ -69,22 +77,10 @@ class MinimalTrainingApiTests(TestCase):
         client.force_authenticate(self.user)
         self.client = client
 
-    def test_create_minimal_training_flow(self) -> None:
-        plan_response = self.client.post(
-            reverse("training-plan-collection"),
-            {"name": "Summer Block", "start_date": "2026-06-01", "end_date": "2026-07-01"},
-            format="json",
-        )
-        self.assertEqual(plan_response.status_code, 201)
-        self.assertEqual(
-            set(plan_response.json().keys()),
-            {"id", "name", "start_date", "end_date"},
-        )
-
+    def test_create_minimal_training_flow_uses_spec_routes(self) -> None:
         workout_response = self.client.post(
             reverse("workout-collection"),
             {
-                "plan": plan_response.json()["id"],
                 "name": "Upper Body",
                 "date": "2026-06-09",
                 "expected_time": 45,
@@ -94,7 +90,7 @@ class MinimalTrainingApiTests(TestCase):
         self.assertEqual(workout_response.status_code, 201)
         self.assertEqual(
             set(workout_response.json().keys()),
-            {"id", "plan", "name", "date", "expected_time"},
+            {"id", "name", "date", "expected_time", "exercise_count"},
         )
 
         exercise_response = self.client.post(
@@ -103,6 +99,8 @@ class MinimalTrainingApiTests(TestCase):
                 "name": "Bench Press",
                 "default_sets": 4,
                 "default_reps": 8,
+                "default_weight": "135.00",
+                "default_weight_unit": "lb",
                 "muscle_group": "Chest",
                 "default_time": 0,
                 "notes": "Pause reps.",
@@ -110,24 +108,12 @@ class MinimalTrainingApiTests(TestCase):
             format="json",
         )
         self.assertEqual(exercise_response.status_code, 201)
-        self.assertEqual(
-            set(exercise_response.json().keys()),
-            {
-                "id",
-                "name",
-                "prescription_type",
-                "default_sets",
-                "default_reps",
-                "muscle_group",
-                "default_time",
-                "notes",
-            },
-        )
+        self.assertEqual(exercise_response.json()["default_weight"], "135.00")
+        self.assertEqual(exercise_response.json()["default_weight_unit"], "lb")
 
         workout_exercise_response = self.client.post(
-            reverse("workout-exercise-collection"),
+            reverse("workout-exercise-page-collection", args=[workout_response.json()["id"]]),
             {
-                "workout": workout_response.json()["id"],
                 "exercise": exercise_response.json()["id"],
                 "sets": 4,
                 "reps": 8,
@@ -140,16 +126,31 @@ class MinimalTrainingApiTests(TestCase):
         self.assertEqual(workout_exercise_response.status_code, 201)
         self.assertEqual(
             set(workout_exercise_response.json().keys()),
-            {"id", "workout", "exercise", "sets", "reps", "time", "weight", "weight_unit", "note"},
+            {
+                "id",
+                "workout",
+                "exercise",
+                "sets",
+                "reps",
+                "time",
+                "sort_order",
+                "weight",
+                "weight_unit",
+                "note",
+            },
         )
 
-    def test_patch_workout_exercise_minimal_fields(self) -> None:
-        workout = Workout.objects.create(name="Upper Body", user_id=str(self.user.id))
+    def test_patch_nested_workout_exercise_minimal_fields(self) -> None:
+        workout = Workout.objects.create(
+            name="Upper Body",
+            date="2026-06-09",
+            user_id=str(self.user.id),
+        )
         exercise = Exercise.objects.create(name="Bench Press", user_id=str(self.user.id))
         workout_exercise = WorkoutExercise.objects.create(workout=workout, exercise=exercise)
 
         response = self.client.patch(
-            reverse("workout-exercise-detail", args=[workout_exercise.id]),
+            reverse("workout-exercise-page-detail", args=[workout.id, workout_exercise.id]),
             {"sets": 5, "reps": 6, "weight": "155.50", "weight_unit": "lb", "note": "Top set."},
             format="json",
         )
@@ -163,13 +164,16 @@ class MinimalTrainingApiTests(TestCase):
         self.assertEqual(body["note"], "Top set.")
 
     def test_strength_workout_exercise_rejects_time(self) -> None:
-        workout = Workout.objects.create(name="Upper Body", user_id=str(self.user.id))
+        workout = Workout.objects.create(
+            name="Upper Body",
+            date="2026-06-09",
+            user_id=str(self.user.id),
+        )
         exercise = Exercise.objects.create(name="Bench Press", user_id=str(self.user.id))
 
         response = self.client.post(
-            reverse("workout-exercise-collection"),
+            reverse("workout-exercise-page-collection", args=[workout.id]),
             {
-                "workout": str(workout.id),
                 "exercise": str(exercise.id),
                 "sets": 4,
                 "reps": 8,
@@ -181,7 +185,11 @@ class MinimalTrainingApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_timed_workout_exercise_accepts_time(self) -> None:
-        workout = Workout.objects.create(name="Core", user_id=str(self.user.id))
+        workout = Workout.objects.create(
+            name="Core",
+            date="2026-06-09",
+            user_id=str(self.user.id),
+        )
         exercise = Exercise.objects.create(
             name="Plank",
             prescription_type=Exercise.PrescriptionType.TIMED,
@@ -189,11 +197,12 @@ class MinimalTrainingApiTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("workout-exercise-collection"),
+            reverse("workout-exercise-page-collection", args=[workout.id]),
             {
-                "workout": str(workout.id),
                 "exercise": str(exercise.id),
                 "time": 45,
+                "weight": "10.00",
+                "weight_unit": "kg",
                 "note": "Brace.",
             },
             format="json",
@@ -201,99 +210,114 @@ class MinimalTrainingApiTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["time"], 45)
+        self.assertEqual(response.json()["weight"], "10.00")
+        self.assertEqual(response.json()["weight_unit"], "kg")
 
-    def test_plan_workouts_returns_only_requested_plan_with_exercise_counts(self) -> None:
-        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
-        User = get_user_model()
-        other_user = cast(Any, User.objects).create_user(
-            email="third@example.com",
-            password="strong-password",
-        )
-        other_plan = TrainingPlan.objects.create(name="Other Block", user_id=str(other_user.id))
+    def test_workout_list_returns_exercise_count_and_date(self) -> None:
         workout = Workout.objects.create(
             name="Upper Body",
             user_id=str(self.user.id),
-            plan=plan,
             date="2026-06-10",
             expected_time=45,
-        )
-        Workout.objects.create(
-            name="Conditioning",
-            user_id=str(other_user.id),
-            plan=other_plan,
-            date="2026-06-11",
-            expected_time=30,
         )
         exercise_one = Exercise.objects.create(name="Bench Press", user_id=str(self.user.id))
         exercise_two = Exercise.objects.create(name="Row", user_id=str(self.user.id))
         WorkoutExercise.objects.create(workout=workout, exercise=exercise_one)
         WorkoutExercise.objects.create(workout=workout, exercise=exercise_two)
 
-        response = self.client.get(reverse("training-plan-workout-collection", args=[plan.id]))
+        response = self.client.get(reverse("workout-collection"))
 
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["id"], str(workout.id))
-        self.assertEqual(body[0]["exercise_count"], 2)
-        self.assertEqual(body[0]["expected_time"], 45)
+        self.assertEqual(body["count"], 1)
+        self.assertEqual(body["results"][0]["id"], str(workout.id))
+        self.assertEqual(body["results"][0]["date"], "2026-06-10")
+        self.assertEqual(body["results"][0]["exercise_count"], 2)
+        self.assertNotIn("status", body["results"][0])
 
-    def test_plan_workouts_return_ascending_schedule_order(self) -> None:
-        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
+    def test_workout_list_supports_date_window_and_pagination(self) -> None:
         Workout.objects.create(
-            name="Day 3",
+            name="Before",
             user_id=str(self.user.id),
-            plan=plan,
-            date="2026-06-12",
+            date="2026-06-08",
         )
         Workout.objects.create(
-            name="Day 1",
+            name="First",
             user_id=str(self.user.id),
-            plan=plan,
+            date="2026-06-09",
+        )
+        second = Workout.objects.create(
+            name="Second",
+            user_id=str(self.user.id),
             date="2026-06-10",
         )
         Workout.objects.create(
-            name="Day 2",
+            name="Third",
             user_id=str(self.user.id),
-            plan=plan,
             date="2026-06-11",
         )
-
-        response = self.client.get(reverse("training-plan-workout-collection", args=[plan.id]))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [workout["name"] for workout in response.json()],
-            ["Day 1", "Day 2", "Day 3"],
+        Workout.objects.create(
+            name="After",
+            user_id=str(self.user.id),
+            date="2026-06-12",
         )
 
-    def test_workout_create_rejects_missing_date_for_planned_workout(self) -> None:
-        plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
-
-        response = self.client.post(
+        response = self.client.get(
             reverse("workout-collection"),
             {
-                "plan": str(plan.id),
-                "name": "Upper Body",
-                "expected_time": 45,
+                "startDate": "2026-06-09",
+                "endDate": "2026-06-11",
+                "page": 2,
+                "pageSize": 1,
             },
-            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["count"], 3)
+        self.assertEqual(body["page"], 2)
+        self.assertEqual(body["page_size"], 1)
+        self.assertEqual(len(body["results"]), 1)
+        self.assertEqual(body["results"][0]["id"], str(second.id))
+
+    def test_workout_list_rejects_invalid_date_window(self) -> None:
+        response = self.client.get(
+            reverse("workout-collection"),
+            {
+                "startDate": "2026-06-12",
+                "endDate": "2026-06-09",
+                "page": 1,
+                "pageSize": 20,
+            },
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["detail"], "Planned workouts must have a date.")
 
-    def test_training_plan_create_rejects_second_plan_for_same_user(self) -> None:
-        TrainingPlan.objects.create(name="Existing Plan", user_id=str(self.user.id))
+    def test_workout_list_uses_default_page_size_and_accepts_override(self) -> None:
+        for index in range(55):
+            Workout.objects.create(
+                name=f"Workout {index:02d}",
+                user_id=str(self.user.id),
+                date="2026-06-10",
+            )
 
-        response = self.client.post(
-            reverse("training-plan-collection"),
-            {"name": "Second Plan"},
-            format="json",
+        default_response = self.client.get(reverse("workout-collection"))
+        override_response = self.client.get(
+            reverse("workout-collection"),
+            {"pageSize": 10},
         )
 
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["detail"], "User already has a training plan.")
+        self.assertEqual(default_response.status_code, 200)
+        default_body = default_response.json()
+        self.assertEqual(default_body["count"], 55)
+        self.assertEqual(default_body["page_size"], 50)
+        self.assertEqual(len(default_body["results"]), 50)
+
+        self.assertEqual(override_response.status_code, 200)
+        override_body = override_response.json()
+        self.assertEqual(override_body["count"], 55)
+        self.assertEqual(override_body["page_size"], 10)
+        self.assertEqual(len(override_body["results"]), 10)
 
     def test_workout_landing_returns_todays_workout(self) -> None:
         plan = TrainingPlan.objects.create(name="Summer Block", user_id=str(self.user.id))
@@ -347,8 +371,16 @@ class MinimalTrainingApiTests(TestCase):
         self.assertEqual(body["message"], "No workout scheduled today")
 
     def test_workout_exercises_page_returns_nested_exercise_display_data(self) -> None:
-        workout = Workout.objects.create(name="Upper Body", user_id=str(self.user.id))
-        other_workout = Workout.objects.create(name="Other", user_id=str(self.user.id))
+        workout = Workout.objects.create(
+            name="Upper Body",
+            date="2026-06-09",
+            user_id=str(self.user.id),
+        )
+        other_workout = Workout.objects.create(
+            name="Other",
+            date="2026-06-10",
+            user_id=str(self.user.id),
+        )
         exercise = Exercise.objects.create(name="Bench Press", muscle_group="Chest", user_id=str(self.user.id))
         other_exercise = Exercise.objects.create(name="Row", muscle_group="Back", user_id=str(self.user.id))
         WorkoutExercise.objects.create(workout=workout, exercise=exercise, sets=4, reps=8, weight="135.00")
@@ -370,11 +402,12 @@ class MinimalTrainingApiTests(TestCase):
             email="other-minimal@example.com",
             password="strong-password",
         )
-        other_plan = TrainingPlan.objects.create(name="Theirs", user_id=str(other_user.id))
-        other_workout = Workout.objects.create(name="Theirs", user_id=str(other_user.id))
+        other_workout = Workout.objects.create(
+            name="Theirs",
+            date="2026-06-09",
+            user_id=str(other_user.id),
+        )
 
-        plan_response = self.client.get(reverse("training-plan-workout-collection", args=[other_plan.id]))
         workout_response = self.client.get(reverse("workout-exercise-page-collection", args=[other_workout.id]))
 
-        self.assertEqual(plan_response.status_code, 404)
         self.assertEqual(workout_response.status_code, 404)

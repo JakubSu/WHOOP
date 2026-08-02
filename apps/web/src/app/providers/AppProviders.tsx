@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { type ReactNode, useState } from 'react'
 import { BrowserRouter } from 'react-router-dom'
+import { ThemeProvider } from 'next-themes'
 
 type AppProvidersProps = {
   children: ReactNode
@@ -21,7 +22,9 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="whoop-ui-theme">
+        <BrowserRouter>{children}</BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

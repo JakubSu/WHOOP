@@ -4,15 +4,15 @@ import { WhoopMetricRing } from './WhoopMetricRing'
 
 function recoveryColor(value: number | null) {
   if (value === null) {
-    return '#A0A7A0'
+    return 'var(--muted-foreground)'
   }
   if (value >= 67) {
-    return '#00F19F'
+    return 'var(--whoop-recovery-good)'
   }
   if (value >= 34) {
-    return '#FFCC00'
+    return 'var(--whoop-recovery-fair)'
   }
-  return '#FF3B30'
+  return 'var(--whoop-recovery-low)'
 }
 
 export function WhoopMetricsHeader() {
@@ -20,13 +20,13 @@ export function WhoopMetricsHeader() {
   const data = summary.data
 
   return (
-    <header className="training-header">
-      <div className="metrics-group" aria-label="WHOOP metrics">
+    <header className="mb-5 grid grid-cols-[1fr_auto] items-start gap-3">
+      <div className="grid grid-cols-3 gap-2" aria-label="WHOOP metrics">
         <WhoopMetricRing
           label="Sleep"
           value={data?.sleep_performance_percent ?? null}
           max={100}
-          color="#7BA1BB"
+          color="var(--whoop-sleep)"
           unit="%"
         />
         <WhoopMetricRing
@@ -40,9 +40,9 @@ export function WhoopMetricsHeader() {
           label="Strain"
           value={data?.day_strain ?? null}
           max={21}
-          color="#0093E7"
+          color="var(--whoop-strain)"
         />
-        <span className="powered-by">Powered by WHOOP</span>
+        <span className="col-span-3 text-[.65rem] font-bold uppercase text-muted-foreground">Powered by WHOOP</span>
       </div>
       <UserProfileButton />
     </header>

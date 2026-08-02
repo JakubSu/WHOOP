@@ -44,6 +44,18 @@ class FakeClient:
         self.responses = FakeResponses(responses)
 
 
+class FakeOpenAIBadRequest(Exception):
+    status_code = 400
+    body = {
+        "error": {
+            "type": "invalid_request_error",
+            "code": "invalid_json_schema",
+            "param": "text.format.schema",
+            "message": "Invalid schema for response_format.",
+        }
+    }
+
+
 class AIInfrastructureTests(SimpleTestCase):
     def test_prompt_loader_loads_prompt_by_namespace_name_and_version(self):
         loader = FileSystemPromptLoader()
@@ -196,6 +208,27 @@ class AIInfrastructureTests(SimpleTestCase):
                 response_model=ExampleResponse,
             )
 
+    def test_openai_provider_does_not_retry_bad_request_and_preserves_details(self):
+        client = FakeClient([FakeOpenAIBadRequest("bad request")])
+        provider = OpenAIProvider(
+            api_key="test-key",
+            model="test-model",
+            client=client,
+            max_retries=2,
+        )
+
+        with self.assertRaisesRegex(
+            AIProviderRequestError,
+            "status_code=400.*code=invalid_json_schema.*param=text.format.schema",
+        ):
+            provider.generate_structured(
+                prompt="Return JSON.",
+                input_data={},
+                response_model=ExampleResponse,
+            )
+
+        self.assertEqual(client.responses.calls, 1)
+
     def test_openai_provider_maps_invalid_response(self):
         provider = OpenAIProvider(
             api_key="test-key",
@@ -222,7 +255,7 @@ class AIInfrastructureTests(SimpleTestCase):
         with self.assertRaises(AIProviderConfigurationError):
             get_llm_provider()
 
-    def test_observability_logging_includes_prompt_response_and_usage(self):
+    def test_observability_logging_includes_metadata_and_usage(self):
         response = SimpleNamespace(
             output_parsed=ExampleResponse(title="Plan", score=10),
             usage=SimpleNamespace(input_tokens=11, output_tokens=7, total_tokens=18),
@@ -250,11 +283,43 @@ class AIInfrastructureTests(SimpleTestCase):
 
         output = "\n".join(logs.output)
         self.assertIn('"model": "test-model"', output)
-        self.assertIn('"prompt": "Return JSON."', output)
-        self.assertIn('"response": "{\\"score\\":10,\\"title\\":\\"Plan\\"}"', output)
+        self.assertIn('"prompt_length": 12', output)
+        self.assertIn('"response_length": 27', output)
         self.assertIn('"prompt_version": "v1"', output)
         self.assertIn('"input_tokens": 11', output)
         self.assertIn('"status": "success"', output)
+        self.assertNotIn('"prompt": "Return JSON."', output)
+
+    @override_settings(LOG_LLM_PAYLOADS=True)
+    def test_observability_logging_can_include_payloads_when_enabled(self):
+        response = SimpleNamespace(
+            output_parsed=ExampleResponse(title="Plan", score=10),
+            usage=SimpleNamespace(input_tokens=11, output_tokens=7, total_tokens=18),
+        )
+        provider = OpenAIProvider(
+            api_key="test-key",
+            model="test-model",
+            client=FakeClient([response]),
+        )
+
+        with self.assertLogs(
+            "ai.infrastructure.providers.openai_provider",
+            level="INFO",
+        ) as logs:
+            provider.generate_structured(
+                prompt="Return JSON.",
+                input_data={},
+                response_model=ExampleResponse,
+                metadata=LLMRequestMetadata(
+                    prompt_namespace="recommendation",
+                    prompt_name="test_prompt",
+                    prompt_version="v1",
+                ),
+            )
+
+        output = "\n".join(logs.output)
+        self.assertIn('"prompt": "Return JSON."', output)
+        self.assertIn('"response": "{\\"score\\":10,\\"title\\":\\"Plan\\"}"', output)
 
     def test_observability_logging_includes_prompt_on_failure(self):
         provider = OpenAIProvider(
@@ -281,8 +346,8 @@ class AIInfrastructureTests(SimpleTestCase):
                 )
 
         output = "\n".join(logs.output)
-        self.assertIn('"prompt": "Return JSON."', output)
-        self.assertIn('"response": null', output)
+        self.assertIn('"prompt_length": 12', output)
+        self.assertIn('"response_length": 0', output)
         self.assertIn('"status": "error"', output)
         self.assertIn('"error_type": "AIProviderRequestError"', output)
 

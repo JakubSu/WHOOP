@@ -45,6 +45,8 @@ def _normalized_payload(data: dict[str, Any], existing: Exercise | None = None) 
         "prescription_type",
         "default_sets",
         "default_reps",
+        "default_weight",
+        "default_weight_unit",
         "muscle_group",
         "default_time",
         "notes",

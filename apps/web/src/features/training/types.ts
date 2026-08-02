@@ -26,13 +26,21 @@ export type WorkoutLanding = {
 export type WorkoutExercise = {
   id: string
   workout: string
-  exercise: string
+  exercise: string | ExerciseSummary
   sets: number
   reps: number
   time: number
+  sort_order: number
   weight: string | null
   weight_unit: string
   note: string
+}
+
+export type ExerciseSummary = {
+  id: string
+  name: string
+  prescription_type: 'strength' | 'timed'
+  muscle_group: string
 }
 
 export type Exercise = {
@@ -41,6 +49,8 @@ export type Exercise = {
   prescription_type: 'strength' | 'timed'
   default_sets: number
   default_reps: number
+  default_weight: string | null
+  default_weight_unit: string
   muscle_group: string
   default_time: number
   notes: string
@@ -48,6 +58,13 @@ export type Exercise = {
 
 export type WorkoutListItem = Workout & {
   exercise_count: number
+}
+
+export type WorkoutListPage = {
+  count: number
+  page: number
+  page_size: number
+  results: WorkoutListItem[]
 }
 
 export type WorkoutExerciseDisplay = WorkoutExercise & {

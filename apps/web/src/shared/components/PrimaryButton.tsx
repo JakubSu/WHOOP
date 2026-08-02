@@ -15,7 +15,7 @@ export function PrimaryButton({
 }: PrimaryButtonProps) {
   return (
     <button
-      className={className ? `primary-button ${className}` : 'primary-button'}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50 ${className ?? ''}`}
       disabled={disabled || isLoading}
       {...props}
     >

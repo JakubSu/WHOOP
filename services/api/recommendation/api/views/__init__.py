@@ -1,17 +1,13 @@
 from recommendation.api.views.recommendation import (
-    RecommendationApprovalAPIView,
+    RecommendationAcceptAPIView,
+    RecommendationCollectionAPIView,
     RecommendationDetailAPIView,
-    RecommendationGenerationAPIView,
-    RecommendationOperationApprovalAPIView,
-    RecommendationOperationRejectionAPIView,
-    RecommendationRejectionAPIView,
+    RecommendationRejectAPIView,
 )
 
 __all__ = [
-    "RecommendationApprovalAPIView",
+    "RecommendationAcceptAPIView",
+    "RecommendationCollectionAPIView",
     "RecommendationDetailAPIView",
-    "RecommendationGenerationAPIView",
-    "RecommendationOperationApprovalAPIView",
-    "RecommendationOperationRejectionAPIView",
-    "RecommendationRejectionAPIView",
+    "RecommendationRejectAPIView",
 ]

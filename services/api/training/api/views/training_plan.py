@@ -1,10 +1,9 @@
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import serializers
 
 from training import services
 from training.api.serializers import PlanWorkoutSerializer, TrainingPlanSerializer
@@ -16,7 +15,7 @@ class TrainingPlanErrorDetailSerializer(serializers.Serializer):
 
 
 class TrainingPlanCollectionAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = TrainingPlanSerializer
 
     @extend_schema(
@@ -50,7 +49,7 @@ class TrainingPlanCollectionAPIView(APIView):
 
 
 class TrainingPlanDetailAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = TrainingPlanSerializer
 
     @extend_schema(
@@ -134,7 +133,7 @@ class TrainingPlanDetailAPIView(APIView):
 
 
 class TrainingPlanWorkoutCollectionAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = PlanWorkoutSerializer
 
     @extend_schema(

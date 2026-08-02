@@ -48,6 +48,11 @@ variable "ssm_parameter_arns" {
   type        = list(string)
 }
 
+variable "ecr_repository_arns" {
+  description = "Private ECR repositories the EC2 instance can pull release images from."
+  type        = list(string)
+}
+
 variable "cloudwatch_log_group_name" {
   description = "CloudWatch Logs group where Docker container logs are written."
   type        = string

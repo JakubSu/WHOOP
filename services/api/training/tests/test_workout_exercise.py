@@ -1,5 +1,6 @@
-from django.test import TestCase
 from decimal import Decimal
+
+from django.test import TestCase
 
 from training import services
 from training.models import WorkoutExercise
@@ -9,7 +10,10 @@ class WorkoutExerciseServiceTests(TestCase):
     user_id = "user-1"
 
     def test_create_workout_exercise(self) -> None:
-        workout = services.create_workout({"name": "Upper Body"}, user_id=self.user_id)
+        workout = services.create_workout(
+            {"name": "Upper Body", "date": "2026-06-09"},
+            user_id=self.user_id,
+        )
         exercise = services.create_exercise(
             {"name": "Push-Up"},
             user_id=self.user_id,
@@ -39,7 +43,10 @@ class WorkoutExerciseServiceTests(TestCase):
         self.assertTrue(WorkoutExercise.objects.filter(pk=workout_exercise.id).exists())
 
     def test_strength_workout_exercise_rejects_time(self) -> None:
-        workout = services.create_workout({"name": "Upper Body"}, user_id=self.user_id)
+        workout = services.create_workout(
+            {"name": "Upper Body", "date": "2026-06-09"},
+            user_id=self.user_id,
+        )
         exercise = services.create_exercise({"name": "Push-Up"}, user_id=self.user_id)
 
         with self.assertRaises(ValueError):
@@ -55,7 +62,10 @@ class WorkoutExerciseServiceTests(TestCase):
             )
 
     def test_timed_workout_exercise_accepts_time(self) -> None:
-        workout = services.create_workout({"name": "Core"}, user_id=self.user_id)
+        workout = services.create_workout(
+            {"name": "Core", "date": "2026-06-09"},
+            user_id=self.user_id,
+        )
         exercise = services.create_exercise(
             {"name": "Plank", "prescription_type": "timed", "default_time": 45},
             user_id=self.user_id,
@@ -66,11 +76,16 @@ class WorkoutExerciseServiceTests(TestCase):
                 "workout": str(workout.id),
                 "exercise": str(exercise.id),
                 "time": 45,
+                "weight": "10.00",
+                "weight_unit": "kg",
             },
             user_id=self.user_id,
         )
 
+        workout_exercise.refresh_from_db()
         self.assertEqual(workout_exercise.time, 45)
+        self.assertEqual(workout_exercise.weight, Decimal("10.00"))
+        self.assertEqual(workout_exercise.weight_unit, "kg")
 
     def test_create_workout_with_training_plan(self) -> None:
         training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)

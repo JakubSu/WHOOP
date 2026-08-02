@@ -3,7 +3,6 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.permissions import AllowAny
 
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
@@ -27,4 +26,5 @@ urlpatterns = [
     path("api/v1/", include("training.api.urls")),
     path("api/v1/", include("recommendation.api.urls")),
     path("api/v1/", include("whoop.api.urls")),
+    path("api/v1/", include("coaching.api.urls")),
 ]

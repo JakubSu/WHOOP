@@ -5,7 +5,7 @@ import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { RegisterPage } from '../../features/auth/pages/RegisterPage'
 import { ConnectWhoopPage } from '../../features/whoop/pages/ConnectWhoopPage'
 import { ConnectWhoopSuccessPage } from '../../features/whoop/pages/ConnectWhoopSuccessPage'
-import { PlanPage } from '../../features/training/pages/PlanPage'
+import { WeekPage } from '../../features/training/pages/WeekPage'
 import { WorkoutPage } from '../../features/training/pages/WorkoutPage'
 
 export function AppRouter() {
@@ -41,10 +41,10 @@ export function AppRouter() {
         }
       />
       <Route
-        path="/plan"
+        path="/week"
         element={
           <ProtectedRoute>
-            <PlanPage />
+            <WeekPage />
           </ProtectedRoute>
         }
       />

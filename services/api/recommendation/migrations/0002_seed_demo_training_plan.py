@@ -1,8 +1,9 @@
+# ruff: noqa: RUF012
+
 import uuid
 
 from django.contrib.auth.hashers import make_password
 from django.db import migrations
-
 
 DEMO_USER_ID = uuid.UUID("7ed6ecb0-7a0a-4e10-8f30-31d3a0b45f10")
 DEMO_PLAN_ID = uuid.UUID("ebf1c7b7-10f5-4d3e-b6fb-22c10d5620d1")

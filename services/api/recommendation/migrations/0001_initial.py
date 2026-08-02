@@ -1,3 +1,4 @@
+# ruff: noqa: RUF012
 # Generated manually for patch-based workout recommendations.
 
 import uuid
@@ -57,4 +58,3 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(fields=("recommendation", "sequence"), name="unique_recommendation_operation_sequence"),
         ),
     ]
-

@@ -1,19 +1,48 @@
 import { apiRequest } from '../../../shared/api/apiClient'
 import {
   type Exercise,
-  type TrainingPlan,
   type WorkoutLanding,
   type Workout,
   type WorkoutExercise,
-  type WorkoutListItem,
+  type WorkoutListPage,
 } from '../types'
 
-export function listTrainingPlans() {
-  return apiRequest<TrainingPlan[]>('/training-plans/')
+export type WorkoutExerciseInput = {
+  exercise: string
+  sets: number
+  reps: number
+  time: number
+  sort_order: number
+  weight: string | null
+  weight_unit: string
 }
 
-export function listWorkouts() {
-  return apiRequest<Workout[]>('/workouts/')
+export type ExerciseInput = Omit<Exercise, 'id'>
+
+type ListWorkoutsParams = {
+  startDate?: string
+  endDate?: string
+  page?: number
+  pageSize?: number
+}
+
+export function listWorkouts(params: ListWorkoutsParams = {}) {
+  const query = new URLSearchParams()
+  if (params.startDate) {
+    query.set('startDate', params.startDate)
+  }
+  if (params.endDate) {
+    query.set('endDate', params.endDate)
+  }
+  if (params.page) {
+    query.set('page', String(params.page))
+  }
+  if (params.pageSize) {
+    query.set('pageSize', String(params.pageSize))
+  }
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  return apiRequest<WorkoutListPage>(`/workouts/${suffix}`)
 }
 
 export function getWorkoutLanding(today: string) {
@@ -24,14 +53,48 @@ export function getWorkout(workoutId: string) {
   return apiRequest<Workout>(`/workouts/${workoutId}/`)
 }
 
-export function listTrainingPlanWorkouts(planId: string) {
-  return apiRequest<WorkoutListItem[]>(`/training-plans/${planId}/workouts/`)
+export function updateWorkout(workoutId: string, input: Partial<Pick<Workout, 'name'>>) {
+  return apiRequest<Workout>(`/workouts/${workoutId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
 }
 
-export function listWorkoutExercises() {
-  return apiRequest<WorkoutExercise[]>('/workout-exercises/')
+export function listWorkoutExercises(workoutId: string) {
+  return apiRequest<WorkoutExercise[]>(`/workouts/${workoutId}/exercises/`)
+}
+
+export function createWorkoutExercise(workoutId: string, input: WorkoutExerciseInput) {
+  return apiRequest<WorkoutExercise>(`/workouts/${workoutId}/exercises/`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateWorkoutExercise(
+  workoutId: string,
+  workoutExerciseId: string,
+  input: Partial<WorkoutExerciseInput>,
+) {
+  return apiRequest<WorkoutExercise>(`/workouts/${workoutId}/exercises/${workoutExerciseId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deleteWorkoutExercise(workoutId: string, workoutExerciseId: string) {
+  return apiRequest<void>(`/workouts/${workoutId}/exercises/${workoutExerciseId}/`, {
+    method: 'DELETE',
+  })
 }
 
 export function listExercises() {
   return apiRequest<Exercise[]>('/exercises/')
+}
+
+export function createExercise(input: ExerciseInput) {
+  return apiRequest<Exercise>('/exercises/', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }

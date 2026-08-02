@@ -2,6 +2,8 @@
 set -euo pipefail
 
 APP_DIR="/opt/whoop-ai-coach"
+DEPLOY_LOG_DIR="/var/log/whoop-ai-coach"
+DEPLOY_LOG="$DEPLOY_LOG_DIR/deploy.log"
 
 APP_DOMAIN="${1:?App domain is required.}"
 CADDY_ACME_EMAIL="${2:?Caddy ACME email is required.}"
@@ -10,77 +12,40 @@ SSM_PARAMETER_PREFIX="${4:?SSM parameter prefix is required.}"
 POSTGRES_DB="${5:-whoop_ai_coach}"
 POSTGRES_USER="${6:-whoop_ai_coach}"
 OPENAI_MODEL="${7:-gpt-4.1-mini}"
-REPOSITORY_URL="${8:?Repository URL is required.}"
-BRANCH="${9:-main}"
-DEPLOY_LOG_DIR="/var/log/whoop-ai-coach"
-DEPLOY_LOG="$DEPLOY_LOG_DIR/deploy.log"
-
-export DEBIAN_FRONTEND=noninteractive
+WEB_IMAGE="${8:?Immutable web image is required.}"
+API_IMAGE="${9:?Immutable API image is required.}"
+COMPOSE_CONFIG_B64="${10:?Compose configuration is required.}"
+RELEASE_SHA="${11:?Release commit SHA is required.}"
 
 mkdir -p "$DEPLOY_LOG_DIR"
 touch "$DEPLOY_LOG"
 chmod 640 "$DEPLOY_LOG"
 exec > >(tee -a "$DEPLOY_LOG") 2>&1
 
-scm_url_for_logs() {
-  sed -E 's#(https?://)[^/@]+@#\1***@#' <<<"$1"
-}
+exec 9>/var/lock/whoop-ai-coach-deploy.lock
+if ! flock -n 9; then
+  echo "Another WHOOP AI Coach deployment is already running." >&2
+  exit 1
+fi
 
-run_scm_command() {
-  local description="$1"
-  shift
+validate_image() {
+  local image="$1"
+  local service="$2"
 
-  local output_file
-  output_file="$(mktemp)"
-
-  echo "[$(date --iso-8601=seconds)] SCM: $description."
-  if "$@" >"$output_file" 2>&1; then
-    cat "$output_file"
-    rm -f "$output_file"
-    return 0
+  if [[ ! "$image" =~ ^[^/]+/.+@sha256:[0-9a-f]{64}$ ]]; then
+    echo "$service image must be an immutable ECR digest reference, received: $image" >&2
+    exit 1
   fi
-
-  local exit_code=$?
-  echo "SCM command failed while trying to $description." >&2
-  echo "Exit code: $exit_code" >&2
-  echo "Repository: $(scm_url_for_logs "$REPOSITORY_URL")" >&2
-  echo "Branch: $BRANCH" >&2
-  echo "Command output:" >&2
-  cat "$output_file" >&2
-  rm -f "$output_file"
-  return "$exit_code"
 }
 
-echo "[$(date --iso-8601=seconds)] Starting WHOOP AI Coach deployment."
-echo "Deploying branch '$BRANCH' from '$(scm_url_for_logs "$REPOSITORY_URL")'."
+validate_image "$WEB_IMAGE" "Web"
+validate_image "$API_IMAGE" "API"
 
-apt-get update
-apt-get install -y curl docker.io docker-compose-v2 git unzip
+echo "[$(date --iso-8601=seconds)] Starting release $RELEASE_SHA."
+echo "Web image: $WEB_IMAGE"
+echo "API image: $API_IMAGE"
 
-if ! command -v aws >/dev/null 2>&1; then
-  tmp_dir="$(mktemp -d)"
-  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "$tmp_dir/awscliv2.zip"
-  unzip -q "$tmp_dir/awscliv2.zip" -d "$tmp_dir"
-  "$tmp_dir/aws/install" --update
-  rm -rf "$tmp_dir"
-fi
-
-systemctl enable --now docker
-
-run_scm_command "verify repository access and branch existence" \
-  git ls-remote --exit-code --heads "$REPOSITORY_URL" "$BRANCH"
-
-if [ -d "$APP_DIR/.git" ]; then
-  run_scm_command "fetch branch '$BRANCH' into existing checkout" \
-    git -C "$APP_DIR" fetch origin "$BRANCH"
-  run_scm_command "reset existing checkout to origin/$BRANCH" \
-    git -C "$APP_DIR" reset --hard "origin/$BRANCH"
-else
-  rm -rf "$APP_DIR"
-  run_scm_command "clone branch '$BRANCH' into $APP_DIR" \
-    git clone --branch "$BRANCH" --single-branch "$REPOSITORY_URL" "$APP_DIR"
-fi
-
+mkdir -p "$APP_DIR"
 mkdir -p "$APP_DIR/secrets"
 aws ssm get-parameter \
   --region "$AWS_REGION" \
@@ -89,6 +54,12 @@ aws ssm get-parameter \
   --query 'Parameter.Value' \
   --output text >"$APP_DIR/secrets/postgres_password"
 chmod 600 "$APP_DIR/secrets/postgres_password"
+
+compose_tmp="$(mktemp "$APP_DIR/compose.yml.XXXXXX")"
+trap 'rm -f "$compose_tmp"' EXIT
+printf '%s' "$COMPOSE_CONFIG_B64" | base64 --decode >"$compose_tmp"
+mv "$compose_tmp" "$APP_DIR/compose.yml"
+trap - EXIT
 
 cat >"$APP_DIR/.env" <<EOF
 APP_DOMAIN=${APP_DOMAIN}
@@ -99,15 +70,38 @@ CLOUDWATCH_LOG_GROUP=${SSM_PARAMETER_PREFIX%/}/docker
 POSTGRES_DB=${POSTGRES_DB}
 POSTGRES_USER=${POSTGRES_USER}
 OPENAI_MODEL=${OPENAI_MODEL}
+WEB_IMAGE=${WEB_IMAGE}
+API_IMAGE=${API_IMAGE}
 EOF
 chmod 600 "$APP_DIR/.env"
 
-cd "$APP_DIR"
+cat >"$APP_DIR/release.env" <<EOF
+RELEASE_SHA=${RELEASE_SHA}
+WEB_IMAGE=${WEB_IMAGE}
+API_IMAGE=${API_IMAGE}
+DEPLOYED_AT=$(date --iso-8601=seconds)
+EOF
+chmod 600 "$APP_DIR/release.env"
 
-echo "[$(date --iso-8601=seconds)] Building Docker images."
-docker compose build
+registry="${WEB_IMAGE%%/*}"
+aws ecr get-login-password --region "$AWS_REGION" |
+  docker login --username AWS --password-stdin "$registry"
+
+cd "$APP_DIR"
+docker compose --env-file .env pull caddy api
 echo "[$(date --iso-8601=seconds)] Running database migrations."
-docker compose run --rm api python manage.py migrate --noinput
+docker compose --env-file .env run --rm api python manage.py migrate --noinput
 echo "[$(date --iso-8601=seconds)] Starting Docker Compose services."
-docker compose up -d
-echo "[$(date --iso-8601=seconds)] Deployment completed."
+docker compose --env-file .env up -d --remove-orphans caddy api db
+
+for attempt in $(seq 1 12); do
+  if curl --fail --silent --show-error --resolve "${APP_DOMAIN}:443:127.0.0.1" "https://${APP_DOMAIN}/" >/dev/null; then
+    echo "[$(date --iso-8601=seconds)] Deployment completed."
+    exit 0
+  fi
+  sleep 5
+done
+
+echo "Caddy did not become healthy after deployment." >&2
+docker compose --env-file .env ps >&2
+exit 1

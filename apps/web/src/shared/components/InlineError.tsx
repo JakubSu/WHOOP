@@ -8,8 +8,9 @@ export function InlineError({ message }: InlineErrorProps) {
   }
 
   return (
-    <p className="inline-error" role="alert">
+    <Alert>
       {message}
-    </p>
+    </Alert>
   )
 }
+import { Alert } from './ui'

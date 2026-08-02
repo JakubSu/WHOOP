@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Unlink, Watch } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { useNavigate } from 'react-router-dom'
 import { logoutUser } from '../../features/auth/api/authApi'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { disconnectWhoop } from '../../features/whoop/api/whoopApi'
+import { Avatar, AvatarFallback, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Separator } from '../components/ui'
 
 function initialsFor(displayName: string | undefined, email: string | undefined) {
   const source = displayName?.trim() || email?.split('@')[0] || 'U'
@@ -21,8 +22,7 @@ export function UserProfileButton() {
   const clearSession = useAuthStore((state) => state.clearSession)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const [isOpen, setIsOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const { setTheme } = useTheme()
   const logout = useMutation({
     mutationFn: logoutUser,
     onSettled: async () => {
@@ -39,88 +39,43 @@ export function UserProfileButton() {
         setUser({ ...user, whoop_user_id: '' })
       }
       await queryClient.invalidateQueries({ queryKey: ['whoop-summary'] })
-      setIsOpen(false)
     },
   })
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('keydown', handleEscape)
-
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [])
-
   return (
-    <div ref={containerRef} className="profile-menu">
-      <button
-        className="profile-button"
-        type="button"
-        aria-label="User profile"
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        onClick={() => setIsOpen((open) => !open)}
-      >
-        {initialsFor(user?.display_name, user?.email)}
-      </button>
-      {isOpen ? (
-        <div className="profile-popover" role="menu" aria-label="Profile menu">
-          <div className="profile-popover__identity">
-            <strong>{user?.display_name || 'User'}</strong>
-            <span>{user?.email}</span>
-          </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="User profile"><Avatar><AvatarFallback>{initialsFor(user?.display_name, user?.email)}</AvatarFallback></Avatar></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+          <div className="px-2 py-2 text-sm"><strong className="block">{user?.display_name || 'User'}</strong><span className="block break-all text-muted-foreground">{user?.email}</span></div><Separator />
           {user?.whoop_user_id ? (
-            <button
-              className="profile-popover__action"
-              type="button"
-              role="menuitem"
+            <DropdownMenuItem
               disabled={disconnect.isPending || logout.isPending}
               onClick={() => disconnect.mutate()}
             >
               <Unlink aria-hidden="true" size={16} />
               {disconnect.isPending ? 'Disconnecting WHOOP' : 'Disconnect WHOOP'}
-            </button>
+            </DropdownMenuItem>
           ) : (
-            <button
-              className="profile-popover__action"
-              type="button"
-              role="menuitem"
+            <DropdownMenuItem
               disabled={logout.isPending}
               onClick={() => {
-                setIsOpen(false)
                 navigate('/connect-whoop')
               }}
             >
               <Watch aria-hidden="true" size={16} />
               Connect WHOOP
-            </button>
+            </DropdownMenuItem>
           )}
-          <button
-            className="profile-popover__action"
-            type="button"
-            role="menuitem"
+          <DropdownMenuItem
             disabled={logout.isPending || disconnect.isPending}
             onClick={() => logout.mutate()}
           >
             <LogOut aria-hidden="true" size={16} />
             {logout.isPending ? 'Signing out' : 'Log out'}
-          </button>
-        </div>
-      ) : null}
-    </div>
+          </DropdownMenuItem>
+          <Separator /><div className="px-2 pb-1 pt-2 text-xs font-semibold text-muted-foreground">Theme</div>
+          {(['light','dark','system'] as const).map((theme) => <DropdownMenuItem key={theme} onSelect={() => setTheme(theme)}>{theme[0].toUpperCase() + theme.slice(1)}</DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

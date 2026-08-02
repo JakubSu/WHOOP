@@ -1,43 +1,31 @@
 from django.urls import path
 
 from recommendation.api.views import (
-    RecommendationApprovalAPIView,
+    RecommendationAcceptAPIView,
+    RecommendationCollectionAPIView,
     RecommendationDetailAPIView,
-    RecommendationGenerationAPIView,
-    RecommendationOperationApprovalAPIView,
-    RecommendationOperationRejectionAPIView,
-    RecommendationRejectionAPIView,
+    RecommendationRejectAPIView,
 )
 
 urlpatterns = [
     path(
-        "recommendations/workouts/<uuid:workout_id>/generate/",
-        RecommendationGenerationAPIView.as_view(),
-        name="recommendation-generate",
+        "recommendations/",
+        RecommendationCollectionAPIView.as_view(),
+        name="recommendation-collection",
     ),
     path(
-        "recommendations/<uuid:recommendation_id>/",
+        "recommendations/<uuid:id>/",
         RecommendationDetailAPIView.as_view(),
         name="recommendation-detail",
     ),
     path(
-        "recommendations/<uuid:recommendation_id>/approve/",
-        RecommendationApprovalAPIView.as_view(),
-        name="recommendation-approve",
+        "recommendations/<uuid:id>/accept/",
+        RecommendationAcceptAPIView.as_view(),
+        name="recommendation-accept",
     ),
     path(
-        "recommendations/<uuid:recommendation_id>/reject/",
-        RecommendationRejectionAPIView.as_view(),
+        "recommendations/<uuid:id>/reject/",
+        RecommendationRejectAPIView.as_view(),
         name="recommendation-reject",
-    ),
-    path(
-        "recommendations/<uuid:recommendation_id>/operations/<uuid:operation_id>/approve/",
-        RecommendationOperationApprovalAPIView.as_view(),
-        name="recommendation-operation-approve",
-    ),
-    path(
-        "recommendations/<uuid:recommendation_id>/operations/<uuid:operation_id>/reject/",
-        RecommendationOperationRejectionAPIView.as_view(),
-        name="recommendation-operation-reject",
     ),
 ]

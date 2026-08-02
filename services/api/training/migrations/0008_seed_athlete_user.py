@@ -4,7 +4,6 @@ from datetime import datetime
 from django.db import migrations
 from django.utils import timezone
 
-
 ATHLETE_USER_ID = uuid.UUID("a559a75b-8c55-4a41-a2c8-bd15b9c2d8a3")
 ATHLETE_CREATED_AT = timezone.make_aware(
     datetime.fromisoformat("2026-06-07 17:17:16.536262")
@@ -42,11 +41,11 @@ def remove_athlete_user(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
+    dependencies = [  # noqa: RUF012
         ("users", "0001_initial"),
         ("training", "0007_seed_push_lower_plan_and_exercises"),
     ]
 
-    operations = [
+    operations = [  # noqa: RUF012
         migrations.RunPython(seed_athlete_user, remove_athlete_user),
     ]

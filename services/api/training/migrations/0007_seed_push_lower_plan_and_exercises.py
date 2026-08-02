@@ -3,7 +3,6 @@ from decimal import Decimal
 
 from django.db import migrations
 
-
 ATHLETE_USER_ID = uuid.UUID("a559a75b-8c55-4a41-a2c8-bd15b9c2d8a3")
 PLAN_ID = uuid.UUID("a4e7c77b-aefa-4950-a584-7a10167723d6")
 
@@ -161,10 +160,10 @@ def remove_push_lower_plan(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
+    dependencies = [  # noqa: RUF012
         ("training", "0006_prescription_type_and_weight"),
     ]
 
-    operations = [
+    operations = [  # noqa: RUF012
         migrations.RunPython(seed_push_lower_plan, remove_push_lower_plan),
     ]

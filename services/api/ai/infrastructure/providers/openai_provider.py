@@ -231,11 +231,19 @@ class OpenAIProvider:
         message = str(exc)
         if "timeout" in name or "timeout" in message.lower():
             return AIProviderTimeoutError("OpenAI request timed out.")
-        if "ratelimit" in name or "rate limit" in message.lower():
+        status_code = getattr(exc, "status_code", None)
+        if status_code == 429 or "ratelimit" in name or "rate limit" in message.lower():
             return AIProviderRateLimitError("OpenAI rate limit reached.")
-        return AIProviderRequestError("OpenAI request failed.")
+
+        mapped = AIProviderRequestError(self._provider_error_message(exc))
+        if status_code is not None:
+            setattr(mapped, "status_code", status_code)
+        return mapped
 
     def _is_retryable(self, exc: Exception) -> bool:
+        status_code = getattr(exc, "status_code", None)
+        if status_code is not None and status_code < 500:
+            return isinstance(exc, AIProviderRateLimitError)
         return isinstance(
             exc,
             (
@@ -244,6 +252,23 @@ class OpenAIProvider:
                 AIProviderTimeoutError,
             ),
         )
+
+    def _provider_error_message(self, exc: Exception) -> str:
+        status_code = getattr(exc, "status_code", None)
+        body = getattr(exc, "body", None)
+        error_payload = body.get("error") if isinstance(body, dict) else None
+        if isinstance(error_payload, dict):
+            parts = ["OpenAI request failed"]
+            if status_code is not None:
+                parts.append(f"status_code={status_code}")
+            for key in ("type", "code", "param", "message"):
+                value = error_payload.get(key)
+                if value:
+                    parts.append(f"{key}={value}")
+            return f"{parts[0]} ({', '.join(parts[1:])})" if len(parts) > 1 else parts[0]
+        if status_code is not None:
+            return f"OpenAI request failed (status_code={status_code}, message={exc})"
+        return "OpenAI request failed."
 
     def _render_prompt(self, prompt: LoadedPrompt, input_data: dict[str, Any]) -> str:
         render = getattr(self.prompt_loader, "render", None)
@@ -265,14 +290,15 @@ class OpenAIProvider:
         status: str,
         error_type: str | None,
     ) -> None:
+        serialized_response = self._stringify_log_value(response)
         log_payload = {
             "provider": self.provider_name,
             "model": self.model,
             "prompt_namespace": metadata.prompt_namespace,
             "prompt_name": metadata.prompt_name,
             "prompt_version": metadata.prompt_version,
-            "prompt": self._stringify_log_value(prompt),
-            "response": self._stringify_log_value(response),
+            "prompt_length": len(prompt),
+            "response_length": len(str(serialized_response or "")),
             "latency_ms": latency_ms,
             "input_tokens": usage.input_tokens,
             "output_tokens": usage.output_tokens,
@@ -280,6 +306,9 @@ class OpenAIProvider:
             "status": status,
             "error_type": error_type,
         }
+        if getattr(settings, "LOG_LLM_PAYLOADS", False):
+            log_payload["prompt"] = self._stringify_log_value(prompt)
+            log_payload["response"] = serialized_response
         logger.info(
             "llm_request %s",
             json.dumps(log_payload, sort_keys=True),

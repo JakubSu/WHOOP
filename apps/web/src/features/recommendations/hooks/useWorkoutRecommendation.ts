@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
   approveRecommendationOperation,
-  generateRecommendation,
+  getPendingWorkoutRecommendation,
   rejectRecommendationOperation,
 } from '../api/recommendationApi'
 import { isRecommendationReadyToSave } from '../services/readiness'
@@ -12,8 +12,8 @@ export function useWorkoutRecommendation(workoutId: string | undefined) {
   const queryClient = useQueryClient()
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const isWorkoutReadyToSave = isRecommendationReadyToSave(recommendation)
-  const generate = useMutation({
-    mutationFn: () => generateRecommendation(workoutId ?? ''),
+  const loadRecommendation = useMutation({
+    mutationFn: () => getPendingWorkoutRecommendation(workoutId ?? ''),
     onSuccess: setRecommendation,
   })
   const accept = useMutation({
@@ -46,7 +46,7 @@ export function useWorkoutRecommendation(workoutId: string | undefined) {
     recommendation,
     generate: () => {
       if (workoutId) {
-        generate.mutate()
+        loadRecommendation.mutate()
       }
     },
     acceptOperation: (operationId: string) => {
@@ -64,11 +64,11 @@ export function useWorkoutRecommendation(workoutId: string | undefined) {
         saveWorkout.mutate()
       }
     },
-    isGenerating: generate.isPending,
+    isGenerating: loadRecommendation.isPending,
     isSavingWorkout: saveWorkout.isPending,
     isWorkoutReadyToSave,
     acceptingOperationId: accept.isPending ? accept.variables : null,
     rejectingOperationId: reject.isPending ? reject.variables : null,
-    error: generate.error ?? accept.error ?? reject.error ?? saveWorkout.error,
+    error: loadRecommendation.error ?? accept.error ?? reject.error ?? saveWorkout.error,
   }
 }
