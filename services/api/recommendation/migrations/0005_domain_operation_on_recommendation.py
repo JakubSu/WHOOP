@@ -1,11 +1,11 @@
-# ruff: noqa: RUF012
-
 from django.db import migrations, models
 
 
 def copy_first_operation_to_recommendation(apps, schema_editor):
     Recommendation = apps.get_model("recommendation", "Recommendation")
-    RecommendationOperation = apps.get_model("recommendation", "RecommendationOperation")
+    RecommendationOperation = apps.get_model(
+        "recommendation", "RecommendationOperation"
+    )
 
     status_map = {
         "accepted": "applied",
@@ -33,7 +33,6 @@ def copy_first_operation_to_recommendation(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recommendation", "0004_coach_source_fields"),
     ]

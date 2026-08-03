@@ -1,46 +1,56 @@
-export type RecommendationStatus =
-  | 'pending'
-  | 'applied'
-  | 'rejected'
-  | 'stale'
-  | 'failed'
+export type Prescription =
+  {
+    sets: number;
+    reps: number;
+    time: number;
+    weight: string | null;
+    weight_unit: string;
+    note: string
+  }
 
-export type RecommendationOperationType =
-  | 'add_exercise'
-  | 'update_exercise'
-  | 'replace_exercise'
-  | 'move_exercise'
-  | 'remove_exercise'
-  | 'add_workout'
-  | 'update_workout'
-  | 'move_workout'
-  | 'remove_workout'
-
-export type RecommendationOperationStatus =
-  | 'pending'
-  | 'accepted'
-  | 'rejected'
-  | 'stale'
-  | 'failed'
-
-export type RecommendationOperation = {
-  id: string
-  sequence: number
-  operation_type: RecommendationOperationType
-  status: RecommendationOperationStatus
-  payload: Record<string, unknown>
-  display_text: string
+type ExerciseRef = {
+  id: string;
+  name: string
 }
 
+export type RecommendationOperation =
+  | {
+    id: string;
+    status: 'pending';
+    operation_type: 'add_exercise';
+    display_text: string;
+    reason: string;
+    payload: {
+      exercise: ExerciseRef;
+      prescription: Prescription;
+      position: number
+    }
+  }
+  | {
+    id: string;
+    status: 'pending';
+    operation_type: 'update_exercise';
+    display_text: string;
+    reason: string;
+    payload: {
+      workout_exercise_id: string;
+      changes: Partial<Prescription>;
+      position?: number
+    }
+  }
+  | {
+    id: string;
+    status: 'pending';
+    operation_type: 'remove_exercise';
+    display_text: string;
+    reason: string;
+    payload: { workout_exercise_id: string }
+  }
+
 export type Recommendation = {
-  id: string
-  user_id: string
-  workout_id: string
-  snapshot_version: string
-  status: RecommendationStatus
-  summary: string
-  reason: string
+  id: string;
+  workout_id: string;
+  summary: string;
+  reason: string;
   operations: RecommendationOperation[]
-  created_at: string
-  updated_at: string
 }

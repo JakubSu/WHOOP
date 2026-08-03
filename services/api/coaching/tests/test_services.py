@@ -8,7 +8,10 @@ from ai.coach.orchestrator import CoachOrchestrator
 from ai.coach.schemas import CoachTurnDraft
 from ai.coach.ui_actions import AuthorizeUiActionService
 from recommendation.models import Recommendation
-from recommendation.services import RecommendationNotFound, RecommendationValidationError
+from recommendation.services import (
+    RecommendationNotFound,
+    RecommendationValidationError,
+)
 from training.models import Exercise, TrainingPlan, Workout, WorkoutExercise
 
 
@@ -27,7 +30,9 @@ class CoachServiceTests(TestCase):
     other_user_id = "user-2"
 
     def setUp(self) -> None:
-        self.exercise = Exercise.objects.create(name="Bench Press", user_id=self.user_id)
+        self.exercise = Exercise.objects.create(
+            name="Bench Press", user_id=self.user_id
+        )
         self.replacement = Exercise.objects.create(name="Goblet Squat", user_id="")
         self.workout = Workout.objects.create(
             name="Upper Body",
@@ -99,7 +104,9 @@ class CoachServiceTests(TestCase):
         self.assertEqual(recommendation.status, Recommendation.Status.PENDING)
         self.assertEqual(recommendation.source, Recommendation.Source.COACH_CHAT)
 
-    def test_training_plan_context_cannot_create_workout_patch_recommendation(self) -> None:
+    def test_training_plan_context_cannot_create_workout_patch_recommendation(
+        self,
+    ) -> None:
         draft = CoachTurnDraft.model_validate(
             {
                 "answer": "Open the workout first.",
@@ -167,7 +174,9 @@ class CoachServiceTests(TestCase):
         )
 
     def test_pain_language_sets_safety_flag_without_changing_answer(self) -> None:
-        draft = CoachTurnDraft(answer="Avoid movements that hurt and consider lowering load.")
+        draft = CoachTurnDraft(
+            answer="Avoid movements that hurt and consider lowering load."
+        )
 
         result = CoachOrchestrator(generator=FakeCoachGenerator(draft)).run_turn(
             user_id=self.user_id,
@@ -178,5 +187,7 @@ class CoachServiceTests(TestCase):
             message="My knee hurts during squats.",
         )
 
-        self.assertEqual(result.answer, "Avoid movements that hurt and consider lowering load.")
+        self.assertEqual(
+            result.answer, "Avoid movements that hurt and consider lowering load."
+        )
         self.assertIn("pain_or_injury_mentioned", result.safety_flags)

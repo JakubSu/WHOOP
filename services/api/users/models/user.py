@@ -1,13 +1,19 @@
 import uuid
 
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.db import models
 
 
 class UserManager(BaseUserManager["User"]):
     use_in_migrations = True
 
-    def create_user(self, email: str, password: str | None = None, **extra_fields: object) -> "User":
+    def create_user(
+        self, email: str, password: str | None = None, **extra_fields: object
+    ) -> "User":
         if not email:
             raise ValueError("Email is required.")
 
@@ -16,7 +22,9 @@ class UserManager(BaseUserManager["User"]):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email: str, password: str | None = None, **extra_fields: object) -> "User":
+    def create_superuser(
+        self, email: str, password: str | None = None, **extra_fields: object
+    ) -> "User":
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)

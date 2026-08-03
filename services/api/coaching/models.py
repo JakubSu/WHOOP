@@ -1,10 +1,6 @@
 import uuid
-from typing import TYPE_CHECKING
 
 from django.db import models
-
-if TYPE_CHECKING:
-    from django.db.models.manager import RelatedManager
 
 
 class CoachConversation(models.Model):
@@ -31,7 +27,7 @@ class CoachConversation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     last_message_at = models.DateTimeField(blank=True, null=True)
 
-    messages: "RelatedManager[CoachMessage]"
+    messages: models.Manager["CoachMessage"]
 
     class Meta:
         ordering = ["-last_message_at", "-created_at"]

@@ -25,7 +25,6 @@ from coaching.api.serializers import (
 from coaching.models import CoachMessage
 from recommendation import services as recommendation_services
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -273,7 +272,9 @@ class CoachConversationMessagesAPIView(APIView):
         )
 
 
-def serialize_conversation_messages(messages: list[CoachMessage]) -> list[dict[str, Any]]:
+def serialize_conversation_messages(
+    messages: list[CoachMessage],
+) -> list[dict[str, Any]]:
     return [
         {
             "id": str(message.id),

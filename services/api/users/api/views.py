@@ -1,13 +1,17 @@
 from typing import Any, cast
 
 from django.conf import settings
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, inline_serializer
-from rest_framework import permissions, status
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
+from rest_framework import permissions, serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import serializers
 
 from users import services
 from users.api.serializers import (
@@ -93,7 +97,9 @@ class RegisterAPIView(APIView):
         request=RegisterSerializer,
         responses={
             201: AuthSessionSerializer,
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Validation error."),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer, description="Validation error."
+            ),
         },
         examples=[
             OpenApiExample(
@@ -155,13 +161,19 @@ class LoginAPIView(APIView):
         request=LoginSerializer,
         responses={
             200: AuthSessionSerializer,
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Invalid credentials or validation error."),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer,
+                description="Invalid credentials or validation error.",
+            ),
         },
         examples=[
             OpenApiExample(
                 "Login request",
                 request_only=True,
-                value={"email": "athlete@example.com", "password": "StrongPassword123!"},
+                value={
+                    "email": "athlete@example.com",
+                    "password": "StrongPassword123!",
+                },
             ),
         ],
     )
@@ -193,7 +205,10 @@ class RefreshAPIView(APIView):
         request=RefreshSerializer,
         responses={
             200: RefreshTokenResponseSerializer,
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Missing or invalid refresh token."),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer,
+                description="Missing or invalid refresh token.",
+            ),
         },
         examples=[
             OpenApiExample(
@@ -204,7 +219,10 @@ class RefreshAPIView(APIView):
             OpenApiExample(
                 "Refresh response",
                 response_only=True,
-                value={"access": "new-jwt-access-token", "refresh": "new-jwt-refresh-token"},
+                value={
+                    "access": "new-jwt-access-token",
+                    "refresh": "new-jwt-refresh-token",
+                },
             ),
         ],
     )
@@ -233,8 +251,13 @@ class LogoutAPIView(APIView):
         description="Revokes the refresh token and clears the refresh token cookie. The refresh token may be provided in the request body or via the HTTP-only cookie.",
         request=LogoutSerializer,
         responses={
-            204: OpenApiResponse(description="Logout completed and refresh cookie cleared."),
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Missing or invalid refresh token."),
+            204: OpenApiResponse(
+                description="Logout completed and refresh cookie cleared."
+            ),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer,
+                description="Missing or invalid refresh token.",
+            ),
         },
         examples=[
             OpenApiExample(
@@ -267,7 +290,9 @@ class CurrentUserProfileAPIView(APIView):
         description="Returns the authenticated user's profile, including WHOOP linkage metadata when available.",
         responses={
             200: ProfileSerializer,
-            404: OpenApiResponse(response=ErrorDetailSerializer, description="Profile not found."),
+            404: OpenApiResponse(
+                response=ErrorDetailSerializer, description="Profile not found."
+            ),
         },
     )
     def get(self, request: Request) -> Response:
@@ -285,8 +310,12 @@ class CurrentUserProfileAPIView(APIView):
         request=ProfileSerializer,
         responses={
             200: ProfileSerializer,
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Validation error."),
-            404: OpenApiResponse(response=ErrorDetailSerializer, description="Profile not found."),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer, description="Validation error."
+            ),
+            404: OpenApiResponse(
+                response=ErrorDetailSerializer, description="Profile not found."
+            ),
         },
         examples=[
             OpenApiExample(

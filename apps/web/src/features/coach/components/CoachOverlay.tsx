@@ -298,15 +298,19 @@ export function CoachOverlay() {
                   <div className="coach-recommendation" key={item.id}>
                     <RecommendationPanel
                       recommendation={item.recommendation}
-                      exerciseDisplays={[]}
-                      onAcceptOperation={(operationId) =>
+                      exercises={[]}
+                      library={[]}
+                      placement={0}
+                      onSave={() => {}}
+                      onAccept={(operationId) =>
                         handleOperation(item.recommendation, operationId, 'accept')
                       }
-                      onRejectOperation={(operationId) =>
+                      onReject={(operationId) =>
                         handleOperation(item.recommendation, operationId, 'reject')
                       }
-                      acceptingOperationId={operationBusyId}
-                      rejectingOperationId={operationBusyId}
+                      savingId={null}
+                      acceptingId={operationBusyId}
+                      rejectingId={operationBusyId}
                     />
                   </div>
                 )

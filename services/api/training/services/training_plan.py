@@ -32,7 +32,9 @@ def create_training_plan(data: dict[str, Any], *, user_id: str) -> TrainingPlan:
     return TrainingPlan.objects.create(**payload)
 
 
-def update_training_plan(training_plan: TrainingPlan, data: dict[str, Any]) -> TrainingPlan:
+def update_training_plan(
+    training_plan: TrainingPlan, data: dict[str, Any]
+) -> TrainingPlan:
     payload = _normalized_training_plan_payload(data, existing=training_plan)
     for field, value in payload.items():
         setattr(training_plan, field, value)

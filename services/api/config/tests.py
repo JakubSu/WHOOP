@@ -39,23 +39,25 @@ class ProductionSettingsTests(SimpleTestCase):
         }
         fake_boto3 = types.SimpleNamespace(client=mock.Mock(return_value=fake_ssm))
 
-        with mock.patch.object(settings_module, "DEBUG", False):
-            with mock.patch.dict(
+        with (
+            mock.patch.object(settings_module, "DEBUG", False),
+            mock.patch.dict(
                 "os.environ",
                 {
                     "AWS_REGION": "us-east-1",
                     "SSM_PARAMETER_PREFIX": "/whoop-ai-coach/prod",
                 },
                 clear=True,
-            ):
-                with mock.patch.dict("sys.modules", {"boto3": fake_boto3}):
-                    settings_module.load_ssm_parameters()
+            ),
+            mock.patch.dict("sys.modules", {"boto3": fake_boto3}),
+        ):
+            settings_module.load_ssm_parameters()
 
-                self.assertEqual(settings_module.os.environ["SECRET_KEY"], "secret-key")
-                self.assertEqual(settings_module.os.environ["OPENAI_API_KEY"], "openai-key")
-                self.assertEqual(settings_module.os.environ["WHOOP_CLIENT_ID"], "whoop-client-id")
-                self.assertEqual(settings_module.os.environ["WHOOP_CLIENT_SECRET"], "whoop-secret")
-                self.assertEqual(settings_module.os.environ["POSTGRES_PASSWORD"], "postgres-password")
+            self.assertEqual(settings_module.os.environ["SECRET_KEY"], "secret-key")
+            self.assertEqual(settings_module.os.environ["OPENAI_API_KEY"], "openai-key")
+            self.assertEqual(settings_module.os.environ["WHOOP_CLIENT_ID"], "whoop-client-id")
+            self.assertEqual(settings_module.os.environ["WHOOP_CLIENT_SECRET"], "whoop-secret")
+            self.assertEqual(settings_module.os.environ["POSTGRES_PASSWORD"], "postgres-password")
 
         fake_boto3.client.assert_called_once_with("ssm", region_name="us-east-1")
         fake_ssm.get_parameters.assert_called_once()

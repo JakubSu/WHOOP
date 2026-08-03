@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING, ClassVar
 from django.db import models
 
 if TYPE_CHECKING:
-    from django.db.models.manager import RelatedManager
-
     from .workout_exercise import WorkoutExercise
 
 
@@ -34,7 +32,7 @@ class Exercise(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    workout_exercises: "RelatedManager[WorkoutExercise]"
+    workout_exercises: models.Manager["WorkoutExercise"]
 
     class Meta:
         ordering: ClassVar[list[str]] = ["name"]

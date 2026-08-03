@@ -81,7 +81,7 @@ class BaseWhoopClient:
         return headers
 
     def _url(self, path: str) -> str:
-        if path.startswith("http://") or path.startswith("https://"):
+        if path.startswith(("http://", "https://")):
             return path
         return f"{self.base_url}/{path.lstrip('/')}"
 
@@ -103,5 +103,7 @@ class BaseWhoopClient:
         if status_code == 429:
             raise WhoopRateLimitError("WHOOP rate limit exceeded.")
         if 400 <= status_code < 500:
-            raise WhoopValidationError(f"WHOOP request failed with status {status_code}.")
+            raise WhoopValidationError(
+                f"WHOOP request failed with status {status_code}."
+            )
         raise WhoopServerError(f"WHOOP server error with status {status_code}.")

@@ -1,5 +1,3 @@
-# ruff: noqa: RUF012
-
 import uuid
 
 from django.contrib.auth.hashers import make_password
@@ -35,21 +33,49 @@ WORKOUT_IDS = {
 }
 
 WORKOUT_EXERCISE_IDS = {
-    ("Lower Body Strength", "Goblet Squat"): uuid.UUID("74ba1fd6-faa2-453b-b218-f43240369a88"),
-    ("Lower Body Strength", "Romanian Deadlift"): uuid.UUID("ac337698-9f89-4d74-a251-b27a8cc6b12a"),
-    ("Lower Body Strength", "Walking Lunge"): uuid.UUID("0b7e69a9-d684-4ed3-9ac7-dd143c6d7563"),
-    ("Lower Body Strength", "Split Squat"): uuid.UUID("f18961a3-d903-4e73-99d4-a9b7dd76077f"),
+    ("Lower Body Strength", "Goblet Squat"): uuid.UUID(
+        "74ba1fd6-faa2-453b-b218-f43240369a88"
+    ),
+    ("Lower Body Strength", "Romanian Deadlift"): uuid.UUID(
+        "ac337698-9f89-4d74-a251-b27a8cc6b12a"
+    ),
+    ("Lower Body Strength", "Walking Lunge"): uuid.UUID(
+        "0b7e69a9-d684-4ed3-9ac7-dd143c6d7563"
+    ),
+    ("Lower Body Strength", "Split Squat"): uuid.UUID(
+        "f18961a3-d903-4e73-99d4-a9b7dd76077f"
+    ),
     ("Lower Body Strength", "Plank"): uuid.UUID("2dfc941e-54f2-4801-bd84-b58ae3fbdac7"),
-    ("Upper Body Strength", "Bench Press"): uuid.UUID("8e619579-eb12-41a8-9728-ec8b660b6f70"),
-    ("Upper Body Strength", "One Arm Row"): uuid.UUID("589d1039-a1b7-43f9-b5be-373ef69bdc02"),
-    ("Upper Body Strength", "Overhead Press"): uuid.UUID("d639883d-47eb-4fb1-90f7-9f8474a61d0e"),
-    ("Upper Body Strength", "Lat Pulldown"): uuid.UUID("c1c5c338-6b5c-4740-a69e-97b06bf29d40"),
-    ("Conditioning Reset", "Bike Intervals"): uuid.UUID("8445d22c-344f-4087-a8bb-05c41460ff70"),
-    ("Conditioning Reset", "Kettlebell Swing"): uuid.UUID("04346949-ad99-46df-ae5b-a043f7d16cfc"),
-    ("Conditioning Reset", "Push Up"): uuid.UUID("69e49c78-3525-4c3f-b696-b35fa9339021"),
-    ("Conditioning Reset", "Dead Bug"): uuid.UUID("5a98eba2-97bd-4d80-aa61-a712bb513cd8"),
-    ("Conditioning Reset", "Incline Dumbbell Press"): uuid.UUID("1854d618-a058-4841-ad8a-904ba7fc242a"),
-    ("Conditioning Reset", "Cable Row"): uuid.UUID("c11018af-1273-49ec-a7c3-e1c0a4a60ae3"),
+    ("Upper Body Strength", "Bench Press"): uuid.UUID(
+        "8e619579-eb12-41a8-9728-ec8b660b6f70"
+    ),
+    ("Upper Body Strength", "One Arm Row"): uuid.UUID(
+        "589d1039-a1b7-43f9-b5be-373ef69bdc02"
+    ),
+    ("Upper Body Strength", "Overhead Press"): uuid.UUID(
+        "d639883d-47eb-4fb1-90f7-9f8474a61d0e"
+    ),
+    ("Upper Body Strength", "Lat Pulldown"): uuid.UUID(
+        "c1c5c338-6b5c-4740-a69e-97b06bf29d40"
+    ),
+    ("Conditioning Reset", "Bike Intervals"): uuid.UUID(
+        "8445d22c-344f-4087-a8bb-05c41460ff70"
+    ),
+    ("Conditioning Reset", "Kettlebell Swing"): uuid.UUID(
+        "04346949-ad99-46df-ae5b-a043f7d16cfc"
+    ),
+    ("Conditioning Reset", "Push Up"): uuid.UUID(
+        "69e49c78-3525-4c3f-b696-b35fa9339021"
+    ),
+    ("Conditioning Reset", "Dead Bug"): uuid.UUID(
+        "5a98eba2-97bd-4d80-aa61-a712bb513cd8"
+    ),
+    ("Conditioning Reset", "Incline Dumbbell Press"): uuid.UUID(
+        "1854d618-a058-4841-ad8a-904ba7fc242a"
+    ),
+    ("Conditioning Reset", "Cable Row"): uuid.UUID(
+        "c11018af-1273-49ec-a7c3-e1c0a4a60ae3"
+    ),
 }
 
 
@@ -60,7 +86,9 @@ def seed_demo_training_plan(apps, schema_editor):
     Workout = apps.get_model("training", "Workout")
     WorkoutExercise = apps.get_model("training", "WorkoutExercise")
     Recommendation = apps.get_model("recommendation", "Recommendation")
-    RecommendationOperation = apps.get_model("recommendation", "RecommendationOperation")
+    RecommendationOperation = apps.get_model(
+        "recommendation", "RecommendationOperation"
+    )
 
     user, _ = User.objects.update_or_create(
         id=DEMO_USER_ID,
@@ -93,7 +121,13 @@ def seed_demo_training_plan(apps, schema_editor):
         "One Arm Row": (4, 10, "Back", 0, "Pause at the top."),
         "Overhead Press": (3, 8, "Shoulders", 0, "Brace before each rep."),
         "Lat Pulldown": (3, 12, "Back", 0, "Full range of motion."),
-        "Bike Intervals": (6, 0, "Conditioning", 60, "One minute hard, one minute easy."),
+        "Bike Intervals": (
+            6,
+            0,
+            "Conditioning",
+            60,
+            "One minute hard, one minute easy.",
+        ),
         "Kettlebell Swing": (4, 15, "Posterior Chain", 0, "Snap the hips."),
         "Push Up": (3, 15, "Chest", 0, "Scale to clean reps."),
         "Dead Bug": (3, 10, "Core", 0, "Slow alternating sides."),
@@ -205,7 +239,9 @@ def seed_demo_training_plan(apps, schema_editor):
             "sequence": 1,
             "operation_type": "update_exercise",
             "payload_json": {
-                "workout_exercise_id": str(workout_exercises[("Upper Body Strength", "Bench Press")].id),
+                "workout_exercise_id": str(
+                    workout_exercises[("Upper Body Strength", "Bench Press")].id
+                ),
                 "changes": {"sets": 3, "reps": 6, "effort": "moderate"},
                 "reason": "Lower the pressing volume while keeping the skill practice in place.",
             },
@@ -228,7 +264,6 @@ def remove_demo_training_plan(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0001_initial"),
         ("training", "0005_minimal_training_schema"),

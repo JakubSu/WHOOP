@@ -1,84 +1,33 @@
 import { apiRequest } from '../../../shared/api/apiClient'
-import {
-  type Recommendation,
-  type RecommendationOperationStatus,
-} from '../types'
+import { type Recommendation, type RecommendationOperation } from '../types'
 
-type ApiRecommendation = Omit<Recommendation, 'operations'> & {
-  operation_type: Recommendation['operations'][number]['operation_type']
-  payload: Record<string, unknown>
-  display_text: string
+export async function getRecommendation(recommendationId: string) {
+  return apiRequest<Recommendation>(`/recommendations/${recommendationId}/`)
 }
 
-export async function getPendingWorkoutRecommendation(workoutId: string) {
-  const recommendations = await apiRequest<ApiRecommendation[]>(
-    '/recommendations/?status=pending',
-  )
-  const recommendation = recommendations.find(
-    (item) => item.workout_id === workoutId,
-  )
-  return recommendation ? normalizeRecommendation(recommendation) : null
+/** Recommendations are now addressed by their persisted ID, not workout ID. */
+export async function getPendingWorkoutRecommendation(_workoutId: string): Promise<Recommendation> {
+  throw new Error('A recommendation ID is required to load a recommendation.')
 }
 
-export async function approveRecommendationOperation(
-  recommendationId: string,
-  _operationId: string,
-) {
-  const recommendation = await apiRequest<ApiRecommendation>(
-    `/recommendations/${recommendationId}/accept/`,
-    {
-      method: 'POST',
-      body: JSON.stringify({}),
-    },
-  )
-  return normalizeRecommendation(recommendation)
+export async function saveRecommendationOperation(recommendationId: string, operation: RecommendationOperation) {
+  return apiRequest<Recommendation>(`/recommendations/${recommendationId}/operations/${operation.id}/`, { method: 'PATCH', body: JSON.stringify(operation) })
 }
 
-export async function rejectRecommendationOperation(
-  recommendationId: string,
-  _operationId: string,
-) {
-  const recommendation = await apiRequest<ApiRecommendation>(
-    `/recommendations/${recommendationId}/reject/`,
-    {
-      method: 'POST',
-      body: JSON.stringify({}),
-    },
-  )
-  return normalizeRecommendation(recommendation)
+export async function approveRecommendationOperation(recommendationId: string, operationId: string) {
+  return apiRequest<Recommendation>(`/recommendations/${recommendationId}/operations/${operationId}/accept/`, { method: 'POST' })
 }
 
-export function normalizeRecommendation(
-  recommendation: ApiRecommendation | Recommendation,
-): Recommendation {
-  if ('operations' in recommendation) {
-    return recommendation
-  }
-
-  const { operation_type, payload, display_text, ...rest } = recommendation
-  return {
-    ...rest,
-    operations: [
-      {
-        id: recommendation.id,
-        sequence: 1,
-        operation_type,
-        status: operationStatusFromRecommendationStatus(recommendation.status),
-        payload,
-        display_text,
-      },
-    ],
-  }
+export async function rejectRecommendationOperation(recommendationId: string, operationId: string) {
+  return apiRequest<Recommendation>(`/recommendations/${recommendationId}/operations/${operationId}/reject/`, { method: 'POST' })
 }
 
-function operationStatusFromRecommendationStatus(
-  status: Recommendation['status'],
-): RecommendationOperationStatus {
-  if (status === 'applied') {
-    return 'accepted'
-  }
-  if (status === 'rejected' || status === 'stale' || status === 'failed') {
-    return status
-  }
-  return 'pending'
+export async function approveRecommendation(recommendationId: string) {
+  return apiRequest<Recommendation>(`/recommendations/${recommendationId}/accept/`, { method: 'POST' })
 }
+
+export async function rejectRecommendation(recommendationId: string) {
+  return apiRequest<Recommendation>(`/recommendations/${recommendationId}/reject/`, { method: 'POST' })
+}
+
+export function normalizeRecommendation(recommendation: Recommendation) { return recommendation }

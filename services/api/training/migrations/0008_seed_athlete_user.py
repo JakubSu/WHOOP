@@ -41,11 +41,11 @@ def remove_athlete_user(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("users", "0001_initial"),
         ("training", "0007_seed_push_lower_plan_and_exercises"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.RunPython(seed_athlete_user, remove_athlete_user),
     ]

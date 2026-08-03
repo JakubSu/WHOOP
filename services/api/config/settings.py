@@ -1,19 +1,28 @@
 import os
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
 from dotenv import load_dotenv
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
 def env_list(name: str, default: str) -> list[str]:
-    return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
+    return [
+        value.strip()
+        for value in os.environ.get(name, default).split(",")
+        if value.strip()
+    ]
+
 
 def env_bool(name: str, default: bool) -> bool:
-    return os.environ.get(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+    return os.environ.get(name, str(default)).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 DEBUG = env_bool("DEBUG", True)
@@ -41,10 +50,7 @@ def load_ssm_parameters() -> None:
 
     import boto3
 
-    names_by_key = {
-        key: f"{prefix}/{parameter_names[key]}"
-        for key in missing_env_keys
-    }
+    names_by_key = {key: f"{prefix}/{parameter_names[key]}" for key in missing_env_keys}
     client = boto3.client("ssm", region_name=os.environ.get("AWS_REGION"))
     response = client.get_parameters(
         Names=list(names_by_key.values()),
@@ -56,8 +62,7 @@ def load_ssm_parameters() -> None:
     }
 
     missing_parameters = [
-        name for name in names_by_key.values()
-        if name not in values_by_name
+        name for name in names_by_key.values() if name not in values_by_name
     ]
     if missing_parameters:
         raise RuntimeError(
@@ -70,12 +75,16 @@ def load_ssm_parameters() -> None:
 
 load_ssm_parameters()
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key-for-whoop-api-local-jwt-signing-2026")
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY", "dev-only-secret-key-for-whoop-api-local-jwt-signing-2026"
+)
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
     os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1"),
 )
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "http://localhost,http://127.0.0.1")
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS", "http://localhost,http://127.0.0.1"
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -161,9 +170,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -208,7 +215,9 @@ CORS_ALLOW_HEADERS = [
 
 WHOOP_CLIENT_ID = os.environ.get("WHOOP_CLIENT_ID", "")
 WHOOP_CLIENT_SECRET = os.environ.get("WHOOP_CLIENT_SECRET", "")
-WHOOP_REDIRECT_URI = os.environ.get("WHOOP_REDIRECT_URI", "http://localhost:8000/api/v1/whoop/callback/")
+WHOOP_REDIRECT_URI = os.environ.get(
+    "WHOOP_REDIRECT_URI", "http://localhost:8000/api/v1/whoop/callback/"
+)
 WHOOP_SCOPES = os.environ.get(
     "WHOOP_SCOPES",
     "read:recovery read:cycles read:workout read:sleep read:profile read:body_measurement offline",
@@ -219,7 +228,9 @@ WHOOP_FRONTEND_ALLOWED_ORIGINS = env_list(
     "WHOOP_FRONTEND_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
-WHOOP_OAUTH_STATE_TTL_SECONDS = int(os.environ.get("WHOOP_OAUTH_STATE_TTL_SECONDS", "600"))
+WHOOP_OAUTH_STATE_TTL_SECONDS = int(
+    os.environ.get("WHOOP_OAUTH_STATE_TTL_SECONDS", "600")
+)
 
 AI_LLM_PROVIDER = os.environ.get("AI_LLM_PROVIDER", "openai")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")

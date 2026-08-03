@@ -30,15 +30,23 @@ def seed_exercise_bank(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("training", "0002_workout"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.CreateModel(
             name="TrainingPlan",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ("user_id", models.CharField(blank=True, default="", max_length=200)),
                 ("name", models.CharField(max_length=200)),
                 ("goal", models.CharField(blank=True, default="", max_length=200)),
@@ -85,12 +93,25 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="WorkoutExercise",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ("position", models.PositiveIntegerField(default=1)),
                 ("sets", models.PositiveIntegerField(default=0)),
                 ("reps", models.PositiveIntegerField(default=0)),
                 ("duration_seconds", models.PositiveIntegerField(default=0)),
-                ("load", models.DecimalField(decimal_places=2, default=Decimal("0.00"), max_digits=7)),
+                (
+                    "load",
+                    models.DecimalField(
+                        decimal_places=2, default=Decimal("0.00"), max_digits=7
+                    ),
+                ),
                 ("rest_seconds", models.PositiveIntegerField(default=0)),
                 ("notes", models.TextField(blank=True, default="")),
                 ("created_at", models.DateTimeField(auto_now_add=True)),

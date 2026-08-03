@@ -1,7 +1,7 @@
 import uuid
 
-from django.db import migrations, models
 import django.db.models.deletion
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -13,7 +13,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="CoachConversation",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ("user_id", models.CharField(db_index=True, max_length=200)),
                 (
                     "page_type",
@@ -27,7 +35,10 @@ class Migration(migrations.Migration):
                         max_length=32,
                     ),
                 ),
-                ("context_id", models.CharField(blank=True, default="", max_length=200)),
+                (
+                    "context_id",
+                    models.CharField(blank=True, default="", max_length=200),
+                ),
                 (
                     "status",
                     models.CharField(
@@ -47,7 +58,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="CoachMessage",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 (
                     "role",
                     models.CharField(
@@ -74,14 +93,21 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="coachconversation",
-            index=models.Index(fields=["user_id", "page_type", "context_id", "status"], name="coach_conv_scope_idx"),
+            index=models.Index(
+                fields=["user_id", "page_type", "context_id", "status"],
+                name="coach_conv_scope_idx",
+            ),
         ),
         migrations.AddIndex(
             model_name="coachconversation",
-            index=models.Index(fields=["user_id", "last_message_at"], name="coach_conv_last_msg_idx"),
+            index=models.Index(
+                fields=["user_id", "last_message_at"], name="coach_conv_last_msg_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="coachmessage",
-            index=models.Index(fields=["conversation", "created_at"], name="coach_msg_conversation_idx"),
+            index=models.Index(
+                fields=["conversation", "created_at"], name="coach_msg_conversation_idx"
+            ),
         ),
     ]

@@ -20,12 +20,11 @@ def seed_sort_order(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("training", "0009_plan_constraints_and_workout_ordering"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.AddField(
             model_name="workoutexercise",
             name="sort_order",
@@ -38,6 +37,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterModelOptions(
             name="workoutexercise",
-            options={"ordering": ["workout", "sort_order", "created_at", "exercise__name"]},
+            options={
+                "ordering": ["workout", "sort_order", "created_at", "exercise__name"]
+            },
         ),
     ]

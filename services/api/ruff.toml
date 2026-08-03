@@ -1,0 +1,5 @@
+[lint]
+# Django deliberately defines model metadata, REST framework configuration, and
+# migration operations as class-level lists. They are framework declarations,
+# not mutable instance defaults.
+ignore = ["RUF012"]

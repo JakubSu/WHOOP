@@ -1,41 +1,81 @@
-import { RecommendationOperationCard } from './RecommendationOperationCard'
-import { type Recommendation } from '../types'
-import { type WorkoutExerciseDisplay } from '../../training/types'
+import {
+  type Exercise,
+  type WorkoutExerciseDisplay,
+} from "../../training/types";
+import { type Recommendation, type RecommendationOperation } from "../types";
+import { RecommendationOperationCard } from "./RecommendationOperationCard";
 
-type RecommendationPanelProps = {
-  recommendation: Recommendation
-  exerciseDisplays: WorkoutExerciseDisplay[]
-  onAcceptOperation: (operationId: string) => void
-  onRejectOperation: (operationId: string) => void
-  acceptingOperationId: string | null
-  rejectingOperationId: string | null
-}
-
-export function RecommendationPanel({
-  recommendation,
-  exerciseDisplays,
-  onAcceptOperation,
-  onRejectOperation,
-  acceptingOperationId,
-  rejectingOperationId,
-}: RecommendationPanelProps) {
+type Props = {
+  recommendation: Recommendation;
+  exercises: WorkoutExerciseDisplay[];
+  library: Exercise[];
+  placement: number;
+  movedPreview?: boolean;
+  addsOnly?: boolean;
+  onSave: (operation: RecommendationOperation) => void;
+  onAccept: (id: string) => void;
+  onReject: (id: string) => void;
+  savingId: string | null;
+  acceptingId: string | null;
+  rejectingId: string | null;
+};
+export function RecommendationPanel(props: Props) {
+  const operations = props.recommendation.operations.filter((operation) =>
+    props.addsOnly
+      ? operation.operation_type === "add_exercise" &&
+        operation.payload.position === 1
+      : operation.operation_type !== "add_exercise" &&
+        placement(operation, props.exercises, props.movedPreview) ===
+          props.placement,
+  );
+  if (!operations.length) return null;
   return (
-    <section className="recommendation-panel">
-      {recommendation.summary ? (
-        <p className="recommendation-panel__summary">{recommendation.summary}</p>
-      ) : null}
-      {recommendation.operations.map((operation) => (
+    <>
+      {operations.map((operation) => (
         <RecommendationOperationCard
           key={operation.id}
           operation={operation}
-          exerciseDisplays={exerciseDisplays}
-          fallbackReason={recommendation.reason || recommendation.summary}
-          onAccept={() => onAcceptOperation(operation.id)}
-          onReject={() => onRejectOperation(operation.id)}
-          isAccepting={acceptingOperationId === operation.id}
-          isRejecting={rejectingOperationId === operation.id}
+          exercise={target(operation, props.exercises)}
+          exerciseLibrary={props.library}
+          movedPreview={props.movedPreview}
+          onSave={props.onSave}
+          onAccept={() => props.onAccept(operation.id)}
+          onReject={() => props.onReject(operation.id)}
+          isSaving={props.savingId === operation.id}
+          isAccepting={props.acceptingId === operation.id}
+          isRejecting={props.rejectingId === operation.id}
         />
       ))}
-    </section>
+    </>
+  );
+}
+function placement(
+  operation: RecommendationOperation,
+  exercises: WorkoutExerciseDisplay[],
+  source: boolean | undefined,
+) {
+  if (operation.operation_type === "add_exercise")
+    return source ? -99 : operation.payload.position - 1;
+  const index = indexFor(operation.payload.workout_exercise_id, exercises);
+  if (
+    operation.operation_type === "update_exercise" &&
+    operation.payload.position
   )
+    return source ? index : operation.payload.position - 1;
+  return source ? -99 : index;
+}
+function target(
+  operation: RecommendationOperation,
+  exercises: WorkoutExerciseDisplay[],
+) {
+  return operation.operation_type === "add_exercise"
+    ? undefined
+    : exercises[indexFor(operation.payload.workout_exercise_id, exercises)];
+}
+function indexFor(id: string, exercises: WorkoutExerciseDisplay[]) {
+  const found = exercises.findIndex((exercise) => exercise.id === id);
+  if (found >= 0) return found;
+  if (id === "first-exercise") return 0;
+  if (id === "second-exercise") return Math.min(1, exercises.length - 1);
+  return exercises.length - 1;
 }

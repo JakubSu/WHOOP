@@ -35,7 +35,9 @@ class CoachApiTests(TestCase):
         )
         self.client = APIClient()
         self.client.force_authenticate(self.user)
-        self.exercise = Exercise.objects.create(name="Bench Press", user_id=str(self.user.id))
+        self.exercise = Exercise.objects.create(
+            name="Bench Press", user_id=str(self.user.id)
+        )
         self.workout = Workout.objects.create(
             name="Upper Body",
             date="2026-06-09",
@@ -152,9 +154,9 @@ class CoachApiTests(TestCase):
 
         with patch(
             "coaching.api.views.CoachOrchestrator",
-            return_value=__import__("ai.coach.orchestrator", fromlist=["CoachOrchestrator"]).CoachOrchestrator(
-                generator=FakeCoachGenerator(draft)
-            ),
+            return_value=__import__(
+                "ai.coach.orchestrator", fromlist=["CoachOrchestrator"]
+            ).CoachOrchestrator(generator=FakeCoachGenerator(draft)),
         ):
             response = self.client.post(
                 reverse("coach-turn-stream"),
@@ -178,24 +180,38 @@ class CoachApiTests(TestCase):
         self.assertIn("event: assistant_progress", body)
         self.assertIn("event: recommendation_created", body)
         self.assertIn("event: assistant_done", body)
-        self.assertLess(body.index("event: conversation_started"), body.index("event: assistant_done"))
+        self.assertLess(
+            body.index("event: conversation_started"),
+            body.index("event: assistant_done"),
+        )
 
         conversation = CoachConversation.objects.get(user_id=str(self.user.id))
         self.assertEqual(conversation.messages.count(), 2)
         assistant_message = conversation.messages.get(role="assistant")
-        self.assertEqual(assistant_message.content, "I would reduce the bench volume today.")
-        self.assertIn("pain_or_injury_mentioned", assistant_message.metadata_json["safety_flags"])
+        self.assertEqual(
+            assistant_message.content, "I would reduce the bench volume today."
+        )
+        self.assertIn(
+            "pain_or_injury_mentioned", assistant_message.metadata_json["safety_flags"]
+        )
         self.assertTrue(
-            Recommendation.objects.filter(source=Recommendation.Source.COACH_CHAT).exists()
+            Recommendation.objects.filter(
+                source=Recommendation.Source.COACH_CHAT
+            ).exists()
         )
 
         history = self.client.get(
             reverse("coach-conversation-messages", args=[conversation.id])
         )
         self.assertEqual(history.status_code, 200)
-        self.assertEqual([message["role"] for message in history.json()["messages"]], ["user", "assistant"])
+        self.assertEqual(
+            [message["role"] for message in history.json()["messages"]],
+            ["user", "assistant"],
+        )
 
-    def test_streamed_turn_reuses_active_conversation_for_same_page_context(self) -> None:
+    def test_streamed_turn_reuses_active_conversation_for_same_page_context(
+        self,
+    ) -> None:
         conversation = CoachConversation.objects.create(
             user_id=str(self.user.id),
             page_type=CoachConversation.PageType.WORKOUT,
@@ -205,9 +221,9 @@ class CoachApiTests(TestCase):
 
         with patch(
             "coaching.api.views.CoachOrchestrator",
-            return_value=__import__("ai.coach.orchestrator", fromlist=["CoachOrchestrator"]).CoachOrchestrator(
-                generator=FakeCoachGenerator(draft)
-            ),
+            return_value=__import__(
+                "ai.coach.orchestrator", fromlist=["CoachOrchestrator"]
+            ).CoachOrchestrator(generator=FakeCoachGenerator(draft)),
         ):
             response = self.client.post(
                 reverse("coach-turn-stream"),

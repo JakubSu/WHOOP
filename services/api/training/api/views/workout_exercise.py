@@ -157,7 +157,9 @@ class WorkoutExercisePageDetailAPIView(APIView):
     )
     def put(self, request: Request, pk: str, workout_exercise_id: str) -> Response:
         workout_exercise = self._get_workout_exercise(request, pk, workout_exercise_id)
-        serializer = WorkoutExerciseRequestSerializer(workout_exercise, data=request.data)
+        serializer = WorkoutExerciseRequestSerializer(
+            workout_exercise, data=request.data
+        )
         serializer.is_valid(raise_exception=True)
         try:
             updated = services.update_workout_exercise(

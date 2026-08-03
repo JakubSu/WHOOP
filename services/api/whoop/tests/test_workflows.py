@@ -9,8 +9,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from whoop.exceptions import WhoopConnectionNotFound
-from whoop.exceptions import WhoopValidationError
+from whoop.exceptions import WhoopConnectionNotFound, WhoopValidationError
+from whoop.models import WhoopSnapshot
 from whoop.storage.connection_repository import WhoopConnectionRepository
 from whoop.storage.snapshot_repository import WhoopSnapshotRepository
 from whoop.storage.token_crypto import TokenCrypto
@@ -30,16 +30,17 @@ from whoop.whoop_api.dto import (
     WorkoutScore,
     ZoneDurations,
 )
-from whoop.models import WhoopSnapshot
-from whoop.workflows.summary import GetWhoopSummaryService, WhoopApiServices
 from whoop.workflows.connection import DisconnectWhoopService
+from whoop.workflows.summary import GetWhoopSummaryService, WhoopApiServices
 
 
 @override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("utf-8"))
 class WhoopSummaryWorkflowTests(TestCase):
     def setUp(self) -> None:
         User = cast(Any, get_user_model())
-        self.user = User.objects.create_user(email="summary@example.com", password="password")
+        self.user = User.objects.create_user(
+            email="summary@example.com", password="password"
+        )
         self.user_id = str(self.user.id)
         self.connection_repository = WhoopConnectionRepository(TokenCrypto())
         self.snapshot_repository = WhoopSnapshotRepository()
@@ -60,7 +61,10 @@ class WhoopSummaryWorkflowTests(TestCase):
         self.connection_repository.save_connection(
             user_id=self.user_id,
             whoop_user_id=10129,
-            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+            token=WhoopToken(
+                access_token="access-token",
+                expires_at=timezone.now() + timedelta(hours=1),
+            ),
         )
         self.snapshot_repository.save_snapshot(
             user_id=self.user_id,
@@ -86,7 +90,10 @@ class WhoopSummaryWorkflowTests(TestCase):
         self.connection_repository.save_connection(
             user_id=self.user_id,
             whoop_user_id=10129,
-            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+            token=WhoopToken(
+                access_token="access-token",
+                expires_at=timezone.now() + timedelta(hours=1),
+            ),
         )
         snapshot = self.snapshot_repository.save_snapshot(
             user_id=self.user_id,
@@ -140,7 +147,10 @@ class WhoopSummaryWorkflowTests(TestCase):
         self.connection_repository.save_connection(
             user_id=self.user_id,
             whoop_user_id=10129,
-            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+            token=WhoopToken(
+                access_token="access-token",
+                expires_at=timezone.now() + timedelta(hours=1),
+            ),
         )
         started_at = timezone.now()
 
@@ -149,16 +159,23 @@ class WhoopSummaryWorkflowTests(TestCase):
         workout_service = self.api_services_factory.return_value.workout_service
         _, kwargs = workout_service.list_workouts.call_args
         self.assertEqual(kwargs["limit"], 25)
-        self.assertLessEqual(kwargs["start"], started_at - timedelta(days=3) + timedelta(seconds=1))
+        self.assertLessEqual(
+            kwargs["start"], started_at - timedelta(days=3) + timedelta(seconds=1)
+        )
         self.assertGreaterEqual(kwargs["end"], started_at)
         self.assertEqual(summary["recent_workouts"][0]["duration_minutes"], 45)
         self.assertEqual(summary["recent_workouts"][0]["strain"], 6.8)
 
-    def test_summary_still_saves_snapshot_when_recent_workout_fetch_is_rejected(self) -> None:
+    def test_summary_still_saves_snapshot_when_recent_workout_fetch_is_rejected(
+        self,
+    ) -> None:
         self.connection_repository.save_connection(
             user_id=self.user_id,
             whoop_user_id=10129,
-            token=WhoopToken(access_token="access-token", expires_at=timezone.now() + timedelta(hours=1)),
+            token=WhoopToken(
+                access_token="access-token",
+                expires_at=timezone.now() + timedelta(hours=1),
+            ),
         )
         self.api_services_factory.return_value.workout_service.list_workouts.side_effect = WhoopValidationError(
             "WHOOP request failed with status 400."
@@ -204,13 +221,21 @@ class DisconnectWhoopWorkflowTests(TestCase):
 
 def _api_services() -> WhoopApiServices:
     cycle_service = MagicMock()
-    cycle_service.list_cycles.return_value = PaginatedResponse(records=[_cycle()], page=PaginationCursor())
+    cycle_service.list_cycles.return_value = PaginatedResponse(
+        records=[_cycle()], page=PaginationCursor()
+    )
     recovery_service = MagicMock()
-    recovery_service.list_recoveries.return_value = PaginatedResponse(records=[_recovery()], page=PaginationCursor())
+    recovery_service.list_recoveries.return_value = PaginatedResponse(
+        records=[_recovery()], page=PaginationCursor()
+    )
     sleep_service = MagicMock()
-    sleep_service.list_sleep.return_value = PaginatedResponse(records=[_sleep()], page=PaginationCursor())
+    sleep_service.list_sleep.return_value = PaginatedResponse(
+        records=[_sleep()], page=PaginationCursor()
+    )
     workout_service = MagicMock()
-    workout_service.list_workouts.return_value = PaginatedResponse(records=[_workout()], page=PaginationCursor())
+    workout_service.list_workouts.return_value = PaginatedResponse(
+        records=[_workout()], page=PaginationCursor()
+    )
     return WhoopApiServices(
         cycle_service=cycle_service,
         recovery_service=recovery_service,
@@ -230,7 +255,9 @@ def _cycle() -> Cycle:
         end=now,
         timezone_offset="-05:00",
         score_state="SCORED",
-        score=CycleScore(strain=9.4, kilojoule=8000.0, average_heart_rate=68, max_heart_rate=141),
+        score=CycleScore(
+            strain=9.4, kilojoule=8000.0, average_heart_rate=68, max_heart_rate=141
+        ),
     )
 
 

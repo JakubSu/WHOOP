@@ -4,12 +4,20 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from whoop.exceptions import WhoopError, WhoopNotFoundError, WhoopRateLimitError, WhoopServerError, WhoopValidationError
+from whoop.exceptions import (
+    WhoopError,
+    WhoopNotFoundError,
+    WhoopRateLimitError,
+    WhoopServerError,
+    WhoopValidationError,
+)
 from whoop.whoop_api.base_client import BaseWhoopClient
 
 
 class FakeResponse:
-    def __init__(self, status_code: int, payload: dict | None = None, json_error: bool = False) -> None:
+    def __init__(
+        self, status_code: int, payload: dict | None = None, json_error: bool = False
+    ) -> None:
         self.status_code = status_code
         self._payload = payload
         self._json_error = json_error

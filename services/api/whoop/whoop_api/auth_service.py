@@ -6,7 +6,6 @@ from whoop.whoop_api.base_client import BaseWhoopClient
 from whoop.whoop_api.dto import WhoopToken
 from whoop.whoop_api.parsers import parse_token_response
 
-
 WHOOP_AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 
@@ -65,6 +64,8 @@ class AuthService:
         return parse_token_response(payload, refresh_token=refresh_token)
 
     def revoke_user_access(self, access_token: str) -> None:
-        BaseWhoopClient(access_token=access_token, session=self.client.session, timeout=self.client.timeout).delete(
-            "/v2/user/access"
-        )
+        BaseWhoopClient(
+            access_token=access_token,
+            session=self.client.session,
+            timeout=self.client.timeout,
+        ).delete("/v2/user/access")

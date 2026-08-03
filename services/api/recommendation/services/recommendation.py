@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai.recommendation.schemas import WorkoutPatchDraft
 from django.db import transaction
-from django.db.models import Max, Q
-from training.models import Exercise, TrainingPlan, Workout, WorkoutExercise
+from django.db.models import Case, IntegerField, Value, When
+from django.utils import timezone
+from pydantic import TypeAdapter, ValidationError
 
-from recommendation.models import Recommendation
+from recommendation.contracts import (
+    RecommendationDraft,
+)
+from recommendation.contracts import (
+    RecommendationOperation as RecommendationOperationContract,
+)
+from recommendation.models import Recommendation, RecommendationOperation
+from training.models import Exercise, Workout, WorkoutExercise
 
 
 class RecommendationNotFound(ValueError):
@@ -22,617 +29,394 @@ class RecommendationValidationError(ValueError):
     pass
 
 
-WORKOUT_EXERCISE_UPDATE_FIELDS = {
-    "sets",
-    "reps",
-    "time",
-    "weight",
-    "weight_unit",
-    "note",
-}
-
-STRENGTH_UPDATE_FIELDS = {"sets", "reps", "weight", "weight_unit", "note"}
-TIMED_UPDATE_FIELDS = {"time", "note"}
-EXERCISE_OPERATION_TYPES = {
-    Recommendation.OperationType.ADD_EXERCISE,
-    Recommendation.OperationType.REMOVE_EXERCISE,
-    Recommendation.OperationType.REPLACE_EXERCISE,
-    Recommendation.OperationType.UPDATE_EXERCISE,
-    Recommendation.OperationType.MOVE_EXERCISE,
-}
-
-
 @transaction.atomic
-def create_recommendation_from_workout_patch(
+def create_recommendation(
     *,
-    user_id: str,
-    workout_id: str,
-    draft: WorkoutPatchDraft,
-    snapshot_version: str | None = None,
-    source: str = Recommendation.Source.DAILY_RECOMMENDATION,
-    coach_conversation_id: str | None = None,
-    coach_message_id: str | None = None,
+    user: Any,
+    conversation: Any,
+    draft: RecommendationDraft | dict[str, Any],
+    coach_message: Any = None,
+    source: str = RecommendationOperation.Source.COACH_CHAT,
 ) -> Recommendation:
-    if not isinstance(draft, WorkoutPatchDraft):
-        draft = WorkoutPatchDraft.model_validate(draft)
-    if snapshot_version is None:
-        snapshot_version = _get_workout(workout_id, user_id=user_id).updated_at.isoformat()
+    """Validate and persist a recommendation ledger for one user and conversation.
 
-    operation_payload = draft.operation.model_dump(mode="json", exclude_none=True)
-    operation_type = str(operation_payload.pop("op"))
-    _validate_operation(
-        operation_type=operation_type,
-        payload=operation_payload,
-        user_id=user_id,
-        workout_id=workout_id,
-    )
-    _validate_pending_recommendation_coexistence(
-        user_id=user_id,
-        workout_id=workout_id,
-        operation_type=operation_type,
-    )
-
-    return Recommendation.objects.create(
-        user_id=user_id,
-        workout_id=workout_id,
-        snapshot_version=snapshot_version,
-        status=Recommendation.Status.PENDING,
+    Creates the parent and all operation rows atomically, marking explicitly
+    superseded operations resolved after confirming that they belong to the user.
+    """
+    draft = RecommendationDraft.model_validate(draft)
+    recommendation = Recommendation.objects.create(
+        user=user,
+        conversation=conversation,
+        coach_message=coach_message,
         summary=draft.summary,
         reason=draft.reason,
-        operation_type=operation_type,
-        payload_json=operation_payload,
-        source=source,
-        coach_conversation_id=coach_conversation_id,
-        coach_message_id=coach_message_id,
     )
-
-
-def list_recommendations(
-    user_id: str, *, status: str | None = None
-) -> list[Recommendation]:
-    queryset = Recommendation.objects.filter(user_id=user_id)
-    if status:
-        queryset = queryset.filter(status=status)
-    return list(queryset.order_by("-created_at"))
-
-
-def get_recommendation(user_id: str, recommendation_id: str) -> Recommendation | None:
-    try:
-        return Recommendation.objects.get(pk=recommendation_id, user_id=user_id)
-    except Recommendation.DoesNotExist:
-        return None
-
-
-@transaction.atomic
-def update_recommendation_status(
-    user_id: str, recommendation_id: str, *, status: str
-) -> Recommendation:
-    recommendation = _get_recommendation_for_update(user_id, recommendation_id)
-    if status not in {choice.value for choice in Recommendation.Status}:
-        raise RecommendationValidationError("Unsupported recommendation status.")
-    if recommendation.status != Recommendation.Status.PENDING:
-        raise RecommendationConflict("Recommendation is no longer pending.")
-    if status == Recommendation.Status.APPLIED:
-        return accept_recommendation(user_id, recommendation_id)
-    recommendation.status = status
-    recommendation.save(update_fields=["status", "updated_at"])
-    return recommendation
-
-
-def accept_recommendation(
-    user_id: str,
-    recommendation_id: str,
-    *,
-    expected_workout_version: str | None = None,
-) -> Recommendation:
-    try:
-        with transaction.atomic():
-            recommendation = _get_recommendation_for_update(user_id, recommendation_id)
-            if recommendation.status != Recommendation.Status.PENDING:
-                raise RecommendationConflict("Recommendation is no longer pending.")
-
+    for item in draft.operations:
+        supersedes = None
+        if item.supersedes_operation_id:
             try:
-                workout = Workout.objects.select_for_update().get(
-                    pk=recommendation.workout_id,
-                    user_id=user_id,
+                supersedes = RecommendationOperation.objects.get(
+                    pk=item.supersedes_operation_id, recommendation__user=user
                 )
-            except Workout.DoesNotExist as exc:
-                raise RecommendationNotFound("Workout was not found.") from exc
-
-            current_version = workout.updated_at.isoformat()
-            expected = expected_workout_version or recommendation.snapshot_version
-            if current_version != recommendation.snapshot_version or current_version != expected:
-                raise RecommendationConflict("Workout changed since recommendation generation.")
-
-            touch_workout = _apply_operation(
-                workout,
-                recommendation.operation_type,
-                recommendation.payload_json,
-                user_id=user_id,
-            )
-            if touch_workout:
-                workout.save()
-            if Workout.objects.filter(pk=workout.id, user_id=user_id).exists():
-                workout.refresh_from_db(fields=["updated_at"])
-                recommendation.snapshot_version = workout.updated_at.isoformat()
-            recommendation.status = Recommendation.Status.APPLIED
-            recommendation.save(update_fields=["snapshot_version", "status", "updated_at"])
-    except RecommendationNotFound:
-        _mark_recommendation_status(user_id, recommendation_id, Recommendation.Status.FAILED)
-        raise
-    except RecommendationConflict as exc:
-        if str(exc) == "Workout changed since recommendation generation.":
-            _mark_recommendation_status(user_id, recommendation_id, Recommendation.Status.STALE)
-        raise
-    except Exception:
-        _mark_recommendation_status(user_id, recommendation_id, Recommendation.Status.FAILED)
-        raise
-    recommendation = get_recommendation(user_id, recommendation_id)
-    if recommendation is None:
-        raise RecommendationNotFound("Recommendation was not found.")
+            except RecommendationOperation.DoesNotExist as exc:
+                raise RecommendationValidationError(
+                    "Superseded operation was not found."
+                ) from exc
+        RecommendationOperation.objects.create(
+            recommendation=recommendation,
+            operation_type=item.operation_type,
+            reason=item.reason,
+            payload=item.payload.model_dump(mode="json"),
+            source=source,
+            created_by_message=coach_message,
+            supersedes=supersedes,
+        )
+        if supersedes:
+            supersedes.status = RecommendationOperation.Status.SUPERSEDED
+            supersedes.resolved_at = timezone.now()
+            supersedes.save(update_fields=["status", "resolved_at", "updated_at"])
     return recommendation
 
 
-@transaction.atomic
-def reject_recommendation(user_id: str, recommendation_id: str) -> Recommendation:
-    recommendation = _get_recommendation_for_update(user_id, recommendation_id)
-    if recommendation.status != Recommendation.Status.PENDING:
-        raise RecommendationConflict("Recommendation is no longer pending.")
-    recommendation.status = Recommendation.Status.REJECTED
-    recommendation.save(update_fields=["status", "updated_at"])
-    return recommendation
+def get_recommendation(user: Any, recommendation_id: str) -> Recommendation | None:
+    """Return one user-owned recommendation with its operations, or ``None``."""
+    return (
+        Recommendation.objects.filter(pk=recommendation_id, user=user)
+        .prefetch_related("operations")
+        .first()
+    )
 
 
 def serialize_recommendation(recommendation: Recommendation) -> dict[str, Any]:
+    """Project persisted operations into the public recommendation response shape.
+
+    Superseded rows are hidden and temporary-workout exercise additions are nested
+    below their corresponding add-workout operation.
+    """
+    operations = list(
+        recommendation.operations.exclude(
+            status=RecommendationOperation.Status.SUPERSEDED
+        ).order_by("created_at")
+    )
+    children_by_temp: dict[str, list[dict[str, Any]]] = {}
+    result: list[dict[str, Any]] = []
+    for operation in operations:
+        data = _serialize_operation(operation)
+        temp_workout_id = (
+            data["payload"].get("temporary_workout_id")
+            if operation.operation_type == "add_exercise"
+            else None
+        )
+        if temp_workout_id:
+            children_by_temp.setdefault(str(temp_workout_id), []).append(data)
+        else:
+            result.append(data)
+    for operation in result:
+        if operation["operation_type"] == "add_workout":
+            operation["exercise_operations"] = children_by_temp.pop(
+                str(operation["payload"]["temporary_id"]), []
+            )
     return {
         "id": str(recommendation.id),
-        "user_id": recommendation.user_id,
-        "workout_id": str(recommendation.workout_id),
-        "snapshot_version": recommendation.snapshot_version,
-        "status": recommendation.status,
         "summary": recommendation.summary,
         "reason": recommendation.reason,
-        "source": recommendation.source,
-        "coach_conversation_id": str(recommendation.coach_conversation_id)
-        if recommendation.coach_conversation_id
-        else None,
-        "coach_message_id": str(recommendation.coach_message_id)
-        if recommendation.coach_message_id
-        else None,
-        "operation_type": recommendation.operation_type,
-        "payload": recommendation.payload_json,
-        "display_text": _display_text(
-            recommendation.operation_type,
-            recommendation.payload_json,
-            recommendation.user_id,
-            str(recommendation.workout_id),
-        ),
-        "created_at": recommendation.created_at.isoformat(),
-        "updated_at": recommendation.updated_at.isoformat(),
+        "operations": result,
     }
 
 
-def _get_recommendation_for_update(
-    user_id: str, recommendation_id: str
-) -> Recommendation:
-    try:
-        return Recommendation.objects.select_for_update().get(
-            pk=recommendation_id,
-            user_id=user_id,
-        )
-    except Recommendation.DoesNotExist as exc:
-        raise RecommendationNotFound("Recommendation was not found.") from exc
-
-
-def _validate_pending_recommendation_coexistence(
-    *, user_id: str, workout_id: str, operation_type: str
-) -> None:
-    pending_types = set(
-        Recommendation.objects.filter(
-            user_id=user_id,
-            workout_id=workout_id,
-            status=Recommendation.Status.PENDING,
-        ).values_list("operation_type", flat=True)
-    )
-    if operation_type == Recommendation.OperationType.REVISE_WORKOUT and (
-        pending_types & EXERCISE_OPERATION_TYPES
+def _serialize_operation(operation: RecommendationOperation) -> dict[str, Any]:
+    """Serialize one ledger row and convert stored zero-based positions for the API."""
+    payload = dict(operation.payload)
+    if operation.operation_type == "add_exercise" and "position" in payload:
+        payload["position"] += 1
+    if (
+        operation.operation_type == "update_exercise"
+        and payload.get("position") is not None
     ):
-        raise RecommendationValidationError(
-            "ReviseWorkout cannot coexist with exercise recommendations for the same workout."
-        )
-    if operation_type in EXERCISE_OPERATION_TYPES and (
-        Recommendation.OperationType.REVISE_WORKOUT in pending_types
-    ):
-        raise RecommendationValidationError(
-            "Exercise recommendations cannot coexist with ReviseWorkout for the same workout."
-        )
-    if operation_type == Recommendation.OperationType.REMOVE_WORKOUT and pending_types:
-        raise RecommendationValidationError(
-            "RemoveWorkout cannot coexist with child workout recommendations."
-        )
-    if pending_types and Recommendation.OperationType.REMOVE_WORKOUT in pending_types:
-        raise RecommendationValidationError(
-            "Recommendations cannot coexist with RemoveWorkout for the same workout."
-        )
+        payload["position"] += 1
+    return {
+        "id": str(operation.id),
+        "status": operation.status,
+        "operation_type": operation.operation_type,
+        "display_text": operation.display_text,
+        "reason": operation.reason,
+        "payload": payload,
+    }
 
 
-def _validate_operation(
+_operation_adapter = TypeAdapter(RecommendationOperationContract)
+
+
+@transaction.atomic
+def revise_operation(
     *,
-    operation_type: str,
-    payload: dict[str, Any],
-    user_id: str,
-    workout_id: str,
-) -> None:
-    if operation_type not in {choice.value for choice in Recommendation.OperationType}:
-        raise RecommendationValidationError("Unsupported recommendation operation.")
-    if operation_type in {
-        Recommendation.OperationType.REMOVE_EXERCISE,
-        Recommendation.OperationType.REPLACE_EXERCISE,
-        Recommendation.OperationType.UPDATE_EXERCISE,
-        Recommendation.OperationType.MOVE_EXERCISE,
-    }:
-        _get_workout_exercise(
-            _get_workout(workout_id, user_id=user_id),
-            payload["workout_exercise_id"],
+    user: Any,
+    recommendation_id: str,
+    operation_id: str,
+    replacement: RecommendationOperationContract | dict[str, Any],
+) -> Recommendation:
+    """Replace a pending operation with a validated revision in the same target scope.
+
+    The previous row remains in the ledger as ``superseded`` and the new row is
+    returned through the parent recommendation projection.
+    """
+    operation = _operation(user, recommendation_id, operation_id)
+    if operation.status != RecommendationOperation.Status.PENDING:
+        raise RecommendationConflict("Only pending operations can be revised.")
+    try:
+        validated_replacement: RecommendationOperationContract = (
+            _operation_adapter.validate_python(replacement)
         )
-    if operation_type == Recommendation.OperationType.REPLACE_EXERCISE:
-        replacement_id = _replacement_exercise_id(payload)
-        _get_exercise(replacement_id, user_id=user_id)
-    if operation_type == Recommendation.OperationType.ADD_EXERCISE:
-        _get_exercise(_add_exercise_id(payload), user_id=user_id)
-    if operation_type == Recommendation.OperationType.UPDATE_EXERCISE:
-        changes = _operation_changes(payload)
-        workout_exercise = _get_workout_exercise(
-            _get_workout(workout_id, user_id=user_id),
-            payload["workout_exercise_id"],
-        )
-        _normalize_update_changes_for_exercise(workout_exercise.exercise, changes)
-        _validate_changes_for_exercise(workout_exercise.exercise, changes)
-        payload["changes"] = changes
-    if operation_type in {
-        Recommendation.OperationType.REMOVE_WORKOUT,
-        Recommendation.OperationType.UPDATE_WORKOUT,
-        Recommendation.OperationType.REVISE_WORKOUT,
-    }:
-        target_workout_id = payload.get("workout_id") or workout_id
-        _get_workout(str(target_workout_id), user_id=user_id)
-    if operation_type == Recommendation.OperationType.ADD_WORKOUT:
-        _get_training_plan(str(payload["training_plan_id"]), user_id=user_id)
-
-
-def _operation_changes(payload: dict[str, Any]) -> dict[str, Any]:
-    changes = payload.get("changes") or payload.get("prescription_changes") or {}
-    if "notes" in changes and "note" not in changes:
-        changes["note"] = changes.pop("notes")
-    changes.pop("rest_seconds", None)
-    return changes
-
-
-def _replacement_exercise_id(payload: dict[str, Any]) -> str:
-    if payload.get("replacement_exercise_id"):
-        return str(payload["replacement_exercise_id"])
-    replacement = payload.get("replacement") or {}
-    return str(replacement["exercise_definition_id"])
-
-
-def _add_exercise_id(payload: dict[str, Any]) -> str:
-    if payload.get("exercise_id"):
-        return str(payload["exercise_id"])
-    exercise = payload.get("exercise") or {}
-    return str(exercise["exercise_definition_id"])
-
-
-def _prescription_values(payload: dict[str, Any]) -> dict[str, Any]:
-    source = payload.get("exercise") or payload.get("replacement") or payload
-    result = {
-        "sets": source.get("sets", 0),
-        "reps": source.get("reps", 0),
-        "weight": source.get("weight"),
-    }
-    if source.get("notes") is not None:
-        result["note"] = source.get("notes")
-    if source.get("note") is not None:
-        result["note"] = source.get("note")
-    return result
-
-
-def _mark_recommendation_status(
-    user_id: str, recommendation_id: str, status: str
-) -> None:
-    Recommendation.objects.filter(pk=recommendation_id, user_id=user_id).update(
-        status=status
+    except ValidationError as exc:
+        raise RecommendationValidationError(str(exc)) from exc
+    if validated_replacement.operation_type != operation.operation_type:
+        raise RecommendationValidationError("A revision must keep the operation type.")
+    _validate_revision_target(operation, validated_replacement)
+    operation.status = RecommendationOperation.Status.SUPERSEDED
+    operation.resolved_at = timezone.now()
+    operation.updated_by = "user"
+    operation.save(update_fields=["status", "resolved_at", "updated_by", "updated_at"])
+    RecommendationOperation.objects.create(
+        recommendation=operation.recommendation,
+        operation_type=validated_replacement.operation_type,
+        reason=validated_replacement.reason,
+        payload=validated_replacement.payload.model_dump(mode="json"),
+        source=operation.source,
+        supersedes=operation,
+        updated_by="user",
     )
+    return operation.recommendation
+
+
+def _validate_revision_target(
+    operation: RecommendationOperation,
+    replacement: RecommendationOperationContract,
+) -> None:
+    """Keep a revision attached to the same training target or temporary group."""
+    original = operation.payload
+    revised = replacement.payload.model_dump(mode="json")
+    target_keys = {
+        "add_workout": ("temporary_id",),
+        "update_workout": ("workout_id",),
+        "remove_workout": ("workout_id",),
+        "add_exercise": ("workout_id", "temporary_workout_id", "temporary_id"),
+        "update_exercise": ("workout_exercise_id",),
+        "remove_exercise": ("workout_exercise_id",),
+    }[operation.operation_type]
+    if any(str(original.get(key)) != str(revised.get(key)) for key in target_keys):
+        raise RecommendationValidationError(
+            "A revision must keep the same recommendation target."
+        )
+
+
+def _operation(
+    user: Any, recommendation_id: str, operation_id: str
+) -> RecommendationOperation:
+    """Fetch an operation only when it belongs to the requested recommendation and user."""
+    try:
+        return RecommendationOperation.objects.select_related("recommendation").get(
+            pk=operation_id,
+            recommendation_id=recommendation_id,
+            recommendation__user=user,
+        )
+    except RecommendationOperation.DoesNotExist as exc:
+        raise RecommendationNotFound("Recommendation operation was not found.") from exc
+
+
+@transaction.atomic
+def reject_operation(
+    *, user: Any, recommendation_id: str, operation_id: str
+) -> Recommendation:
+    """Reject one pending operation without changing other recommendation operations."""
+    operation = _operation(user, recommendation_id, operation_id)
+    if operation.status != RecommendationOperation.Status.PENDING:
+        raise RecommendationConflict("Operation is no longer pending.")
+    operation.status = RecommendationOperation.Status.REJECTED
+    operation.resolved_at = timezone.now()
+    operation.updated_by = "user"
+    operation.save(update_fields=["status", "resolved_at", "updated_by", "updated_at"])
+    return operation.recommendation
+
+
+@transaction.atomic
+def reject_recommendation(*, user: Any, recommendation_id: str) -> Recommendation:
+    """Reject every pending operation in a user-owned recommendation batch."""
+    recommendation = get_recommendation(user, recommendation_id)
+    if not recommendation:
+        raise RecommendationNotFound("Recommendation was not found.")
+    RecommendationOperation.objects.filter(
+        recommendation=recommendation, status=RecommendationOperation.Status.PENDING
+    ).update(
+        status=RecommendationOperation.Status.REJECTED,
+        resolved_at=timezone.now(),
+        updated_by="user",
+    )
+    return recommendation
+
+
+@transaction.atomic
+def accept_operation(
+    *, user: Any, recommendation_id: str, operation_id: str
+) -> Recommendation:
+    """Apply one pending operation, including dependent child exercises when required."""
+    operation = _operation(user, recommendation_id, operation_id)
+    if operation.status != RecommendationOperation.Status.PENDING:
+        raise RecommendationConflict("Operation is no longer pending.")
+    _apply_operations(user=user, operations=_operation_bundle(operation))
+    return operation.recommendation
+
+
+@transaction.atomic
+def accept_recommendation(*, user: Any, recommendation_id: str) -> Recommendation:
+    """Atomically apply every pending operation in a user-owned recommendation."""
+    recommendation = get_recommendation(user, recommendation_id)
+    if not recommendation:
+        raise RecommendationNotFound("Recommendation was not found.")
+    pending = list(
+        recommendation.operations.filter(status=RecommendationOperation.Status.PENDING)
+        .annotate(
+            application_order=Case(
+                When(
+                    operation_type=RecommendationOperation.OperationType.ADD_WORKOUT,
+                    then=Value(0),
+                ),
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("application_order", "created_at")
+    )
+    _apply_operations(user=user, operations=pending)
+    return recommendation
+
+
+def _operation_bundle(
+    operation: RecommendationOperation,
+) -> list[RecommendationOperation]:
+    """Return the operation set that must be accepted together.
+
+    Add-workout operations include their pending temporary-workout exercises;
+    those children cannot be accepted independently.
+    """
+    if operation.operation_type != "add_workout":
+        if operation.operation_type == "add_exercise" and operation.payload.get(
+            "temporary_workout_id"
+        ):
+            raise RecommendationConflict(
+                "Accept the grouped add-workout operation instead."
+            )
+        return [operation]
+    temporary_id = str(operation.payload["temporary_id"])
+    children = list(
+        operation.recommendation.operations.filter(
+            operation_type="add_exercise", status=RecommendationOperation.Status.PENDING
+        ).order_by("created_at")
+    )
+    return [
+        operation,
+        *[
+            child
+            for child in children
+            if str(child.payload.get("temporary_workout_id")) == temporary_id
+        ],
+    ]
+
+
+def _apply_operations(*, user: Any, operations: list[RecommendationOperation]) -> None:
+    """Apply operations atomically and mark unresolved targets stale on failure."""
+    temporary_workouts: dict[str, Workout] = {}
+    try:
+        for operation in operations:
+            _apply_operation(
+                user=user, operation=operation, temporary_workouts=temporary_workouts
+            )
+            operation.status = RecommendationOperation.Status.ACCEPTED
+            operation.resolved_at = timezone.now()
+            operation.updated_by = "user"
+            operation.save(
+                update_fields=["status", "resolved_at", "updated_by", "updated_at"]
+            )
+    except (
+        Exercise.DoesNotExist,
+        Workout.DoesNotExist,
+        WorkoutExercise.DoesNotExist,
+        ValueError,
+        KeyError,
+    ) as exc:
+        for operation in operations:
+            if operation.status == RecommendationOperation.Status.PENDING:
+                operation.status = RecommendationOperation.Status.STALE
+                operation.resolved_at = timezone.now()
+                operation.save(update_fields=["status", "resolved_at", "updated_at"])
+        raise RecommendationConflict(
+            "Recommendation target is no longer available."
+        ) from exc
 
 
 def _apply_operation(
-    workout: Workout, operation_type: str, payload: dict[str, Any], *, user_id: str
-) -> bool:
-    if operation_type == Recommendation.OperationType.REPLACE_EXERCISE:
-        workout_exercise = _get_workout_exercise(workout, payload["workout_exercise_id"])
-        workout_exercise.exercise = _get_exercise(_replacement_exercise_id(payload), user_id=user_id)
-        values = _prescription_values(payload)
-        for field, value in values.items():
-            setattr(workout_exercise, field, value)
-        _normalize_workout_exercise_for_prescription(workout_exercise)
-        workout_exercise.save()
-        return True
+    *,
+    user: Any,
+    operation: RecommendationOperation,
+    temporary_workouts: dict[str, Workout],
+) -> None:
+    """Apply one persisted operation to the user's training data.
 
-    if operation_type == Recommendation.OperationType.UPDATE_EXERCISE:
-        workout_exercise = _get_workout_exercise(workout, payload["workout_exercise_id"])
-        changes = _operation_changes(payload)
-        _validate_changes_for_exercise(workout_exercise.exercise, changes)
-        for field, value in changes.items():
-            setattr(workout_exercise, field, value)
-        workout_exercise.save()
-        return True
-
-    if operation_type == Recommendation.OperationType.REMOVE_EXERCISE:
-        _get_workout_exercise(workout, payload["workout_exercise_id"]).delete()
-        return True
-
-    if operation_type == Recommendation.OperationType.ADD_EXERCISE:
-        exercise = _get_exercise(_add_exercise_id(payload), user_id=user_id)
-        values = _prescription_values(payload)
-        workout_exercise = WorkoutExercise.objects.create(
+    Temporary workouts created earlier in the same batch are supplied through
+    ``temporary_workouts`` so their child exercise operations can reference them.
+    """
+    payload = operation.payload
+    operation_type = operation.operation_type
+    if operation_type == "add_workout":
+        temporary_workouts[str(payload["temporary_id"])] = Workout.objects.create(
+            user_id=str(user.id),
+            name=payload["name"],
+            date=payload["date"],
+            expected_time=payload.get("expected_time", 0),
+        )
+        return
+    if operation_type == "add_exercise":
+        workout = (
+            temporary_workouts.get(str(payload.get("temporary_workout_id")))
+            if payload.get("temporary_workout_id")
+            else Workout.objects.get(pk=payload["workout_id"], user_id=str(user.id))
+        )
+        if workout is None:
+            raise ValueError("Parent workout was not accepted.")
+        exercise = Exercise.objects.get(
+            pk=payload["exercise"]["id"], user_id__in=[str(user.id), ""]
+        )
+        prescription = payload["prescription"]
+        WorkoutExercise.objects.create(
             workout=workout,
             exercise=exercise,
-            sets=values.get("sets", 0),
-            reps=values.get("reps", 0),
-            weight=values.get("weight"),
-            note=values.get("note", ""),
-            sort_order=_next_workout_exercise_order(workout),
+            sort_order=payload["position"],
+            **prescription,
         )
-        _normalize_workout_exercise_for_prescription(workout_exercise)
-        workout_exercise.save()
-        return True
-
-    if operation_type == Recommendation.OperationType.MOVE_EXERCISE:
-        workout_exercise = _get_workout_exercise(workout, payload["workout_exercise_id"])
-        _move_workout_exercise(workout_exercise, payload.get("after_workout_exercise_id"))
-        return True
-
-    if operation_type == Recommendation.OperationType.ADD_WORKOUT:
-        training_plan = _get_training_plan(str(payload["training_plan_id"]), user_id=user_id)
-        draft = payload["workout"]
-        new_workout = Workout.objects.create(
-            user_id=user_id,
-            plan=training_plan,
-            name=draft["name"],
-            date=draft["date"],
-            expected_time=0,
-        )
-        for prescription in draft.get("exercises", []):
-            _create_workout_exercise_from_prescription(new_workout, prescription, user_id=user_id)
-        return False
-
-    if operation_type == Recommendation.OperationType.REMOVE_WORKOUT:
-        _get_workout(str(payload.get("workout_id") or workout.id), user_id=user_id).delete()
-        return False
-
-    if operation_type == Recommendation.OperationType.UPDATE_WORKOUT:
-        target = _get_workout(str(payload.get("workout_id") or workout.id), user_id=user_id)
-        changes = payload["workout_changes"]
-        if changes.get("name") is not None:
-            target.name = changes["name"]
-        if changes.get("date") is not None:
-            target.date = changes["date"]
-        target.save()
-        return False
-
-    if operation_type == Recommendation.OperationType.REVISE_WORKOUT:
-        target = _get_workout(str(payload.get("workout_id") or workout.id), user_id=user_id)
-        draft = payload["proposed_workout"]
-        target.name = draft["name"]
-        target.date = draft["date"]
-        target.save()
-        target.workout_exercises.all().delete()
-        for prescription in draft.get("exercises", []):
-            _create_workout_exercise_from_prescription(target, prescription, user_id=user_id)
-        return False
-
-    raise RecommendationValidationError("Unsupported recommendation operation.")
-
-
-def _get_workout(workout_id: str, *, user_id: str) -> Workout:
-    try:
-        return Workout.objects.get(pk=workout_id, user_id=user_id)
-    except Workout.DoesNotExist as exc:
-        raise RecommendationNotFound("Workout was not found.") from exc
-
-
-def _get_training_plan(training_plan_id: str, *, user_id: str) -> TrainingPlan:
-    try:
-        return TrainingPlan.objects.get(pk=training_plan_id, user_id=user_id)
-    except TrainingPlan.DoesNotExist as exc:
-        raise RecommendationValidationError("Training plan was not found.") from exc
-
-
-def _get_workout_exercise(
-    workout: Workout, workout_exercise_id: str
-) -> WorkoutExercise:
-    try:
-        return WorkoutExercise.objects.get(pk=workout_exercise_id, workout=workout)
-    except WorkoutExercise.DoesNotExist as exc:
-        raise RecommendationValidationError("Workout exercise was not found.") from exc
-
-
-def _get_exercise(exercise_id: str, *, user_id: str) -> Exercise:
-    try:
-        return Exercise.objects.get(Q(user_id=user_id) | Q(user_id=""), pk=exercise_id)
-    except Exercise.DoesNotExist as exc:
-        raise RecommendationValidationError("Exercise was not found.") from exc
-
-
-def _validate_changes_for_exercise(exercise: Exercise, changes: dict[str, Any]) -> None:
-    invalid_fields = set(changes) - WORKOUT_EXERCISE_UPDATE_FIELDS
-    if invalid_fields:
-        raise RecommendationValidationError("Unsupported workout exercise change.")
-    if not changes:
-        raise RecommendationValidationError("update_exercise requires at least one change.")
-
-    if exercise.prescription_type == Exercise.PrescriptionType.TIMED:
-        if set(changes) - TIMED_UPDATE_FIELDS:
-            raise RecommendationValidationError("Timed exercises can only use time and note.")
         return
-
-    if set(changes) - STRENGTH_UPDATE_FIELDS:
-        raise RecommendationValidationError(
-            "Strength exercises can only use sets, reps, weight, and note."
-        )
-
-
-def _is_empty_prescription_value(value: Any) -> bool:
-    return value is None or value == "" or value == 0 or value == 0.0
-
-
-def _normalize_update_changes_for_exercise(
-    exercise: Exercise, changes: dict[str, Any]
-) -> None:
-    if exercise.prescription_type == Exercise.PrescriptionType.TIMED:
-        for field in ("sets", "reps", "weight"):
-            if field in changes and _is_empty_prescription_value(changes[field]):
-                changes.pop(field)
-        if "weight_unit" in changes and "weight" not in changes:
-            changes.pop("weight_unit")
-    else:
-        if "time" in changes and _is_empty_prescription_value(changes["time"]):
-            changes.pop("time")
-
-
-def _normalize_workout_exercise_for_prescription(
-    workout_exercise: WorkoutExercise,
-) -> None:
-    if workout_exercise.exercise.prescription_type == Exercise.PrescriptionType.TIMED:
-        workout_exercise.sets = 0
-        workout_exercise.reps = 0
-        workout_exercise.weight = None
-        workout_exercise.weight_unit = "lb"
-        if workout_exercise.time == 0:
-            workout_exercise.time = workout_exercise.exercise.default_time
+    if operation_type == "update_workout":
+        workout = Workout.objects.get(pk=payload["workout_id"], user_id=str(user.id))
+        for field, value in payload["changes"].items():
+            setattr(workout, field, value)
+        workout.save()
         return
-
-    workout_exercise.time = 0
-    if workout_exercise.sets == 0:
-        workout_exercise.sets = workout_exercise.exercise.default_sets
-    if workout_exercise.reps == 0:
-        workout_exercise.reps = workout_exercise.exercise.default_reps
-    if not workout_exercise.weight_unit:
-        workout_exercise.weight_unit = "lb"
-
-
-def _next_workout_exercise_order(workout: Workout) -> int:
-    value = (
-        WorkoutExercise.objects.filter(workout=workout).aggregate(Max("sort_order"))[
-            "sort_order__max"
-        ]
-        or 0
+    if operation_type == "remove_workout":
+        Workout.objects.get(pk=payload["workout_id"], user_id=str(user.id)).delete()
+        return
+    workout_exercise = WorkoutExercise.objects.select_related("workout").get(
+        pk=payload["workout_exercise_id"], workout__user_id=str(user.id)
     )
-    return int(value) + 1
-
-
-def _move_workout_exercise(
-    workout_exercise: WorkoutExercise, after_workout_exercise_id: str | None
-) -> None:
-    siblings = list(
-        WorkoutExercise.objects.filter(workout=workout_exercise.workout)
-        .exclude(pk=workout_exercise.id)
-        .order_by("sort_order", "created_at", "exercise__name")
-    )
-    _reorder_object(workout_exercise, siblings, after_workout_exercise_id)
-
-
-def _reorder_object(
-    target: WorkoutExercise,
-    siblings: list[WorkoutExercise],
-    after_id: str | None,
-) -> None:
-    insert_at = 0
-    if after_id:
-        for index, sibling in enumerate(siblings):
-            if str(sibling.id) == str(after_id):
-                insert_at = index + 1
-                break
-    ordered = [*siblings]
-    ordered.insert(insert_at, target)
-    for index, item in enumerate(ordered, start=1):
-        item.sort_order = index
-        item.save(update_fields=["sort_order", "updated_at"])
-
-
-def _create_workout_exercise_from_prescription(
-    workout: Workout, prescription: dict[str, Any], *, user_id: str
-) -> WorkoutExercise:
-    exercise = _get_exercise(str(prescription["exercise_definition_id"]), user_id=user_id)
-    workout_exercise = WorkoutExercise.objects.create(
-        workout=workout,
-        exercise=exercise,
-        sets=prescription.get("sets") or 0,
-        reps=prescription.get("reps") or 0,
-        weight=prescription.get("weight"),
-        note=prescription.get("notes") or "",
-        sort_order=_next_workout_exercise_order(workout),
-    )
-    _normalize_workout_exercise_for_prescription(workout_exercise)
-    workout_exercise.save()
-    return workout_exercise
-
-
-def _display_text(
-    operation_type: str, payload: dict[str, Any], user_id: str, workout_id: str
-) -> str:
-    if operation_type == Recommendation.OperationType.REPLACE_EXERCISE:
-        if "workout_exercise_id" not in payload:
-            return "Replace exercise"
-        current = _workout_exercise_name(payload["workout_exercise_id"], workout_id)
-        replacement = _exercise_name(_replacement_exercise_id(payload), user_id)
-        return f"Replace {current} with {replacement}"
-    if operation_type == Recommendation.OperationType.UPDATE_EXERCISE:
-        if "workout_exercise_id" not in payload:
-            return "Update exercise"
-        current = _workout_exercise_name(payload["workout_exercise_id"], workout_id)
-        changes = ", ".join(
-            f"{key} to {value}" for key, value in _operation_changes(payload).items()
-        )
-        return f"Update {current}: {changes}"
-    if operation_type == Recommendation.OperationType.REMOVE_EXERCISE:
-        if "workout_exercise_id" not in payload:
-            return "Remove exercise"
-        current = _workout_exercise_name(payload["workout_exercise_id"], workout_id)
-        return f"Remove {current}"
-    if operation_type == Recommendation.OperationType.ADD_EXERCISE:
-        exercise = _exercise_name(_add_exercise_id(payload), user_id)
-        return f"Add {exercise}"
-    if operation_type == Recommendation.OperationType.REVISE_WORKOUT:
-        return "Revise workout"
-    if operation_type == Recommendation.OperationType.REMOVE_WORKOUT:
-        return "Remove workout"
-    if operation_type == Recommendation.OperationType.UPDATE_WORKOUT:
-        return "Update workout"
-    if operation_type == Recommendation.OperationType.ADD_WORKOUT:
-        return "Add workout"
-    if operation_type == Recommendation.OperationType.MOVE_EXERCISE:
-        return "Move exercise"
-    return "Unsupported recommendation operation"
-
-
-def _workout_exercise_name(workout_exercise_id: str, workout_id: str) -> str:
-    try:
-        return (
-            WorkoutExercise.objects.select_related("exercise")
-            .get(
-                pk=workout_exercise_id,
-                workout_id=workout_id,
+    if operation_type == "remove_exercise":
+        workout_exercise.delete()
+        return
+    if operation_type == "update_exercise":
+        for field, value in (payload.get("changes") or {}).items():
+            setattr(workout_exercise, field, value)
+        if payload.get("workout_id"):
+            workout_exercise.workout = Workout.objects.get(
+                pk=payload["workout_id"], user_id=str(user.id)
             )
-            .exercise.name
-        )
-    except WorkoutExercise.DoesNotExist:
-        return str(workout_exercise_id)
-
-
-def _exercise_name(exercise_id: str, user_id: str) -> str:
-    try:
-        return Exercise.objects.get(
-            Q(user_id=user_id) | Q(user_id=""), pk=exercise_id
-        ).name
-    except Exercise.DoesNotExist:
-        return str(exercise_id)
+        if payload.get("position") is not None:
+            workout_exercise.sort_order = payload["position"]
+        workout_exercise.save()
+        return
+    raise ValueError("Unsupported operation.")

@@ -15,7 +15,9 @@ def migrate_prescriptions(apps, schema_editor):
     WorkoutExercise = apps.get_model("training", "WorkoutExercise")
 
     for exercise in Exercise.objects.all():
-        is_timed = exercise.default_time > 0 or exercise.name.lower() in TIMED_EXERCISE_NAMES
+        is_timed = (
+            exercise.default_time > 0 or exercise.name.lower() in TIMED_EXERCISE_NAMES
+        )
         exercise.prescription_type = "timed" if is_timed else "strength"
         exercise.save(update_fields=["prescription_type"])
 
@@ -45,12 +47,12 @@ def reverse_prescriptions(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("training", "0005_minimal_training_schema"),
         ("recommendation", "0002_seed_demo_training_plan"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.AddField(
             model_name="exercise",
             name="prescription_type",

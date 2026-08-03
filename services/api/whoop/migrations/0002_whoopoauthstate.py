@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("whoop", "0001_initial"),
     ]
@@ -13,7 +12,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="WhoopOAuthState",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ("state", models.CharField(max_length=255, unique=True)),
                 ("user_id", models.CharField(max_length=64)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
@@ -30,6 +37,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="whoopoauthstate",
-            index=models.Index(fields=["user_id", "created_at"], name="whoop_whoop_user_id_717adb_idx"),
+            index=models.Index(
+                fields=["user_id", "created_at"], name="whoop_whoop_user_id_717adb_idx"
+            ),
         ),
     ]

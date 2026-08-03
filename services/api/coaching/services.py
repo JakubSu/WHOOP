@@ -24,10 +24,14 @@ def normalize_page_context(page_context: dict[str, Any]) -> dict[str, str]:
     if page_type not in VALID_PAGE_TYPES:
         raise CoachValidationError("Unsupported coach page type.")
     context_id = str(page_context.get("context_id") or "").strip()
-    if page_type in {
-        CoachConversation.PageType.WORKOUT,
-        CoachConversation.PageType.TRAINING_PLAN,
-    } and not context_id:
+    if (
+        page_type
+        in {
+            CoachConversation.PageType.WORKOUT,
+            CoachConversation.PageType.TRAINING_PLAN,
+        }
+        and not context_id
+    ):
         raise CoachValidationError("Context id is required for this page type.")
     return {"page_type": page_type, "context_id": context_id}
 
@@ -48,7 +52,9 @@ def get_or_create_active_conversation(
                 status=CoachConversation.Status.ACTIVE,
             )
         except CoachConversation.DoesNotExist as exc:
-            raise CoachConversationNotFound("Coach conversation was not found.") from exc
+            raise CoachConversationNotFound(
+                "Coach conversation was not found."
+            ) from exc
         if (
             conversation.page_type != normalized["page_type"]
             or conversation.context_id != normalized["context_id"]
@@ -91,7 +97,9 @@ def list_conversation_messages(
     user_id: str,
     conversation_id: str,
 ) -> list[CoachMessage]:
-    if not CoachConversation.objects.filter(pk=conversation_id, user_id=user_id).exists():
+    if not CoachConversation.objects.filter(
+        pk=conversation_id, user_id=user_id
+    ).exists():
         raise CoachConversationNotFound("Coach conversation was not found.")
     return list(
         CoachMessage.objects.filter(conversation_id=conversation_id)

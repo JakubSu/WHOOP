@@ -1,10 +1,10 @@
-# ruff: noqa: RUF012
-
 from django.db import migrations, models
 
 
 def remove_effort_from_payloads(apps, schema_editor):
-    RecommendationOperation = apps.get_model("recommendation", "RecommendationOperation")
+    RecommendationOperation = apps.get_model(
+        "recommendation", "RecommendationOperation"
+    )
     for operation in RecommendationOperation.objects.all():
         payload = operation.payload_json or {}
         changed = False

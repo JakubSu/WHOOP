@@ -18,7 +18,9 @@ def get_workout_exercise_for_workout(
         return None
 
 
-def list_workout_exercises_for_workout(workout_id: str, user_id: str) -> list[WorkoutExercise]:
+def list_workout_exercises_for_workout(
+    workout_id: str, user_id: str
+) -> list[WorkoutExercise]:
     return list(
         WorkoutExercise.objects.select_related("workout", "exercise")
         .filter(workout_id=workout_id, workout__user_id=user_id)
@@ -31,10 +33,14 @@ def create_workout_exercise(data: dict[str, Any], *, user_id: str) -> WorkoutExe
     return WorkoutExercise.objects.create(**payload)
 
 
-def update_workout_exercise(workout_exercise: WorkoutExercise, data: dict[str, Any], *, user_id: str) -> WorkoutExercise:
+def update_workout_exercise(
+    workout_exercise: WorkoutExercise, data: dict[str, Any], *, user_id: str
+) -> WorkoutExercise:
     if workout_exercise.workout.user_id != user_id:
         raise ValueError("Workout exercise was not found.")
-    payload = _normalized_workout_exercise_payload(data, existing=workout_exercise, user_id=user_id)
+    payload = _normalized_workout_exercise_payload(
+        data, existing=workout_exercise, user_id=user_id
+    )
     for field, value in payload.items():
         setattr(workout_exercise, field, value)
     workout_exercise.save()
@@ -100,7 +106,9 @@ def _validate_workout_exercise_prescription(payload: dict[str, Any]) -> None:
         return
 
     if payload.get("time", 0) > 0:
-        raise ValueError("Strength exercises can only use sets, reps, weight, and note.")
+        raise ValueError(
+            "Strength exercises can only use sets, reps, weight, and note."
+        )
 
 
 def _get_workout(workout_value: Workout | str, *, user_id: str) -> Workout:
@@ -122,6 +130,8 @@ def _get_exercise(exercise_value: Exercise | str, *, user_id: str) -> Exercise:
         return exercise_value
 
     try:
-        return Exercise.objects.get(Q(user_id=user_id) | Q(user_id=""), pk=exercise_value)
+        return Exercise.objects.get(
+            Q(user_id=user_id) | Q(user_id=""), pk=exercise_value
+        )
     except Exercise.DoesNotExist as exc:
         raise ValueError("Exercise was not found.") from exc

@@ -52,7 +52,9 @@ class ExerciseServiceTests(TestCase):
         self.assertEqual(updated.default_time, 2)
 
     def test_update_strength_exercise_default_weight(self) -> None:
-        exercise = services.create_exercise({"name": "Bench Press"}, user_id=self.user_id)
+        exercise = services.create_exercise(
+            {"name": "Bench Press"}, user_id=self.user_id
+        )
         updated = services.update_exercise(
             exercise,
             {"default_weight": "20.00", "default_weight_unit": "kg"},

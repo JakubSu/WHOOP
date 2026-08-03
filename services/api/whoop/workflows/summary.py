@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import timedelta, timezone as datetime_timezone
 from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import timedelta
+from datetime import timezone as datetime_timezone
 from typing import Any
 
 from django.utils import timezone
@@ -90,7 +91,9 @@ def build_snapshot_data(services: WhoopApiServices) -> dict[str, Any]:
         workout_records = workouts.records
     except WhoopValidationError:
         workout_records = []
-    recent_workouts = [_serialize_recent_workout(workout) for workout in workout_records]
+    recent_workouts = [
+        _serialize_recent_workout(workout) for workout in workout_records
+    ]
 
     return {
         "snapshot_date": timezone.localdate(now),

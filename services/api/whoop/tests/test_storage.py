@@ -10,8 +10,8 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from whoop.models import WhoopSnapshot
-from whoop.storage.oauth_state_repository import WhoopOAuthStateRepository
 from whoop.storage.connection_repository import WhoopConnectionRepository
+from whoop.storage.oauth_state_repository import WhoopOAuthStateRepository
 from whoop.storage.snapshot_repository import WhoopSnapshotRepository
 from whoop.storage.token_crypto import TokenCrypto
 from whoop.whoop_api.dto import WhoopToken
@@ -19,16 +19,20 @@ from whoop.whoop_api.dto import WhoopToken
 
 class TokenCryptoTests(TestCase):
     def test_missing_key_raises_configuration_error(self) -> None:
-        with override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=""):
-            with self.assertRaises(ImproperlyConfigured):
-                TokenCrypto()
+        with (
+            override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=""),
+            self.assertRaises(ImproperlyConfigured),
+        ):
+            TokenCrypto()
 
 
 @override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("utf-8"))
 class WhoopStorageTests(TestCase):
     def setUp(self) -> None:
         User = cast(Any, get_user_model())
-        self.user = User.objects.create_user(email="whoop@example.com", password="password")
+        self.user = User.objects.create_user(
+            email="whoop@example.com", password="password"
+        )
         self.user_id = str(self.user.id)
         self.connection_repository = WhoopConnectionRepository(TokenCrypto())
         self.oauth_state_repository = WhoopOAuthStateRepository()

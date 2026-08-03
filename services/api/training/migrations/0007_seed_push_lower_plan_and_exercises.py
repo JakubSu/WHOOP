@@ -13,13 +13,23 @@ WORKOUT_IDS = {
 
 WORKOUT_EXERCISE_IDS = {
     ("Upper Push", "Bench Press"): uuid.UUID("52cf4f73-d111-4064-9f72-fbc8e36269c1"),
-    ("Upper Push", "Incline Bench Press"): uuid.UUID("a363579b-d083-4423-847e-54f7747cf492"),
+    ("Upper Push", "Incline Bench Press"): uuid.UUID(
+        "a363579b-d083-4423-847e-54f7747cf492"
+    ),
     ("Upper Push", "Military Press"): uuid.UUID("a889f070-a03b-48ee-8f8f-0c6c876d7fdd"),
     ("Upper Push", "Push-Up"): uuid.UUID("d1cc5d2a-51b6-49df-bf0f-d75b439b2ef9"),
-    ("Lower Strength", "Front Squat"): uuid.UUID("91099671-e623-47d6-9ff1-71409572f0a9"),
-    ("Lower Strength", "Barbell Lunges"): uuid.UUID("93eeb043-fba2-4a7f-ab2a-abcf76fb7ad0"),
-    ("Lower Strength", "Bulgarian Split Squat"): uuid.UUID("1693d37d-3068-4e32-a378-d48d59b7f266"),
-    ("Lower Strength", "Goblet Squat"): uuid.UUID("3d421cd4-e8ea-4dd2-9be1-869d78e2ef6d"),
+    ("Lower Strength", "Front Squat"): uuid.UUID(
+        "91099671-e623-47d6-9ff1-71409572f0a9"
+    ),
+    ("Lower Strength", "Barbell Lunges"): uuid.UUID(
+        "93eeb043-fba2-4a7f-ab2a-abcf76fb7ad0"
+    ),
+    ("Lower Strength", "Bulgarian Split Squat"): uuid.UUID(
+        "1693d37d-3068-4e32-a378-d48d59b7f266"
+    ),
+    ("Lower Strength", "Goblet Squat"): uuid.UUID(
+        "3d421cd4-e8ea-4dd2-9be1-869d78e2ef6d"
+    ),
 }
 
 EXERCISE_DEFAULTS = [
@@ -29,7 +39,13 @@ EXERCISE_DEFAULTS = [
     ("Push-Up", 3, 15, "Chest", "Bodyweight press variation."),
     ("Dumbbell Bench Press", 3, 10, "Chest", "Dumbbell horizontal press."),
     ("Arnold Press", 3, 10, "Shoulders", "Rotating dumbbell shoulder press."),
-    ("Close-Grip Bench Press", 3, 8, "Triceps", "Pressing variation with triceps emphasis."),
+    (
+        "Close-Grip Bench Press",
+        3,
+        8,
+        "Triceps",
+        "Pressing variation with triceps emphasis.",
+    ),
     ("Dips", 3, 10, "Triceps", "Bodyweight upper-body press."),
     ("Cable Chest Fly", 3, 12, "Chest", "Controlled chest isolation."),
     ("Dumbbell Lateral Raise", 3, 15, "Shoulders", "Side delt isolation."),
@@ -105,7 +121,13 @@ def seed_push_lower_plan(apps, schema_editor):
             50,
             [
                 ("Bench Press", 4, 6, Decimal("135.00"), "Primary horizontal press."),
-                ("Incline Bench Press", 3, 8, Decimal("115.00"), "Upper-chest strength work."),
+                (
+                    "Incline Bench Press",
+                    3,
+                    8,
+                    Decimal("115.00"),
+                    "Upper-chest strength work.",
+                ),
                 ("Military Press", 3, 6, Decimal("95.00"), "Strict overhead pressing."),
                 ("Push-Up", 3, 15, None, "Bodyweight finisher with clean reps."),
             ],
@@ -115,10 +137,28 @@ def seed_push_lower_plan(apps, schema_editor):
             "2026-06-24",
             55,
             [
-                ("Front Squat", 4, 5, Decimal("155.00"), "Main lower-body strength lift."),
+                (
+                    "Front Squat",
+                    4,
+                    5,
+                    Decimal("155.00"),
+                    "Main lower-body strength lift.",
+                ),
                 ("Barbell Lunges", 3, 8, Decimal("95.00"), "Count reps per side."),
-                ("Bulgarian Split Squat", 3, 10, Decimal("35.00"), "Dumbbell load per hand."),
-                ("Goblet Squat", 3, 12, Decimal("50.00"), "Controlled accessory squat."),
+                (
+                    "Bulgarian Split Squat",
+                    3,
+                    10,
+                    Decimal("35.00"),
+                    "Dumbbell load per hand.",
+                ),
+                (
+                    "Goblet Squat",
+                    3,
+                    12,
+                    Decimal("50.00"),
+                    "Controlled accessory squat.",
+                ),
             ],
         ),
     ]
@@ -160,10 +200,10 @@ def remove_push_lower_plan(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("training", "0006_prescription_type_and_weight"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.RunPython(seed_push_lower_plan, remove_push_lower_plan),
     ]

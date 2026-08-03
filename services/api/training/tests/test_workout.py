@@ -9,7 +9,9 @@ class WorkoutServiceTests(TestCase):
 
     def test_create_workout(self) -> None:
         starting_count = Workout.objects.count()
-        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
+        training_plan = services.create_training_plan(
+            {"name": "Strength Block"}, user_id=self.user_id
+        )
         workout = services.create_workout(
             {
                 "plan": str(training_plan.id),
@@ -31,11 +33,15 @@ class WorkoutServiceTests(TestCase):
             {"name": "Upper Body", "date": "2026-06-09"},
             user_id=self.user_id,
         )
-        updated = services.update_workout(workout, {"expected_time": 60}, user_id=self.user_id)
+        updated = services.update_workout(
+            workout, {"expected_time": 60}, user_id=self.user_id
+        )
         self.assertEqual(updated.expected_time, 60)
 
     def test_workout_requires_date(self) -> None:
-        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
+        training_plan = services.create_training_plan(
+            {"name": "Strength Block"}, user_id=self.user_id
+        )
 
         with self.assertRaises(ValueError):
             services.create_workout(
@@ -48,7 +54,9 @@ class WorkoutServiceTests(TestCase):
             )
 
     def test_list_workouts_returns_ascending_dates(self) -> None:
-        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
+        training_plan = services.create_training_plan(
+            {"name": "Strength Block"}, user_id=self.user_id
+        )
         services.create_workout(
             {"plan": str(training_plan.id), "name": "Day 3", "date": "2026-06-11"},
             user_id=self.user_id,
@@ -70,7 +78,9 @@ class WorkoutServiceTests(TestCase):
         )
 
     def test_select_workout_landing_prefers_today(self) -> None:
-        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
+        training_plan = services.create_training_plan(
+            {"name": "Strength Block"}, user_id=self.user_id
+        )
         services.create_workout(
             {"plan": str(training_plan.id), "name": "Yesterday", "date": "2026-06-09"},
             user_id=self.user_id,
@@ -91,8 +101,12 @@ class WorkoutServiceTests(TestCase):
         self.assertTrue(landing.is_today)
         self.assertTrue(landing.has_workout_today)
 
-    def test_select_workout_landing_uses_closest_upcoming_when_today_missing(self) -> None:
-        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
+    def test_select_workout_landing_uses_closest_upcoming_when_today_missing(
+        self,
+    ) -> None:
+        training_plan = services.create_training_plan(
+            {"name": "Strength Block"}, user_id=self.user_id
+        )
         services.create_workout(
             {"plan": str(training_plan.id), "name": "Past", "date": "2026-06-09"},
             user_id=self.user_id,

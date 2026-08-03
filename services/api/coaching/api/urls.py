@@ -6,7 +6,6 @@ from coaching.api.views import (
     CoachTurnStreamAPIView,
 )
 
-
 urlpatterns = [
     path(
         "coach/turns/stream/",

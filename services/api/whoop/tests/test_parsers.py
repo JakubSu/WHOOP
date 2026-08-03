@@ -3,7 +3,13 @@ from __future__ import annotations
 from django.test import SimpleTestCase
 
 from whoop.exceptions import WhoopParseError
-from whoop.whoop_api.parsers import parse_cycle, parse_paginated_response, parse_recovery, parse_sleep, parse_workout
+from whoop.whoop_api.parsers import (
+    parse_cycle,
+    parse_paginated_response,
+    parse_recovery,
+    parse_sleep,
+    parse_workout,
+)
 
 
 class WhoopParserTests(SimpleTestCase):
@@ -18,7 +24,12 @@ class WhoopParserTests(SimpleTestCase):
                 "end": "2022-04-24T10:25:44.774Z",
                 "timezone_offset": "-05:00",
                 "score_state": "SCORED",
-                "score": {"strain": 5.2, "kilojoule": 8000.0, "average_heart_rate": 68, "max_heart_rate": 141},
+                "score": {
+                    "strain": 5.2,
+                    "kilojoule": 8000.0,
+                    "average_heart_rate": 68,
+                    "max_heart_rate": 141,
+                },
             }
         )
 
@@ -70,7 +81,9 @@ class WhoopParserTests(SimpleTestCase):
         self.assertEqual(workout_score.zone_durations.zone_three_milli, 900000)
 
     def test_parses_paginated_response(self) -> None:
-        page = parse_paginated_response({"records": [_workout_payload()], "next_token": "next"}, parse_workout)
+        page = parse_paginated_response(
+            {"records": [_workout_payload()], "next_token": "next"}, parse_workout
+        )
 
         self.assertEqual(page.next_token, "next")
         self.assertEqual(page.records[0].sport_name, "running")

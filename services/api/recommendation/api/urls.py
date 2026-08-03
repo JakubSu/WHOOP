@@ -1,31 +1,30 @@
 from django.urls import path
 
 from recommendation.api.views import (
-    RecommendationAcceptAPIView,
-    RecommendationCollectionAPIView,
+    RecommendationActionAPIView,
     RecommendationDetailAPIView,
-    RecommendationRejectAPIView,
+    RecommendationOperationAPIView,
 )
 
 urlpatterns = [
-    path(
-        "recommendations/",
-        RecommendationCollectionAPIView.as_view(),
-        name="recommendation-collection",
-    ),
     path(
         "recommendations/<uuid:id>/",
         RecommendationDetailAPIView.as_view(),
         name="recommendation-detail",
     ),
     path(
-        "recommendations/<uuid:id>/accept/",
-        RecommendationAcceptAPIView.as_view(),
-        name="recommendation-accept",
+        "recommendations/<uuid:id>/<str:action>/",
+        RecommendationActionAPIView.as_view(),
+        name="recommendation-action",
     ),
     path(
-        "recommendations/<uuid:id>/reject/",
-        RecommendationRejectAPIView.as_view(),
-        name="recommendation-reject",
+        "recommendations/<uuid:id>/operations/<uuid:operation_id>/",
+        RecommendationOperationAPIView.as_view(),
+        name="recommendation-operation",
+    ),
+    path(
+        "recommendations/<uuid:id>/operations/<uuid:operation_id>/<str:action>/",
+        RecommendationOperationAPIView.as_view(),
+        name="recommendation-operation-action",
     ),
 ]

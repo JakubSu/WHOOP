@@ -6,30 +6,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
-    dependencies = [  # noqa: RUF012
-        ('training', '0003_trainingplan_workoutexercise_seed_exercises'),
+    dependencies = [
+        ("training", "0003_trainingplan_workoutexercise_seed_exercises"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.AddField(
-            model_name='exercise',
-            name='default_intensity',
-            field=models.CharField(blank=True, default='', max_length=64),
+            model_name="exercise",
+            name="default_intensity",
+            field=models.CharField(blank=True, default="", max_length=64),
         ),
         migrations.AddField(
-            model_name='exercise',
-            name='secondary_muscle_groups',
+            model_name="exercise",
+            name="secondary_muscle_groups",
             field=models.JSONField(blank=True, default=list),
         ),
         migrations.AddField(
-            model_name='workoutexercise',
-            name='distance',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=8),
+            model_name="workoutexercise",
+            name="distance",
+            field=models.DecimalField(
+                decimal_places=2, default=Decimal("0.00"), max_digits=8
+            ),
         ),
         migrations.AddField(
-            model_name='workoutexercise',
-            name='intensity',
-            field=models.CharField(blank=True, default='', max_length=64),
+            model_name="workoutexercise",
+            name="intensity",
+            field=models.CharField(blank=True, default="", max_length=64),
         ),
     ]

@@ -22,7 +22,9 @@ class RecoveryService:
     ) -> PaginatedResponse[Recovery]:
         payload = self.client.get(
             "/v2/recovery",
-            params=paginated_params(limit=limit, start=start, end=end, next_token=next_token),
+            params=paginated_params(
+                limit=limit, start=start, end=end, next_token=next_token
+            ),
         )
         return parse_paginated_response(payload, parse_recovery)
 
