@@ -10,14 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name="recommendation",
-            name="recommendat_user_id_397991_idx",
-        ),
-        migrations.RemoveIndex(
-            model_name="recommendation",
-            name="recommendat_user_id_f8bf4c_idx",
-        ),
         migrations.AddConstraint(
             model_name="recommendationoperation",
             constraint=models.CheckConstraint(

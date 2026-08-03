@@ -14,6 +14,16 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             "DELETE FROM recommendation_recommendation", migrations.RunSQL.noop
         ),
+        # SQLite remakes the table for RemoveField.  These legacy indexes must
+        # be gone before their user_id columns are removed.
+        migrations.RemoveIndex(
+            model_name="recommendation",
+            name="recommendat_user_id_397991_idx",
+        ),
+        migrations.RemoveIndex(
+            model_name="recommendation",
+            name="recommendat_user_id_f8bf4c_idx",
+        ),
         migrations.RemoveField(model_name="recommendation", name="user_id"),
         migrations.RemoveField(model_name="recommendation", name="workout_id"),
         migrations.RemoveField(model_name="recommendation", name="snapshot_version"),
