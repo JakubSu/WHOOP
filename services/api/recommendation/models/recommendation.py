@@ -18,7 +18,9 @@ class Recommendation(models.Model):
     )
     conversation = models.ForeignKey(
         "coaching.CoachConversation",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="recommendations",
     )
     coach_message = models.ForeignKey(
@@ -33,6 +35,8 @@ class Recommendation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    conversation_id: uuid.UUID | None
+    coach_message_id: uuid.UUID | None
     operations: models.Manager["RecommendationOperation"]
 
     class Meta:
@@ -79,12 +83,19 @@ class RecommendationOperation(models.Model):
     source = models.CharField(
         max_length=64, choices=Source.choices, default=Source.DAILY_RECOMMENDATION
     )
-    created_by_message = models.ForeignKey(
+    conversation = models.ForeignKey(
+        "coaching.CoachConversation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recommendation_operations",
+    )
+    message = models.ForeignKey(
         "coaching.CoachMessage",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="created_recommendation_operations",
+        related_name="recommendation_operations",
     )
     supersedes = models.OneToOneField(
         "self",
@@ -101,6 +112,11 @@ class RecommendationOperation(models.Model):
         choices=[("user", "User"), ("coach_chat", "Coach chat"), ("system", "System")],
         default="coach_chat",
     )
+
+    recommendation_id: uuid.UUID
+    conversation_id: uuid.UUID | None
+    message_id: uuid.UUID | None
+    supersedes_id: uuid.UUID | None
 
     class Meta:
         ordering: ClassVar[list[str]] = ["created_at"]

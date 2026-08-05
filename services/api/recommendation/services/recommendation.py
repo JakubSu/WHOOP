@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from django.db import transaction
 from django.db.models import Case, IntegerField, Value, When
@@ -64,17 +65,47 @@ def create_recommendation(
                 ) from exc
         RecommendationOperation.objects.create(
             recommendation=recommendation,
+            conversation=conversation,
             operation_type=item.operation_type,
             reason=item.reason,
             payload=item.payload.model_dump(mode="json"),
             source=source,
-            created_by_message=coach_message,
+            message=coach_message,
             supersedes=supersedes,
         )
         if supersedes:
             supersedes.status = RecommendationOperation.Status.SUPERSEDED
             supersedes.resolved_at = timezone.now()
             supersedes.save(update_fields=["status", "resolved_at", "updated_at"])
+    return recommendation
+
+
+@transaction.atomic
+def attach_recommendation_to_coach_message(
+    *,
+    user: Any,
+    conversation: Any,
+    coach_message: Any,
+    recommendation_id: str | UUID,
+) -> Recommendation:
+    """Links a recommendation created by a coach tool to its completed response."""
+
+    try:
+        recommendation = Recommendation.objects.get(
+            pk=recommendation_id,
+            user=user,
+            conversation=conversation,
+            coach_message__isnull=True,
+        )
+    except Recommendation.DoesNotExist as exc:
+        raise RecommendationValidationError(
+            "Recommendation was not created for this coach conversation."
+        ) from exc
+    recommendation.coach_message = coach_message
+    recommendation.save(update_fields=["coach_message", "updated_at"])
+    RecommendationOperation.objects.filter(recommendation=recommendation).update(
+        message=coach_message
+    )
     return recommendation
 
 
@@ -178,6 +209,8 @@ def revise_operation(
     operation.save(update_fields=["status", "resolved_at", "updated_by", "updated_at"])
     RecommendationOperation.objects.create(
         recommendation=operation.recommendation,
+        conversation=operation.conversation,
+        message=operation.message,
         operation_type=validated_replacement.operation_type,
         reason=validated_replacement.reason,
         payload=validated_replacement.payload.model_dump(mode="json"),

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -168,7 +169,7 @@ class WhoopApiViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.json(),
+            json.loads(response.content),
             {"detail": "Invalid or expired WHOOP OAuth state."},
         )
 

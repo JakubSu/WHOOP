@@ -100,9 +100,8 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "training.apps.TrainingConfig",
     "recommendation.apps.RecommendationConfig",
-    "coaching.apps.CoachingConfig",
+    "coach.apps.CoachConfig",
     "whoop.apps.WhoopConfig",
-    "ai.apps.AiConfig",
 ]
 
 MIDDLEWARE = [
@@ -237,6 +236,16 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 OPENAI_TIMEOUT = float(os.environ.get("OPENAI_TIMEOUT", "30"))
 
+# The echo runner makes local message and SSE contract testing possible without a model.
+# Production remains unavailable until the real coach agent adapter is configured.
+COACH_RUNNER_FACTORY = os.environ.get(
+    "COACH_RUNNER_FACTORY",
+    "coach.implementations.echo.create_echo_runner"
+    if DEBUG
+    else "coach.runner.create_unavailable_runner",
+)
+COACH_ECHO_THINK_SECONDS = float(os.environ.get("COACH_ECHO_THINK_SECONDS", "0.5"))
+
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_LLM_PAYLOADS = env_bool("LOG_LLM_PAYLOADS", False)
 
@@ -269,7 +278,7 @@ LOGGING = {
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "coaching": {
+        "coach": {
             "handlers": ["console"],
             "level": LOG_LEVEL,
             "propagate": False,
