@@ -15,8 +15,16 @@ class ConversationSummarySerializer(serializers.Serializer):
 
     id = serializers.UUIDField(read_only=True)
     title = serializers.CharField(read_only=True, allow_null=True)
-    last_message_preview = serializers.CharField(read_only=True, allow_null=True)
+    last_message_preview = serializers.SerializerMethodField()
     updated_at = serializers.DateTimeField(read_only=True)
+
+    def get_last_message_preview(self, conversation: object) -> str | None:
+        """Returns the latest message excerpt used in the conversation history."""
+
+        preview = getattr(conversation, "last_message_preview", None)
+        if preview and len(preview) > 120:
+            return f"{preview[:117]}..."
+        return preview
 
 
 class ConversationPageSerializer(serializers.Serializer):

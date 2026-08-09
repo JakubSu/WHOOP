@@ -41,7 +41,7 @@ class ScenarioRunnerApiTests(TransactionTestCase):
         self.assertEqual(recommendation.coach_message_id, message.id)
         self.assertEqual(response.json()["recommendation"]["id"], str(recommendation.id))
 
-    def test_stream_emits_tool_operations_and_completion(self) -> None:
+    def test_stream_emits_tool_activities_and_recommendation_card(self) -> None:
         response = self.client.post(
             f"/api/v1/coach/conversations/{self.conversation.id}/messages/stream",
             {"content": "/test propose-new-workout"},
@@ -53,8 +53,8 @@ class ScenarioRunnerApiTests(TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("event: tool_started", body)
         self.assertIn("event: tool_completed", body)
-        self.assertIn("event: operation", body)
         self.assertIn("event: completed", body)
+        self.assertIn('"coach_card_snapshot"', body)
 
     def test_failed_scenario_expires_its_recommendation_without_saving_message(self) -> None:
         response = self.client.post(

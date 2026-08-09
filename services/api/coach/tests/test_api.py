@@ -255,14 +255,13 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(events[0]["event"], "message_started")
         self.assertEqual(events[1]["event"], "thinking_started")
-        self.assertEqual(events[-2]["event"], "operation")
-        self.assertEqual(events[-2]["data"]["operation"]["type"], "update_workout")
         self.assertEqual(events[-1]["event"], "completed")
         self.assertEqual(
-            events[-1]["data"]["message"]["recommendation"]["groups"][0]["operations"][0]["type"],
-            "update_workout",
+            events[-1]["data"]["message"]["recommendation"]["coach_card_snapshot"]["workout_groups"][0]["summary"]["updated"],
+            1,
         )
-        self.assertEqual(events[-3]["event"], "thinking_finished")
+        self.assertTrue(events[-1]["data"]["message"]["recommendation"]["actionable"])
+        self.assertEqual(events[-2]["event"], "thinking_finished")
         self.assertEqual(
             [item["data"]["sequence"] for item in events],
             list(range(len(events))),

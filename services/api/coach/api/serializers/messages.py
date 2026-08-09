@@ -1,4 +1,9 @@
+from typing import Any, cast
+
 from rest_framework import serializers
+
+from coach.models import CoachMessage
+from recommendation.models import Recommendation
 
 
 class CoachActivitySerializer(serializers.Serializer):
@@ -21,15 +26,6 @@ class CoachActivitySerializer(serializers.Serializer):
     )
 
 
-class CoachOperationSerializer(serializers.Serializer):
-    """Serializes a recommendation operation proposed by the assistant."""
-
-    id = serializers.UUIDField(read_only=True)
-    recommendation_id = serializers.UUIDField(read_only=True)
-    type = serializers.CharField(read_only=True)
-    status = serializers.CharField(read_only=True)
-
-
 class CoachMessageSerializer(serializers.Serializer):
     """Serializes a visible chat message."""
 
@@ -37,9 +33,35 @@ class CoachMessageSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=["user", "assistant"], read_only=True)
     content = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
-    activities = CoachActivitySerializer(many=True, read_only=True)
-    recommendation = serializers.DictField(read_only=True, allow_null=True)
-    operations = CoachOperationSerializer(many=True, read_only=True)
+    activities = serializers.SerializerMethodField()
+    recommendation = serializers.SerializerMethodField()
+
+    def get_activities(self, message: CoachMessage) -> list[dict[str, Any]]:
+        """Exposes activity logs only for assistant messages."""
+
+        activity_log = message.activity_log if message.role == CoachMessage.Role.ASSISTANT else []
+        return cast(
+            list[dict[str, Any]], CoachActivitySerializer(activity_log, many=True).data
+        )
+
+    def get_recommendation(self, message: CoachMessage) -> dict[str, Any] | None:
+        """Serializes the single recommendation card attached to an assistant message."""
+
+        if message.role != CoachMessage.Role.ASSISTANT:
+            return None
+        from recommendation.api.serializers import CoachRecommendationCardSerializer
+
+        attached = cast(
+            list[Recommendation] | None,
+            getattr(message, "coach_card_recommendations", None),
+        )
+        if attached is None:
+            attached = list(message.recommendations.all())
+        return (
+            cast(dict[str, Any], CoachRecommendationCardSerializer(attached[0]).data)
+            if attached
+            else None
+        )
 
 
 class MessagePageSerializer(serializers.Serializer):

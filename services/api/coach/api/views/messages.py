@@ -39,7 +39,10 @@ from coach.api.serializers import (
     MessagePageSerializer,
 )
 from coach.api.views.conversations import _conversation_or_404
-from coach.presentation import safe_activity_presentation
+from coach.presentation import (
+    recommendation_transitions_for_message,
+    safe_activity_presentation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,10 +97,9 @@ class MessageCollectionAPIView(APIView):
         except services.InvalidCursor as exc:
             raise ValidationError({"cursor": str(exc)}) from exc
         return Response(
-            {
-                "next": page.next_cursor,
-                "results": [services.serialize_message(item) for item in page.results],
-            }
+            MessagePageSerializer(
+                {"next": page.next_cursor, "results": page.results}
+            ).data
         )
 
     @extend_schema(
@@ -129,9 +131,7 @@ class MessageCollectionAPIView(APIView):
             user_content=content,
             result=result,
         )
-        return Response(
-            services.serialize_message(message), status=status.HTTP_201_CREATED
-        )
+        return Response(CoachMessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
 
 class MessageStreamAPIView(APIView):
@@ -246,10 +246,14 @@ class MessageStreamAPIView(APIView):
                             result=result,
                             activities=terminal_activities,
                         )
-                        payload = services.serialize_message(message)
-                        for operation in payload["operations"]:
-                            yield event("operation", {"operation": operation})
-                        yield event("completed", {"message": payload})
+                        payload = CoachMessageSerializer(message).data
+                        yield event(
+                            "completed",
+                            {
+                                "message": payload,
+                                "recommendation_transitions": recommendation_transitions_for_message(message),
+                            },
+                        )
                         completed = True
                         break
                 if not completed:

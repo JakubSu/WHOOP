@@ -8,10 +8,6 @@ from recommendation.services.errors import (
     RecommendationNotFound,
     RecommendationValidationError,
 )
-from recommendation.services.presentation import (
-    serialize_coach_recommendation,
-    serialize_recommendation,
-)
 from recommendation.services.resolution import (
     accept_operation,
     accept_recommendation,
@@ -34,6 +30,4 @@ __all__ = [
     "get_recommendation",
     "reject_operation",
     "reject_recommendation",
-    "serialize_coach_recommendation",
-    "serialize_recommendation",
 ]

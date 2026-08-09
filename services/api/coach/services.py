@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from django.db import transaction
-from django.db.models import OuterRef, Q, Subquery
+from django.db.models import Exists, OuterRef, Prefetch, Q, Subquery
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -113,7 +113,7 @@ def list_messages(
 
     conversation = get_conversation(user=user, conversation_id=conversation_id)
     queryset = CoachMessage.objects.filter(conversation=conversation).prefetch_related(
-        "recommendations__operations"
+        _recommendation_card_prefetch()
     )
     if cursor:
         cursor_time, cursor_id = _decode_cursor(cursor)
@@ -183,71 +183,25 @@ def save_completed_turn(
     conversation.save(update_fields=["updated_at"])
     return (
         CoachMessage.objects.filter(pk=assistant_message.pk)
-        .prefetch_related("recommendations__operations")
+        .prefetch_related(_recommendation_card_prefetch())
         .get()
     )
 
 
-def serialize_conversation(conversation: CoachConversation) -> dict[str, Any]:
-    """Builds the owned API representation of a conversation."""
+def _recommendation_card_prefetch() -> Prefetch:
+    """Loads each persisted chat card and its derived actionability flag."""
 
-    return {
-        "id": str(conversation.id),
-        "title": conversation.title,
-        "created_at": conversation.created_at.isoformat(),
-        "updated_at": conversation.updated_at.isoformat(),
-    }
+    from recommendation.models import Recommendation, RecommendationOperation
 
-
-def serialize_conversation_summary(conversation: CoachConversation) -> dict[str, Any]:
-    """Builds the compact conversation-history representation."""
-
-    preview = getattr(conversation, "last_message_preview", None)
-    if preview and len(preview) > 120:
-        preview = f"{preview[:117]}..."
-    return {
-        "id": str(conversation.id),
-        "title": conversation.title,
-        "last_message_preview": preview,
-        "updated_at": conversation.updated_at.isoformat(),
-    }
-
-
-def serialize_message(message: CoachMessage) -> dict[str, Any]:
-    """Builds the safe frontend-visible representation of a chat message."""
-
-    recommendation = None
-    if message.role == CoachMessage.Role.ASSISTANT:
-        from recommendation.services import serialize_coach_recommendation
-
-        # TODO: in the future we could have more recommendaitons as part of one message
-        attached = list(message.recommendations.all())
-        if attached:
-            recommendation = serialize_coach_recommendation(attached[0])
-    operations = [
-        operation
-        for group in (recommendation or {}).get("groups", [])
-        for operation in group["operations"]
-    ]
-    return {
-        "id": str(message.id),
-        "role": message.role,
-        "content": message.content,
-        "created_at": message.created_at.isoformat(),
-        "activities": message.activity_log
-        if message.role == CoachMessage.Role.ASSISTANT
-        else [],
-        "recommendation": recommendation,
-        "operations": [
-            {
-                "id": operation["id"],
-                "recommendation_id": recommendation["id"] if recommendation else "",
-                "type": operation["type"],
-                "status": operation["status"],
-            }
-            for operation in operations
-        ],
-    }
+    pending_operations = RecommendationOperation.objects.filter(
+        recommendation_id=OuterRef("pk"),
+        status=RecommendationOperation.Status.PENDING,
+    )
+    return Prefetch(
+        "recommendations",
+        queryset=Recommendation.objects.annotate(has_pending_operations=Exists(pending_operations)),
+        to_attr="coach_card_recommendations",
+    )
 
 
 def _encode_cursor(timestamp: datetime, row_id: uuid.UUID) -> str:

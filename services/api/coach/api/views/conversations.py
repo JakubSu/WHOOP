@@ -34,7 +34,7 @@ class ConversationCollectionAPIView(APIView):
     def post(self, request: Request) -> Response:
         conversation = services.create_conversation(request.user)
         return Response(
-            services.serialize_conversation(conversation),
+            ConversationSerializer(conversation).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -55,12 +55,9 @@ class ConversationCollectionAPIView(APIView):
         except services.InvalidCursor as exc:
             raise ValidationError({"cursor": str(exc)}) from exc
         return Response(
-            {
-                "next": page.next_cursor,
-                "results": [
-                    services.serialize_conversation_summary(item) for item in page.results
-                ],
-            }
+            ConversationPageSerializer(
+                {"next": page.next_cursor, "results": page.results}
+            ).data
         )
 
 
@@ -77,9 +74,7 @@ class ConversationDetailAPIView(APIView):
     )
     def get(self, request: Request, conversation_id: uuid.UUID) -> Response:
         return Response(
-            services.serialize_conversation(
-                _conversation_or_404(request, conversation_id)
-            )
+            ConversationSerializer(_conversation_or_404(request, conversation_id)).data
         )
 
     @extend_schema(
@@ -96,7 +91,7 @@ class ConversationDetailAPIView(APIView):
             conversation_id=conversation_id,
             updates=cast(dict[str, Any], serializer.validated_data),
         )
-        return Response(services.serialize_conversation(conversation))
+        return Response(ConversationSerializer(conversation).data)
 
     @extend_schema(
         tags=["Coach"],

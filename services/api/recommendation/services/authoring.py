@@ -20,7 +20,7 @@ from recommendation.services.errors import (
     RecommendationConflict,
     RecommendationValidationError,
 )
-from recommendation.services.presentation import build_presentation_snapshot
+from recommendation.services.presentation import build_coach_card_snapshot
 from training.models import Exercise, Workout, WorkoutExercise
 
 
@@ -129,8 +129,8 @@ def create_recommendation(
             reason=item.reason,
             payload=item.payload.model_dump(mode="json"),
         )
-    recommendation.presentation_snapshot = build_presentation_snapshot(recommendation)
-    recommendation.save(update_fields=["presentation_snapshot", "updated_at"])
+    recommendation.coach_card_snapshot = build_coach_card_snapshot(recommendation)
+    recommendation.save(update_fields=["coach_card_snapshot", "updated_at"])
     if active is not None:
         active.replaced_by = recommendation
         active.save(update_fields=["replaced_by", "updated_at"])

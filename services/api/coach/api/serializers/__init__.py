@@ -8,7 +8,6 @@ from coach.api.serializers.conversations import (
 from coach.api.serializers.messages import (
     CoachActivitySerializer,
     CoachMessageSerializer,
-    CoachOperationSerializer,
     MessageCreateSerializer,
     MessagePageSerializer,
 )
@@ -16,7 +15,6 @@ from coach.api.serializers.messages import (
 __all__ = [
     "CoachActivitySerializer",
     "CoachMessageSerializer",
-    "CoachOperationSerializer",
     "ConversationPageSerializer",
     "ConversationPatchSerializer",
     "ConversationSerializer",

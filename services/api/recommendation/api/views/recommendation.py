@@ -13,7 +13,6 @@ from recommendation.services import (
     get_recommendation,
     reject_operation,
     reject_recommendation,
-    serialize_recommendation,
 )
 
 
@@ -25,7 +24,7 @@ class RecommendationDetailAPIView(APIView):
         recommendation = get_recommendation(request.user, str(id))
         if recommendation is None:
             raise NotFound()
-        return Response(serialize_recommendation(recommendation))
+        return Response(RecommendationSerializer(recommendation).data)
 
 
 class RecommendationActionAPIView(APIView):
@@ -43,7 +42,7 @@ class RecommendationActionAPIView(APIView):
             raise NotFound(str(exc)) from exc
         except RecommendationConflict as exc:
             raise ValidationError(str(exc)) from exc
-        return Response(serialize_recommendation(recommendation))
+        return Response(RecommendationSerializer(recommendation).data)
 
 
 class RecommendationOperationAPIView(APIView):
@@ -65,7 +64,7 @@ class RecommendationOperationAPIView(APIView):
             raise NotFound(str(exc)) from exc
         except RecommendationConflict as exc:
             raise ValidationError(str(exc)) from exc
-        return Response(serialize_recommendation(recommendation))
+        return Response(RecommendationSerializer(recommendation).data)
 
 
 """     

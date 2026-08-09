@@ -44,7 +44,7 @@ class Recommendation(models.Model):
         choices=Source.choices,
         default=Source.DAILY_RECOMMENDATION,
     )
-    presentation_snapshot = models.JSONField(default=dict, blank=True)
+    coach_card_snapshot = models.JSONField(default=dict, blank=True)
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.ACTIVE, db_index=True
     )
