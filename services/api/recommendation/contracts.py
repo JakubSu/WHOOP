@@ -109,7 +109,6 @@ class RemoveExercisePayload(RecommendationModel):
 
 class OperationBase(RecommendationModel):
     reason: str
-    supersedes_operation_id: UUID | None = None
 
 
 class AddWorkoutOperation(OperationBase):
@@ -157,3 +156,10 @@ class RecommendationDraft(RecommendationModel):
     summary: str
     reason: str
     operations: list[RecommendationOperation] = Field(min_length=1)
+
+
+class ActiveRecommendation(RecommendationModel):
+    """Represents the one pending proposal the coach may replace in a conversation."""
+
+    recommendation_id: UUID
+    draft: RecommendationDraft

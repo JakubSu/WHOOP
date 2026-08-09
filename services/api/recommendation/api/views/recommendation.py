@@ -1,13 +1,20 @@
-from typing import Any, cast
-
 from rest_framework import permissions
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from recommendation import services
 from recommendation.api.serializers import RecommendationSerializer
+from recommendation.services import (
+    RecommendationConflict,
+    RecommendationNotFound,
+    accept_operation,
+    accept_recommendation,
+    get_recommendation,
+    reject_operation,
+    reject_recommendation,
+    serialize_recommendation,
+)
 
 
 class RecommendationDetailAPIView(APIView):
@@ -15,10 +22,10 @@ class RecommendationDetailAPIView(APIView):
     serializer_class = RecommendationSerializer
 
     def get(self, request: Request, id: str) -> Response:
-        recommendation = services.get_recommendation(request.user, str(id))
+        recommendation = get_recommendation(request.user, str(id))
         if recommendation is None:
             raise NotFound()
-        return Response(services.serialize_recommendation(recommendation))
+        return Response(serialize_recommendation(recommendation))
 
 
 class RecommendationActionAPIView(APIView):
@@ -29,16 +36,14 @@ class RecommendationActionAPIView(APIView):
             raise NotFound()
         try:
             handler = (
-                services.accept_recommendation
-                if action == "accept"
-                else services.reject_recommendation
+                accept_recommendation if action == "accept" else reject_recommendation
             )
             recommendation = handler(user=request.user, recommendation_id=str(id))
-        except services.RecommendationNotFound as exc:
+        except RecommendationNotFound as exc:
             raise NotFound(str(exc)) from exc
-        except services.RecommendationConflict as exc:
+        except RecommendationConflict as exc:
             raise ValidationError(str(exc)) from exc
-        return Response(services.serialize_recommendation(recommendation))
+        return Response(serialize_recommendation(recommendation))
 
 
 class RecommendationOperationAPIView(APIView):
@@ -50,21 +55,22 @@ class RecommendationOperationAPIView(APIView):
         if action not in {"accept", "reject"}:
             raise NotFound()
         try:
-            handler = (
-                services.accept_operation
-                if action == "accept"
-                else services.reject_operation
-            )
+            handler = accept_operation if action == "accept" else reject_operation
             recommendation = handler(
                 user=request.user,
                 recommendation_id=str(id),
                 operation_id=str(operation_id),
             )
-        except services.RecommendationNotFound as exc:
+        except RecommendationNotFound as exc:
             raise NotFound(str(exc)) from exc
-        except services.RecommendationConflict as exc:
+        except RecommendationConflict as exc:
             raise ValidationError(str(exc)) from exc
-        return Response(services.serialize_recommendation(recommendation))
+        return Response(serialize_recommendation(recommendation))
+
+
+"""     
+    disable the operation update as coach displays recommendaitons and 
+    do not wanna get mismatch between recommendaiton and the coach message 
 
     def patch(self, request: Request, id: str, operation_id: str) -> Response:
         try:
@@ -82,3 +88,4 @@ class RecommendationOperationAPIView(APIView):
         ) as exc:
             raise ValidationError(str(exc)) from exc
         return Response(services.serialize_recommendation(recommendation))
+"""

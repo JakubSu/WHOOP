@@ -6,7 +6,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from training import services
-from training.api.serializers import ExerciseErrorDetailSerializer, ExerciseSerializer
+from training.api.serializers import (
+    ExerciseErrorDetailSerializer,
+    ExerciseListQuerySerializer,
+    ExerciseSerializer,
+)
 from training.api.views.helpers import validated_data_as_dict
 
 
@@ -18,10 +22,16 @@ class ExerciseCollectionAPIView(APIView):
         tags=["Training"],
         summary="List exercises",
         description="Returns the exercise library available to the authenticated user.",
+        parameters=[ExerciseListQuerySerializer],
         responses={200: ExerciseSerializer(many=True)},
     )
     def get(self, request: Request) -> Response:
-        exercises = services.list_exercises(str(request.user.id))
+        query_serializer = ExerciseListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        query_data = validated_data_as_dict(query_serializer)
+        exercises = services.list_exercises(
+            str(request.user.id), muscle_group=query_data.get("muscleGroup")
+        )
         return Response(ExerciseSerializer(exercises, many=True).data)
 
     @extend_schema(

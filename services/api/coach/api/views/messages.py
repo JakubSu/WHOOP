@@ -19,16 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from coach import services
-from coach.api.serializers import (
-    CoachMessageSerializer,
-    CursorQuerySerializer,
-    MessageCreateSerializer,
-    MessagePageSerializer,
-)
-from coach.api.views.conversations import _conversation_or_404
-from coach.presentation import safe_activity_presentation
-from coach.runner import (
+from ai.runner import (
     ActivityChanged,
     CoachActivity,
     CoachRunnerUnavailable,
@@ -40,6 +31,15 @@ from coach.runner import (
     ThinkingChanged,
     get_coach_runner,
 )
+from coach import services
+from coach.api.serializers import (
+    CoachMessageSerializer,
+    CursorQuerySerializer,
+    MessageCreateSerializer,
+    MessagePageSerializer,
+)
+from coach.api.views.conversations import _conversation_or_404
+from coach.presentation import safe_activity_presentation
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,7 @@ class MessageCollectionAPIView(APIView):
         except CoachRunnerUnavailable as exc:
             raise CoachUnavailable() from exc
         except Exception as exc:
+            _expire_failed_run(request.user, run_request.run_id)
             logger.exception("coach_run_failed run_id=%s", run_request.run_id)
             raise CoachUnavailable() from exc
         result = _sanitize_result(result)
@@ -254,6 +255,7 @@ class MessageStreamAPIView(APIView):
                 if not completed:
                     raise RuntimeError("Coach runner ended without a result.")
             except Exception:
+                _expire_failed_run(request.user, run_request.run_id)
                 yield event("thinking_finished")
                 logger.exception("coach_stream_failed run_id=%s", run_request.run_id)
                 yield event(
@@ -278,6 +280,17 @@ def _run_request(request: Request, conversation: Any, content: str) -> CoachRunR
         content=content,
         ai_message_batches=services.load_ai_message_batches(conversation),
     )
+
+
+def _expire_failed_run(user: Any, run_id: uuid.UUID) -> None:
+    """Expires recommendation ledgers created before an unsuccessful coach run."""
+
+    from recommendation.services import expire_run_recommendations
+
+    try:
+        expire_run_recommendations(user=user, run_id=run_id)
+    except Exception:
+        logger.exception("coach_run_expiry_failed run_id=%s", run_id)
 
 
 def _sanitize_activity(activity: CoachActivity) -> CoachActivity:

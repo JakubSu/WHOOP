@@ -12,8 +12,8 @@ from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from ai.runner import CoachActivity, CoachRunResult
 from coach.models import CoachConversation, CoachMessage
-from coach.runner import CoachActivity, CoachRunResult
 
 CONVERSATION_PAGE_SIZE = 20
 MESSAGE_PAGE_SIZE = 30
@@ -64,8 +64,7 @@ def list_conversations(*, user: Any, cursor: str | None = None) -> Page:
     if cursor:
         cursor_time, cursor_id = _decode_cursor(cursor)
         queryset = queryset.filter(
-            Q(updated_at__lt=cursor_time)
-            | Q(updated_at=cursor_time, id__lt=cursor_id)
+            Q(updated_at__lt=cursor_time) | Q(updated_at=cursor_time, id__lt=cursor_id)
         )
     rows = list(queryset.order_by("-updated_at", "-id")[: CONVERSATION_PAGE_SIZE + 1])
     has_more = len(rows) > CONVERSATION_PAGE_SIZE
@@ -97,13 +96,12 @@ def delete_conversation(*, user: Any, conversation_id: uuid.UUID) -> None:
     conversation = get_conversation(user=user, conversation_id=conversation_id)
     now = timezone.now()
     RecommendationOperation.objects.filter(
-        conversation=conversation,
+        recommendation__conversation=conversation,
         status=RecommendationOperation.Status.PENDING,
     ).update(
         status=RecommendationOperation.Status.STALE,
         resolved_at=now,
         updated_at=now,
-        updated_by="system",
     )
     conversation.delete()
 
@@ -115,13 +113,12 @@ def list_messages(
 
     conversation = get_conversation(user=user, conversation_id=conversation_id)
     queryset = CoachMessage.objects.filter(conversation=conversation).prefetch_related(
-        "recommendation_operations"
+        "recommendations__operations"
     )
     if cursor:
         cursor_time, cursor_id = _decode_cursor(cursor)
         queryset = queryset.filter(
-            Q(created_at__lt=cursor_time)
-            | Q(created_at=cursor_time, id__lt=cursor_id)
+            Q(created_at__lt=cursor_time) | Q(created_at=cursor_time, id__lt=cursor_id)
         )
     rows = list(queryset.order_by("-created_at", "-id")[: MESSAGE_PAGE_SIZE + 1])
     has_more = len(rows) > MESSAGE_PAGE_SIZE
@@ -131,7 +128,9 @@ def list_messages(
     return Page(rows, next_cursor)
 
 
-def load_ai_message_batches(conversation: CoachConversation) -> list[list[dict[str, Any]]]:
+def load_ai_message_batches(
+    conversation: CoachConversation,
+) -> list[list[dict[str, Any]]]:
     """Loads completed assistant batches for reconstruction of private model history."""
 
     return list(
@@ -184,7 +183,7 @@ def save_completed_turn(
     conversation.save(update_fields=["updated_at"])
     return (
         CoachMessage.objects.filter(pk=assistant_message.pk)
-        .prefetch_related("recommendation_operations")
+        .prefetch_related("recommendations__operations")
         .get()
     )
 
@@ -217,23 +216,34 @@ def serialize_conversation_summary(conversation: CoachConversation) -> dict[str,
 def serialize_message(message: CoachMessage) -> dict[str, Any]:
     """Builds the safe frontend-visible representation of a chat message."""
 
-    operations = (
-        list(message.recommendation_operations.all())
-        if message.role == CoachMessage.Role.ASSISTANT
-        else []
-    )
+    recommendation = None
+    if message.role == CoachMessage.Role.ASSISTANT:
+        from recommendation.services import serialize_coach_recommendation
+
+        # TODO: in the future we could have more recommendaitons as part of one message
+        attached = list(message.recommendations.all())
+        if attached:
+            recommendation = serialize_coach_recommendation(attached[0])
+    operations = [
+        operation
+        for group in (recommendation or {}).get("groups", [])
+        for operation in group["operations"]
+    ]
     return {
         "id": str(message.id),
         "role": message.role,
         "content": message.content,
         "created_at": message.created_at.isoformat(),
-        "activities": message.activity_log if message.role == CoachMessage.Role.ASSISTANT else [],
+        "activities": message.activity_log
+        if message.role == CoachMessage.Role.ASSISTANT
+        else [],
+        "recommendation": recommendation,
         "operations": [
             {
-                "id": str(operation.id),
-                "recommendation_id": str(operation.recommendation_id),
-                "type": operation.operation_type,
-                "status": operation.status,
+                "id": operation["id"],
+                "recommendation_id": recommendation["id"] if recommendation else "",
+                "type": operation["type"],
+                "status": operation["status"],
             }
             for operation in operations
         ],

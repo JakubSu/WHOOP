@@ -38,6 +38,7 @@ class CoachMessageSerializer(serializers.Serializer):
     content = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     activities = CoachActivitySerializer(many=True, read_only=True)
+    recommendation = serializers.DictField(read_only=True, allow_null=True)
     operations = CoachOperationSerializer(many=True, read_only=True)
 
 

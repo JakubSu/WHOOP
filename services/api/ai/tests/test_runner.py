@@ -1,11 +1,13 @@
+"""Tests for the framework-independent runner contract and Echo implementation."""
+
 from __future__ import annotations
 
 import uuid
 
 from django.test import SimpleTestCase, override_settings
 
-from coach.implementations.echo import EchoCoachRunner
-from coach.runner import (
+from ai.implementations.echo import EchoCoachRunner
+from ai.runner import (
     CoachRunRequest,
     RunCompleted,
     TextDelta,
@@ -15,7 +17,7 @@ from coach.runner import (
 
 
 @override_settings(
-    COACH_RUNNER_FACTORY="coach.implementations.echo.create_echo_runner",
+    COACH_RUNNER_FACTORY="ai.implementations.echo.create_echo_runner",
     COACH_ECHO_THINK_SECONDS=0,
 )
 class EchoCoachRunnerTests(SimpleTestCase):
@@ -43,7 +45,7 @@ class EchoCoachRunnerTests(SimpleTestCase):
     def test_echo_implementation_is_separate_from_the_contract_module(self) -> None:
         """The concrete runner lives outside the runner contract module."""
 
-        self.assertEqual(EchoCoachRunner.__module__, "coach.implementations.echo")
+        self.assertEqual(EchoCoachRunner.__module__, "ai.implementations.echo")
 
     def test_stream_emits_progress_text_and_a_completion(self) -> None:
         """The streaming path produces the normal owned runner event sequence."""

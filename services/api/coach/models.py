@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 
 if TYPE_CHECKING:
-    from recommendation.models import RecommendationOperation
+    from recommendation.models import Recommendation
 
 
 class CoachConversation(models.Model):
@@ -49,8 +49,8 @@ class CoachMessage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     conversation_id: uuid.UUID
-    # Reverse relation declared by RecommendationOperation.message.
-    recommendation_operations: models.Manager["RecommendationOperation"]
+    # Reverse relation declared by Recommendation.coach_message.
+    recommendations: models.Manager["Recommendation"]
 
     class Meta:
         ordering: ClassVar[list[str]] = ["created_at", "id"]

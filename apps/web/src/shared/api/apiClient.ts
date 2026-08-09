@@ -3,6 +3,7 @@ import { ApiError } from './errors'
 
 type ApiRequestOptions = RequestInit & {
   skipRefresh?: boolean
+  baseUrl?: string
 }
 
 type AuthHandlers = {
@@ -30,8 +31,9 @@ async function requestWithAuth<T>(
   options: ApiRequestOptions,
   hasRetried: boolean,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
+  const { baseUrl = API_BASE_URL, ...fetchOptions } = options
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...fetchOptions,
     credentials: 'include',
     headers: buildHeaders(options),
   })

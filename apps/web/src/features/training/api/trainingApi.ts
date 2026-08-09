@@ -6,6 +6,7 @@ import {
   type WorkoutExercise,
   type WorkoutListPage,
 } from '../types'
+import { type MuscleGroup } from '../constants/muscleGroups'
 
 export type WorkoutExerciseInput = {
   exercise: string
@@ -88,8 +89,13 @@ export function deleteWorkoutExercise(workoutId: string, workoutExerciseId: stri
   })
 }
 
-export function listExercises() {
-  return apiRequest<Exercise[]>('/exercises/')
+export function listExercises(params: { muscleGroup?: MuscleGroup } = {}) {
+  const query = new URLSearchParams()
+  if (params.muscleGroup) {
+    query.set('muscleGroup', params.muscleGroup)
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  return apiRequest<Exercise[]>(`/exercises/${suffix}`)
 }
 
 export function createExercise(input: ExerciseInput) {

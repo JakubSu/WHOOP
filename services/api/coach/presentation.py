@@ -1,6 +1,6 @@
 from typing import Final
 
-from coach.runner import ActivityKind
+from ai.runner import ActivityKind
 
 TOOL_PRESENTATIONS: Final[dict[ActivityKind, str]] = {
     "recovery_data": "Fetching your recovery data…",

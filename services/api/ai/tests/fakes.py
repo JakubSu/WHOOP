@@ -1,11 +1,13 @@
+"""Deterministic runner doubles used by Coach API tests."""
+
 from collections.abc import Iterable
 from time import sleep
 
-from coach.runner import CoachRunnerEvent, CoachRunRequest, CoachRunResult
+from ai.runner import CoachRunnerEvent, CoachRunRequest, CoachRunResult
 
 
 class ScriptedRunner:
-    """A configurable runner double used to deterministically exercise Coach API paths."""
+    """A configurable runner double used to exercise Coach API paths."""
 
     result = CoachRunResult(content="Ready.", ai_message_batch=[])
     events: list[CoachRunnerEvent] = []

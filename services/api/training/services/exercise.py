@@ -5,8 +5,13 @@ from django.db.models import Q
 from training.models import Exercise
 
 
-def list_exercises(user_id: str) -> list[Exercise]:
-    return list(Exercise.objects.filter(Q(user_id=user_id) | Q(user_id="")))
+def list_exercises(
+    user_id: str, *, muscle_group: Exercise.MuscleGroup | None = None
+) -> list[Exercise]:
+    exercises = Exercise.objects.filter(Q(user_id=user_id) | Q(user_id=""))
+    if muscle_group is not None:
+        exercises = exercises.filter(muscle_group=muscle_group)
+    return list(exercises)
 
 
 def get_exercise(exercise_id: str, user_id: str) -> Exercise | None:

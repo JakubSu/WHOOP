@@ -16,7 +16,7 @@ class ExerciseServiceTests(TestCase):
                 "default_reps": 12,
                 "default_weight": "135.00",
                 "default_weight_unit": "kg",
-                "muscle_group": "Chest",
+                "muscle_group": Exercise.MuscleGroup.CHEST,
                 "default_time": 0,
                 "notes": "Keep core tight.",
             },
@@ -28,10 +28,17 @@ class ExerciseServiceTests(TestCase):
         self.assertEqual(exercise.default_reps, 12)
         self.assertEqual(str(exercise.default_weight), "135.00")
         self.assertEqual(exercise.default_weight_unit, "kg")
-        self.assertEqual(exercise.muscle_group, "Chest")
+        self.assertEqual(exercise.muscle_group, Exercise.MuscleGroup.CHEST)
         self.assertEqual(exercise.default_time, 0)
         self.assertEqual(exercise.notes, "Keep core tight.")
         self.assertEqual(Exercise.objects.count(), starting_count + 1)
+
+    def test_create_exercise_defaults_to_other_muscle_group(self) -> None:
+        """Exercises always receive a valid primary muscle-group value."""
+
+        exercise = services.create_exercise({"name": "Carry"}, user_id=self.user_id)
+
+        self.assertEqual(exercise.muscle_group, Exercise.MuscleGroup.OTHER)
 
     def test_update_exercise_defaults(self) -> None:
         exercise = services.create_exercise(

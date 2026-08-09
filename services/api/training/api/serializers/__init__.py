@@ -1,5 +1,6 @@
 from training.api.serializers.exercise import (
     ExerciseErrorDetailSerializer,
+    ExerciseListQuerySerializer,
     ExerciseSerializer,
 )
 from training.api.serializers.training_plan import (
@@ -22,6 +23,7 @@ from training.api.serializers.workout_exercise import (
 
 __all__ = [
     "ExerciseErrorDetailSerializer",
+    "ExerciseListQuerySerializer",
     "ExerciseSerializer",
     "PlanWorkoutSerializer",
     "TrainingPlanSerializer",

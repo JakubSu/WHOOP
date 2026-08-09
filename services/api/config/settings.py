@@ -240,9 +240,9 @@ OPENAI_TIMEOUT = float(os.environ.get("OPENAI_TIMEOUT", "30"))
 # Production remains unavailable until the real coach agent adapter is configured.
 COACH_RUNNER_FACTORY = os.environ.get(
     "COACH_RUNNER_FACTORY",
-    "coach.implementations.echo.create_echo_runner"
+    "ai.implementations.echo.create_echo_runner"
     if DEBUG
-    else "coach.runner.create_unavailable_runner",
+    else "ai.runner.create_unavailable_runner",
 )
 COACH_ECHO_THINK_SECONDS = float(os.environ.get("COACH_ECHO_THINK_SECONDS", "0.5"))
 

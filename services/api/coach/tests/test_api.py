@@ -10,18 +10,19 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from coach.models import CoachConversation, CoachMessage
-from coach.runner import (
+from ai.runner import (
     ActivityChanged,
     CoachActivity,
     CoachRunResult,
     RunCompleted,
     TextDelta,
 )
-from coach.tests.fakes import runner
+from ai.tests.fakes import runner
+from coach.models import CoachConversation, CoachMessage
 from recommendation.contracts import RecommendationDraft
 from recommendation.models import Recommendation, RecommendationOperation
 from recommendation.services import create_recommendation
+from training.models import Workout
 
 
 class CoachConversationApiTests(TestCase):
@@ -53,16 +54,16 @@ class CoachConversationApiTests(TestCase):
     def test_user_can_create_and_list_only_their_conversations(self) -> None:
         """Users see only their own newly created conversations in the sidebar list."""
 
-        create_response = self.client.post("/api/coach/conversations", {}, format="json")
+        create_response = self.client.post("/api/v1/coach/conversations", {}, format="json")
 
         self.assertEqual(create_response.status_code, 201)
         self.assertIsNone(create_response.json()["title"])
 
         other_client = APIClient()
         other_client.force_authenticate(self.other_user)
-        other_client.post("/api/coach/conversations", {}, format="json")
+        other_client.post("/api/v1/coach/conversations", {}, format="json")
 
-        list_response = self.client.get("/api/coach/conversations")
+        list_response = self.client.get("/api/v1/coach/conversations")
 
         self.assertEqual(list_response.status_code, 200)
         self.assertEqual(len(list_response.json()["results"]), 1)
@@ -79,12 +80,12 @@ class CoachConversationApiTests(TestCase):
         other = CoachConversation.objects.create(user=self.other_user)
 
         patch = self.client.patch(
-            f"/api/coach/conversations/{conversation.id}",
+            f"/api/v1/coach/conversations/{conversation.id}",
             {"title": " Marathon adjustments "},
             format="json",
         )
-        hidden = self.client.get(f"/api/coach/conversations/{other.id}")
-        deleted = self.client.delete(f"/api/coach/conversations/{conversation.id}")
+        hidden = self.client.get(f"/api/v1/coach/conversations/{other.id}")
+        deleted = self.client.delete(f"/api/v1/coach/conversations/{conversation.id}")
 
         self.assertEqual(patch.status_code, 200)
         self.assertEqual(patch.json()["title"], "Marathon adjustments")
@@ -98,9 +99,9 @@ class CoachConversationApiTests(TestCase):
         for index in range(21):
             CoachConversation.objects.create(user=self.user, title=f"Chat {index}")
 
-        first = self.client.get("/api/coach/conversations")
+        first = self.client.get("/api/v1/coach/conversations")
         second = self.client.get(
-            "/api/coach/conversations", {"cursor": first.json()["next"]}
+            "/api/v1/coach/conversations", {"cursor": first.json()["next"]}
         )
 
         self.assertEqual(len(first.json()["results"]), 20)
@@ -129,10 +130,10 @@ class CoachConversationApiTests(TestCase):
             )
 
         newest = self.client.get(
-            f"/api/coach/conversations/{conversation.id}/messages"
+            f"/api/v1/coach/conversations/{conversation.id}/messages"
         )
         older = self.client.get(
-            f"/api/coach/conversations/{conversation.id}/messages",
+            f"/api/v1/coach/conversations/{conversation.id}/messages",
             {"cursor": newest.json()["next"]},
         )
 
@@ -143,7 +144,7 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(older.json()["results"][0]["content"], "Message 00")
         self.assertEqual(older.json()["results"][0]["activities"], [])
 
-    @override_settings(COACH_RUNNER_FACTORY="coach.tests.fakes.create_runner")
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
     def test_message_run_receives_ordered_ai_batches_and_persists_complete_turn(self) -> None:
         """A completed turn receives ordered AI history and saves its visible result."""
 
@@ -169,7 +170,7 @@ class CoachConversationApiTests(TestCase):
         )
 
         response = self.client.post(
-            f"/api/coach/conversations/{conversation.id}/messages",
+            f"/api/v1/coach/conversations/{conversation.id}/messages",
             {"content": "Should I train today?"},
             format="json",
         )
@@ -185,12 +186,15 @@ class CoachConversationApiTests(TestCase):
         saved = conversation.messages.get(content="Reduce today’s volume.")
         self.assertEqual(saved.ai_message_batch, [{"batch": 2}])
 
-    @override_settings(COACH_RUNNER_FACTORY="coach.tests.fakes.create_runner")
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
     def test_stream_uses_owned_events_and_never_leaks_runner_labels(self) -> None:
         """The stream sanitizes runner details and links committed recommendation operations."""
 
         conversation = CoachConversation.objects.create(user=self.user)
         activity_id = uuid.uuid4()
+        workout = Workout.objects.create(
+            user_id=str(self.user.id), name="Tempo run", date="2026-08-05"
+        )
         recommendation = create_recommendation(
             user=self.user,
             conversation=conversation,
@@ -203,7 +207,7 @@ class CoachConversationApiTests(TestCase):
                             "operation_type": "update_workout",
                             "reason": "Keep the session manageable.",
                             "payload": {
-                                "workout_id": str(uuid.uuid4()),
+                                "workout_id": str(workout.id),
                                 "changes": {"name": "Easy session"},
                             },
                         }
@@ -239,7 +243,7 @@ class CoachConversationApiTests(TestCase):
         ]
 
         response = self.client.post(
-            f"/api/coach/conversations/{conversation.id}/messages/stream",
+            f"/api/v1/coach/conversations/{conversation.id}/messages/stream",
             {"content": "How am I doing?"},
             format="json",
             HTTP_ACCEPT="text/event-stream",
@@ -252,7 +256,12 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(events[0]["event"], "message_started")
         self.assertEqual(events[1]["event"], "thinking_started")
         self.assertEqual(events[-2]["event"], "operation")
+        self.assertEqual(events[-2]["data"]["operation"]["type"], "update_workout")
         self.assertEqual(events[-1]["event"], "completed")
+        self.assertEqual(
+            events[-1]["data"]["message"]["recommendation"]["groups"][0]["operations"][0]["type"],
+            "update_workout",
+        )
         self.assertEqual(events[-3]["event"], "thinking_finished")
         self.assertEqual(
             [item["data"]["sequence"] for item in events],
@@ -267,11 +276,13 @@ class CoachConversationApiTests(TestCase):
         )
         saved = conversation.messages.get(role=CoachMessage.Role.ASSISTANT)
         self.assertEqual(saved.activity_log[0]["status"], "completed")
-        operation = RecommendationOperation.objects.get(message=saved)
-        self.assertEqual(operation.conversation, conversation)
+        recommendation.refresh_from_db()
+        self.assertEqual(recommendation.coach_message, saved)
+        operation = RecommendationOperation.objects.get(recommendation=recommendation)
+        self.assertEqual(operation.status, RecommendationOperation.Status.PENDING)
 
     @override_settings(
-        COACH_RUNNER_FACTORY="coach.tests.fakes.create_runner",
+        COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner",
         COACH_STREAM_KEEPALIVE_SECONDS=0.01,
     )
     def test_stream_sends_keepalive_comments_while_runner_is_quiet(self) -> None:
@@ -284,7 +295,7 @@ class CoachConversationApiTests(TestCase):
         ]
 
         response = self.client.post(
-            f"/api/coach/conversations/{conversation.id}/messages/stream",
+            f"/api/v1/coach/conversations/{conversation.id}/messages/stream",
             {"content": "Wait for it."},
             format="json",
             HTTP_ACCEPT="text/event-stream",
@@ -307,21 +318,17 @@ class CoachConversationApiTests(TestCase):
         )
         operation = RecommendationOperation.objects.create(
             recommendation=recommendation,
-            conversation=conversation,
-            message=message,
             operation_type="update_workout",
             payload={"workout_id": str(uuid.uuid4()), "changes": {"name": "Easy"}},
         )
 
-        response = self.client.delete(f"/api/coach/conversations/{conversation.id}")
+        response = self.client.delete(f"/api/v1/coach/conversations/{conversation.id}")
 
         self.assertEqual(response.status_code, 204)
         operation.refresh_from_db()
         recommendation.refresh_from_db()
         self.assertEqual(operation.status, RecommendationOperation.Status.STALE)
         self.assertIsNotNone(operation.resolved_at)
-        self.assertIsNone(operation.conversation_id)
-        self.assertIsNone(operation.message_id)
         self.assertIsNone(recommendation.conversation_id)
 
 

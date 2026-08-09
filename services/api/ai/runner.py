@@ -1,3 +1,5 @@
+"""Framework-independent execution contract for coach-capable AI runners."""
+
 from __future__ import annotations
 
 import uuid
@@ -24,6 +26,8 @@ class CoachActivity:
     status: ActivityStatus
 
     def as_dict(self) -> dict[str, str]:
+        """Converts the activity to its owned JSON-compatible representation."""
+
         return {
             "id": str(self.id),
             "kind": self.kind,
@@ -34,7 +38,7 @@ class CoachActivity:
 
 @dataclass(frozen=True)
 class CoachRunRequest:
-    """The complete API-owned input required to execute one coach turn."""
+    """The API-owned input required to execute one coach turn."""
 
     run_id: uuid.UUID
     conversation_id: uuid.UUID
@@ -95,7 +99,7 @@ CoachRunnerEvent = (
 
 
 class CoachRunner(Protocol):
-    """The framework-independent interface implemented by a coach agent adapter."""
+    """The framework-independent interface implemented by a coach AI adapter."""
 
     def run(self, request: CoachRunRequest) -> CoachRunResult: ...
 
@@ -107,17 +111,21 @@ class CoachRunnerUnavailable(RuntimeError):
 
 
 class UnavailableCoachRunner:
-    """The default runner that reports the agent integration as unconfigured."""
+    """The default runner that reports the AI integration as unconfigured."""
 
     def run(self, request: CoachRunRequest) -> CoachRunResult:
+        """Raises because no concrete AI adapter is configured."""
+
         raise CoachRunnerUnavailable("The coach agent is not configured.")
 
     def stream(self, request: CoachRunRequest) -> Iterable[CoachRunnerEvent]:
+        """Raises because no concrete AI adapter is configured."""
+
         raise CoachRunnerUnavailable("The coach agent is not configured.")
 
 
 def create_unavailable_runner() -> CoachRunner:
-    """Creates the runner used when no coach implementation is configured."""
+    """Creates the runner used when no concrete implementation is configured."""
 
     return UnavailableCoachRunner()
 
@@ -126,7 +134,7 @@ def get_coach_runner() -> CoachRunner:
     """Loads the configured coach runner implementation."""
 
     factory_path = getattr(
-        settings, "COACH_RUNNER_FACTORY", "coach.runner.create_unavailable_runner"
+        settings, "COACH_RUNNER_FACTORY", "ai.runner.create_unavailable_runner"
     )
     factory = import_string(factory_path)
     return factory()
