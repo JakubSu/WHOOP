@@ -1,7 +1,7 @@
 """Deterministic runner doubles used by Coach API tests."""
 
-from collections.abc import Iterable
-from time import sleep
+import asyncio
+from collections.abc import AsyncIterator
 
 from ai.runner import CoachRunnerEvent, CoachRunRequest, CoachRunResult
 
@@ -14,19 +14,20 @@ class ScriptedRunner:
     requests: list[CoachRunRequest] = []
     stream_delay = 0.0
 
-    def run(self, request: CoachRunRequest) -> CoachRunResult:
+    async def run(self, request: CoachRunRequest) -> CoachRunResult:
         """Records the request and returns the configured non-streaming result."""
 
         self.requests.append(request)
         return self.result
 
-    def stream(self, request: CoachRunRequest) -> Iterable[CoachRunnerEvent]:
+    async def stream(self, request: CoachRunRequest) -> AsyncIterator[CoachRunnerEvent]:
         """Records the request and yields configured events after an optional delay."""
 
         self.requests.append(request)
         if self.stream_delay:
-            sleep(self.stream_delay)
-        yield from self.events
+            await asyncio.sleep(self.stream_delay)
+        for event in self.events:
+            yield event
 
 
 runner = ScriptedRunner()

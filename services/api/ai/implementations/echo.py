@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from time import sleep
+import asyncio
+from collections.abc import AsyncIterator
 
 from django.conf import settings
 
@@ -26,17 +26,17 @@ class EchoCoachRunner:
 
         self.thinking_seconds = max(thinking_seconds, 0)
 
-    def run(self, request: CoachRunRequest) -> CoachRunResult:
+    async def run(self, request: CoachRunRequest) -> CoachRunResult:
         """Returns the supplied user content after a small simulated delay."""
 
-        sleep(self.thinking_seconds)
+        await asyncio.sleep(self.thinking_seconds)
         return CoachRunResult(content=request.content, ai_message_batch=[])
 
-    def stream(self, request: CoachRunRequest) -> Iterable[CoachRunnerEvent]:
+    async def stream(self, request: CoachRunRequest) -> AsyncIterator[CoachRunnerEvent]:
         """Streams generic progress before returning the supplied user content."""
 
         yield ThinkingChanged(active=True)
-        sleep(self.thinking_seconds)
+        await asyncio.sleep(self.thinking_seconds)
         yield ThinkingChanged(active=False)
         yield TextDelta(delta=request.content)
         yield RunCompleted(CoachRunResult(content=request.content, ai_message_batch=[]))

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 import logging
-import queue
-import threading
 import uuid
-from collections.abc import Iterable, Iterator
+from collections.abc import AsyncIterable, AsyncIterator, Iterable
+from contextlib import suppress
 from typing import Any, cast
 
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
@@ -25,7 +27,6 @@ from ai.runner import (
     CoachRunnerUnavailable,
     CoachRunRequest,
     CoachRunResult,
-    Keepalive,
     RunCompleted,
     TextDelta,
     ThinkingChanged,
@@ -42,6 +43,7 @@ from coach.api.views.conversations import _conversation_or_404
 from coach.presentation import (
     recommendation_transitions_for_message,
     safe_activity_presentation,
+    updated_messages_for_message,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,7 +117,7 @@ class MessageCollectionAPIView(APIView):
         content = cast(dict[str, Any], serializer.validated_data)["content"]
         run_request = _run_request(request, conversation, content)
         try:
-            result = get_coach_runner().run(run_request)
+            result = async_to_sync(get_coach_runner().run)(run_request)
         except CoachRunnerUnavailable as exc:
             raise CoachUnavailable() from exc
         except Exception as exc:
@@ -163,7 +165,7 @@ class MessageStreamAPIView(APIView):
         assistant_message_id = uuid.uuid4()
         user_message_id = uuid.uuid4()
 
-        def stream() -> Iterator[bytes]:
+        async def stream() -> AsyncIterator[bytes]:
             sequence = 0
             thinking_active = False
             activities: dict[uuid.UUID, CoachActivity] = {}
@@ -188,13 +190,7 @@ class MessageStreamAPIView(APIView):
             thinking_active = True
             try:
                 runner_events = get_coach_runner().stream(run_request)
-                for runner_event in _events_with_keepalive(
-                    runner_events,
-                    float(getattr(settings, "COACH_STREAM_KEEPALIVE_SECONDS", 15)),
-                ):
-                    if isinstance(runner_event, Keepalive):
-                        yield b": keepalive\n\n"
-                        continue
+                async for runner_event in runner_events:
                     if isinstance(runner_event, ThinkingChanged):
                         if runner_event.active and not thinking_active:
                             yield event("thinking_started", {"label": "Thinking…"})
@@ -237,7 +233,9 @@ class MessageStreamAPIView(APIView):
                         terminal_activities = _merge_terminal_activities(
                             activities.values(), result.activities
                         )
-                        message = services.save_completed_turn(
+                        message = await sync_to_async(
+                            services.save_completed_turn, thread_sensitive=True
+                        )(
                             user=request.user,
                             conversation=conversation,
                             user_message_id=user_message_id,
@@ -246,20 +244,28 @@ class MessageStreamAPIView(APIView):
                             result=result,
                             activities=terminal_activities,
                         )
-                        payload = CoachMessageSerializer(message).data
+                        payload, transitions, updated_messages = await sync_to_async(
+                            _completed_message_payload, thread_sensitive=True
+                        )(message)
                         yield event(
                             "completed",
                             {
                                 "message": payload,
-                                "recommendation_transitions": recommendation_transitions_for_message(message),
+                                "recommendation_transitions": transitions,
+                                "updated_messages": updated_messages,
                             },
                         )
                         completed = True
                         break
                 if not completed:
                     raise RuntimeError("Coach runner ended without a result.")
+            except asyncio.CancelledError:
+                logger.info("coach_stream_cancelled run_id=%s", run_request.run_id)
+                raise
             except Exception:
-                _expire_failed_run(request.user, run_request.run_id)
+                await sync_to_async(_expire_failed_run, thread_sensitive=True)(
+                    request.user, run_request.run_id
+                )
                 yield event("thinking_finished")
                 logger.exception("coach_stream_failed run_id=%s", run_request.run_id)
                 yield event(
@@ -271,7 +277,18 @@ class MessageStreamAPIView(APIView):
                     },
                 )
 
-        return StreamingHttpResponse(stream(), content_type="text/event-stream")
+        response = StreamingHttpResponse(
+            _with_sse_heartbeats(
+                stream(),
+                interval_seconds=float(
+                    getattr(settings, "COACH_STREAM_KEEPALIVE_SECONDS", 15)
+                ),
+            ),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache, no-transform"
+        response["X-Accel-Buffering"] = "no"
+        return response
 
 
 def _run_request(request: Request, conversation: Any, content: str) -> CoachRunRequest:
@@ -345,49 +362,44 @@ def _sse(name: str, data: dict[str, Any]) -> bytes:
     return f"event: {name}\ndata: {json.dumps(data, separators=(',', ':'))}\n\n".encode()
 
 
-def _events_with_keepalive(
-    events: Iterable[Any], interval_seconds: float = 15
-) -> Iterator[Any]:
-    """Yields runner events while inserting keepalives during idle periods."""
+async def _with_sse_heartbeats(
+    frames: AsyncIterable[bytes], interval_seconds: float = 15
+) -> AsyncIterator[bytes]:
+    """Yields SSE frames and comments while preserving an idle connection."""
 
-    event_queue: queue.Queue[Any] = queue.Queue(maxsize=100)
-    cancelled = threading.Event()
-    finished = object()
-
-    def enqueue(item: Any) -> bool:
-        while not cancelled.is_set():
-            try:
-                event_queue.put(item, timeout=0.1)
-                return True
-            except queue.Full:
-                continue
-        return False
-
-    def consume() -> None:
-        try:
-            for item in events:
-                if not enqueue(item):
-                    return
-        except Exception as exc:  # noqa: BLE001 - propagate runner failures to request thread.
-            enqueue(exc)
-        finally:
-            enqueue(finished)
-
-    threading.Thread(target=consume, daemon=True, name="coach-event-stream").start()
+    iterator = aiter(frames)
+    pending = asyncio.ensure_future(anext(iterator))
     try:
         while True:
-            try:
-                item = event_queue.get(timeout=interval_seconds)
-            except queue.Empty:
-                yield Keepalive()
+            done, _ = await asyncio.wait({pending}, timeout=interval_seconds)
+            if not done:
+                yield b": keepalive\n\n"
                 continue
-            if item is finished:
+            try:
+                item = pending.result()
+            except StopAsyncIteration:
                 return
-            if isinstance(item, Exception):
-                raise item
+            pending = asyncio.ensure_future(anext(iterator))
             yield item
     finally:
-        cancelled.set()
-        close = getattr(events, "close", None)
+        pending.cancel()
+        with suppress(asyncio.CancelledError, StopAsyncIteration):
+            await pending
+        close = getattr(iterator, "aclose", None)
         if callable(close):
-            close()
+            close_result = close()
+            if inspect.isawaitable(close_result):
+                await close_result
+
+
+def _completed_message_payload(message: Any) -> tuple[dict[str, Any], Any, list[Any]]:
+    """Builds DB-backed completed-event fields outside the async event loop."""
+
+    return (
+        cast(dict[str, Any], CoachMessageSerializer(message).data),
+        recommendation_transitions_for_message(message),
+        cast(
+            list[Any],
+            CoachMessageSerializer(updated_messages_for_message(message), many=True).data,
+        ),
+    )

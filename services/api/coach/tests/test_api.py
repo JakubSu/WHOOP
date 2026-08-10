@@ -1,9 +1,10 @@
+import asyncio
 import json
 import uuid
-from collections.abc import Iterable
 from datetime import timedelta
 from typing import Any, cast
 
+from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
 from django.http import StreamingHttpResponse
 from django.test import TestCase, override_settings
@@ -18,11 +19,33 @@ from ai.runner import (
     TextDelta,
 )
 from ai.tests.fakes import runner
+from coach.api.views.messages import _with_sse_heartbeats
 from coach.models import CoachConversation, CoachMessage
 from recommendation.contracts import RecommendationDraft
 from recommendation.models import Recommendation, RecommendationOperation
 from recommendation.services import create_recommendation
 from training.models import Workout
+
+
+async def _collect_stream(response: StreamingHttpResponse) -> bytes:
+    return b"".join([item async for item in response.streaming_content])  # type: ignore[misc]
+
+
+async def _closing_heartbeat_stream_closes_source() -> bool:
+    closed = False
+
+    async def source():
+        nonlocal closed
+        try:
+            await asyncio.sleep(60)
+            yield b"unreachable"
+        finally:
+            closed = True
+
+    stream = _with_sse_heartbeats(source(), interval_seconds=0.001)
+    await anext(stream)
+    await cast(Any, stream).aclose()
+    return closed
 
 
 class CoachConversationApiTests(TestCase):
@@ -50,6 +73,9 @@ class CoachConversationApiTests(TestCase):
         runner.events = []
         runner.result = CoachRunResult(content="Ready.", ai_message_batch=[])
         runner.stream_delay = 0
+
+    def test_closing_idle_heartbeat_stream_closes_the_sse_iterator(self) -> None:
+        self.assertTrue(async_to_sync(_closing_heartbeat_stream_closes_source)())
 
     def test_user_can_create_and_list_only_their_conversations(self) -> None:
         """Users see only their own newly created conversations in the sidebar list."""
@@ -249,7 +275,7 @@ class CoachConversationApiTests(TestCase):
             HTTP_ACCEPT="text/event-stream",
         )
         response = cast(StreamingHttpResponse, response)
-        body = b"".join(cast(Iterable[bytes], response.streaming_content)).decode()
+        body = async_to_sync(_collect_stream)(response).decode()
         events = _parse_events(body)
 
         self.assertEqual(response.status_code, 200)
@@ -285,7 +311,7 @@ class CoachConversationApiTests(TestCase):
         COACH_STREAM_KEEPALIVE_SECONDS=0.01,
     )
     def test_stream_sends_keepalive_comments_while_runner_is_quiet(self) -> None:
-        """An idle runner produces SSE keepalive comments until it completes."""
+        """An idle response produces SSE heartbeat comments until it completes."""
 
         conversation = CoachConversation.objects.create(user=self.user)
         runner.stream_delay = 0.03
@@ -300,7 +326,7 @@ class CoachConversationApiTests(TestCase):
             HTTP_ACCEPT="text/event-stream",
         )
         response = cast(StreamingHttpResponse, response)
-        body = b"".join(cast(Iterable[bytes], response.streaming_content)).decode()
+        body = async_to_sync(_collect_stream)(response).decode()
 
         self.assertIn(": keepalive\n\n", body)
         self.assertIn("event: completed", body)

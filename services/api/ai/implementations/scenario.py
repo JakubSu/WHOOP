@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from datetime import timedelta
-from queue import Queue
-from threading import Thread
 from time import sleep
 from typing import Any
 
@@ -66,32 +65,46 @@ class ScenarioContext:
 class ScenarioCoachRunner:
     """Runs explicit message-code scenarios through the real coach tool interfaces."""
 
-    def run(self, request: CoachRunRequest) -> CoachRunResult:
+    async def run(self, request: CoachRunRequest) -> CoachRunResult:
         """Executes a scenario and returns its completed coach result."""
 
-        return self._execute(request)
+        return await asyncio.to_thread(self._execute, request)
 
-    def stream(self, request: CoachRunRequest) -> Iterable[CoachRunnerEvent]:
+    async def stream(self, request: CoachRunRequest) -> AsyncIterator[CoachRunnerEvent]:
         """Executes a scenario while exposing each tool call as progress activity."""
 
-        events: Queue[ActivityChanged | CoachRunResult | Exception] = Queue()
+        events: asyncio.Queue[ActivityChanged | CoachRunResult | Exception] = (
+            asyncio.Queue()
+        )
+        loop = asyncio.get_running_loop()
 
-        def execute() -> None:
+        def publish_activity(event: ActivityChanged) -> None:
+            loop.call_soon_threadsafe(events.put_nowait, event)
+
+        async def execute() -> None:
             try:
-                events.put(self._execute(request, activity_events=events.put))
+                result = await asyncio.to_thread(
+                    self._execute,
+                    request,
+                    activity_events=publish_activity,
+                )
+                events.put_nowait(result)
             except Exception as exc:  # noqa: BLE001 - relay tool failures to the SSE consumer
-                events.put(exc)
+                events.put_nowait(exc)
 
-        Thread(target=execute, daemon=True).start()
-        while True:
-            item = events.get()
-            if isinstance(item, Exception):
-                raise item
-            if isinstance(item, CoachRunResult):
-                yield TextDelta(item.content)
-                yield RunCompleted(item)
-                return
-            yield item
+        execution = asyncio.create_task(execute())
+        try:
+            while True:
+                item = await events.get()
+                if isinstance(item, Exception):
+                    raise item
+                if isinstance(item, CoachRunResult):
+                    yield TextDelta(item.content)
+                    yield RunCompleted(item)
+                    return
+                yield item
+        finally:
+            execution.cancel()
 
     def _execute(
         self,

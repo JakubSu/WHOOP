@@ -84,9 +84,9 @@ class Recommendation(models.Model):
                 name="rec_run_tool_call_unique",
             ),
             models.UniqueConstraint(
-                fields=["conversation"],
-                condition=Q(status="active", conversation__isnull=False),
-                name="rec_one_active_per_conversation",
+                fields=["user"],
+                condition=Q(status="active"),
+                name="rec_one_active_per_user",
             ),
         ]
 

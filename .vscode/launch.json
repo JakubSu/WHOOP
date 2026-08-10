@@ -2,13 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Django: Run Server",
+      "name": "Django: Run ASGI Server",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/services/api/manage.py",
+      "module": "uvicorn",
       "cwd": "${workspaceFolder}/services/api",
-      "args": ["runserver", "127.0.0.1:8000"],
-      "django": true,
+      "args": [
+        "config.asgi:application",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
       "justMyCode": true,
       "env": {
         "DJANGO_SETTINGS_MODULE": "config.settings",

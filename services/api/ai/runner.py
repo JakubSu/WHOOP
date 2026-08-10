@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterable
+from collections.abc import AsyncIterable, AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
@@ -88,22 +88,15 @@ class RunCompleted:
     result: CoachRunResult
 
 
-@dataclass(frozen=True)
-class Keepalive:
-    """An internal signal used to keep an otherwise idle event stream open."""
-
-
-CoachRunnerEvent = (
-    TextDelta | ThinkingChanged | ActivityChanged | RunCompleted | Keepalive
-)
+CoachRunnerEvent = TextDelta | ThinkingChanged | ActivityChanged | RunCompleted
 
 
 class CoachRunner(Protocol):
     """The framework-independent interface implemented by a coach AI adapter."""
 
-    def run(self, request: CoachRunRequest) -> CoachRunResult: ...
+    async def run(self, request: CoachRunRequest) -> CoachRunResult: ...
 
-    def stream(self, request: CoachRunRequest) -> Iterable[CoachRunnerEvent]: ...
+    def stream(self, request: CoachRunRequest) -> AsyncIterable[CoachRunnerEvent]: ...
 
 
 class CoachRunnerUnavailable(RuntimeError):
@@ -113,15 +106,16 @@ class CoachRunnerUnavailable(RuntimeError):
 class UnavailableCoachRunner:
     """The default runner that reports the AI integration as unconfigured."""
 
-    def run(self, request: CoachRunRequest) -> CoachRunResult:
+    async def run(self, request: CoachRunRequest) -> CoachRunResult:
         """Raises because no concrete AI adapter is configured."""
 
         raise CoachRunnerUnavailable("The coach agent is not configured.")
 
-    def stream(self, request: CoachRunRequest) -> Iterable[CoachRunnerEvent]:
+    async def stream(self, request: CoachRunRequest) -> AsyncIterator[CoachRunnerEvent]:
         """Raises because no concrete AI adapter is configured."""
 
         raise CoachRunnerUnavailable("The coach agent is not configured.")
+        yield TextDelta(delta="")  # pragma: no cover - makes this an async generator
 
 
 def create_unavailable_runner() -> CoachRunner:

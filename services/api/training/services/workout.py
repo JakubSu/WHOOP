@@ -3,6 +3,10 @@ from typing import Any
 
 from django.db.models import Count, QuerySet
 
+from recommendation.services.invalidation import (
+    stale_pending_recommendation_operations_for_workout,
+    stale_pending_recommendation_operations_for_workout_exercise,
+)
 from training.domain import WorkoutLanding
 from training.models import TrainingPlan, Workout
 
@@ -60,6 +64,7 @@ def update_workout(workout: Workout, data: dict[str, Any], *, user_id: str) -> W
     if workout.user_id != user_id:
         raise ValueError("Workout was not found.")
     payload = _normalized_workout_payload(data, existing=workout, user_id=user_id)
+    stale_pending_recommendation_operations_for_workout(workout_id=str(workout.id))
     for field, value in payload.items():
         setattr(workout, field, value)
     workout.save()
@@ -67,6 +72,11 @@ def update_workout(workout: Workout, data: dict[str, Any], *, user_id: str) -> W
 
 
 def delete_workout(workout: Workout) -> None:
+    stale_pending_recommendation_operations_for_workout(workout_id=str(workout.id))
+    for workout_exercise_id in workout.workout_exercises.values_list("id", flat=True):
+        stale_pending_recommendation_operations_for_workout_exercise(
+            workout_exercise_id=str(workout_exercise_id)
+        )
     workout.delete()
 
 

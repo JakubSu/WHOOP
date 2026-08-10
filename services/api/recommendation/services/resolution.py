@@ -12,6 +12,7 @@ from recommendation.services.errors import (
     RecommendationConflict,
     RecommendationNotFound,
 )
+from recommendation.services.presentation import refresh_coach_card_snapshot
 from training.models import Exercise, Workout, WorkoutExercise
 
 
@@ -51,6 +52,8 @@ def expire_run_recommendations(*, user: Any, run_id: UUID) -> int:
         resolved_at=now,
         updated_at=now,
     )
+    for recommendation in recommendations:
+        refresh_coach_card_snapshot(recommendation)
     return len(recommendation_ids)
 
 
@@ -67,6 +70,7 @@ def reject_operation(
     operation.resolved_at = timezone.now()
     operation.save(update_fields=["status", "resolved_at", "updated_at"])
     _complete_if_resolved(operation.recommendation)
+    refresh_coach_card_snapshot(operation.recommendation)
     return operation.recommendation
 
 
@@ -81,6 +85,7 @@ def reject_recommendation(*, user: Any, recommendation_id: str) -> Recommendatio
         recommendation=recommendation, status=RecommendationOperation.Status.PENDING
     ).update(status=RecommendationOperation.Status.REJECTED, resolved_at=timezone.now())
     _complete_if_resolved(recommendation)
+    refresh_coach_card_snapshot(recommendation)
     return recommendation
 
 
@@ -95,6 +100,7 @@ def accept_operation(
         raise RecommendationConflict("Operation is no longer pending.")
     _apply_operations(user=user, operations=_operation_bundle(operation))
     _complete_if_resolved(operation.recommendation)
+    refresh_coach_card_snapshot(operation.recommendation)
     return operation.recommendation
 
 
@@ -121,6 +127,7 @@ def accept_recommendation(*, user: Any, recommendation_id: str) -> Recommendatio
     )
     _apply_operations(user=user, operations=pending)
     _complete_if_resolved(recommendation)
+    refresh_coach_card_snapshot(recommendation)
     return recommendation
 
 
@@ -176,7 +183,7 @@ def _operation_bundle(
 
 
 def _apply_operations(*, user: Any, operations: list[RecommendationOperation]) -> None:
-    """Applies operations atomically and marks unresolved targets stale on failure."""
+    """Applies operations and marks only unavailable targets stale."""
 
     temporary_workouts: dict[str, Workout] = {}
     try:
@@ -193,15 +200,15 @@ def _apply_operations(*, user: Any, operations: list[RecommendationOperation]) -
         WorkoutExercise.DoesNotExist,
         ValueError,
         KeyError,
-    ) as exc:
+    ):
         for operation in operations:
             if operation.status == RecommendationOperation.Status.PENDING:
                 operation.status = RecommendationOperation.Status.STALE
                 operation.resolved_at = timezone.now()
                 operation.save(update_fields=["status", "resolved_at", "updated_at"])
-        raise RecommendationConflict(
-            "Recommendation target is no longer available."
-        ) from exc
+        # Stale is a successful resolution outcome: the user sees that the
+        # proposal is no longer applicable without losing their own edit.
+        return
 
 
 def _apply_operation(

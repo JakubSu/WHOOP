@@ -39,6 +39,7 @@ def load_ssm_parameters() -> None:
     parameter_names = {
         "SECRET_KEY": "django/secret-key",
         "OPENAI_API_KEY": "openai/api-key",
+        "LOGFIRE_TOKEN": "logfire/token",
         "WHOOP_CLIENT_ID": "whoop/client-id",
         "WHOOP_CLIENT_SECRET": "whoop/client-secret",
         "WHOOP_TOKEN_ENCRYPTION_KEY": "whoop/token-encryption-key",
@@ -235,6 +236,28 @@ AI_LLM_PROVIDER = os.environ.get("AI_LLM_PROVIDER", "openai")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 OPENAI_TIMEOUT = float(os.environ.get("OPENAI_TIMEOUT", "30"))
+
+COACH_HISTORY_MAX_BATCHES = int(os.environ.get("COACH_HISTORY_MAX_BATCHES", "12"))
+COACH_HISTORY_MAX_TOKENS = int(os.environ.get("COACH_HISTORY_MAX_TOKENS", "20000"))
+COACH_MAX_MODEL_REQUESTS = int(os.environ.get("COACH_MAX_MODEL_REQUESTS", "6"))
+COACH_MAX_TOOL_CALLS = int(os.environ.get("COACH_MAX_TOOL_CALLS", "12"))
+COACH_MAX_INPUT_TOKENS = int(os.environ.get("COACH_MAX_INPUT_TOKENS", "24000"))
+COACH_MAX_OUTPUT_TOKENS = int(os.environ.get("COACH_MAX_OUTPUT_TOKENS", "1200"))
+COACH_MAX_INPUT_TOKENS_PER_REQUEST = int(
+    os.environ.get("COACH_MAX_INPUT_TOKENS_PER_REQUEST", "20000")
+)
+COACH_TOOL_TIMEOUT_SECONDS = float(
+    os.environ.get("COACH_TOOL_TIMEOUT_SECONDS", "10")
+)
+COACH_STREAM_KEEPALIVE_SECONDS = float(
+    os.environ.get("COACH_STREAM_KEEPALIVE_SECONDS", "15")
+)
+COACH_MAX_COST_USD = os.environ.get("COACH_MAX_COST_USD", "0.05" if DEBUG else "")
+if not COACH_MAX_COST_USD:
+    raise RuntimeError("COACH_MAX_COST_USD must be configured when DEBUG=false.")
+COACH_LOGFIRE_ENABLED = env_bool("COACH_LOGFIRE_ENABLED", not DEBUG)
+LOGFIRE_TOKEN = os.environ.get("LOGFIRE_TOKEN", "")
+LOGFIRE_SERVICE_NAME = os.environ.get("LOGFIRE_SERVICE_NAME", "whoop-coach")
 
 # The echo runner makes local message and SSE contract testing possible without a model.
 # Production remains unavailable until the real coach agent adapter is configured.

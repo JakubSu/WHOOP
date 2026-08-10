@@ -5,7 +5,7 @@ from training.models import Workout, WorkoutExercise
 
 
 def build_coach_card_snapshot(recommendation: Recommendation) -> dict[str, Any]:
-    """Captures the compact, immutable card used in coach chat history."""
+    """Captures the compact, persisted history card used by coach chat."""
 
     operations = list(recommendation.operations.order_by("created_at"))
     workout_by_exercise_id = {
@@ -56,11 +56,21 @@ def build_coach_card_snapshot(recommendation: Recommendation) -> dict[str, Any]:
                     else "Training changes"
                 ),
                 "operation_ids": [],
-                "summary": {"total": 0, "added": 0, "updated": 0, "removed": 0},
+                "summary": {
+                    "total": 0,
+                    "pending": 0,
+                    "accepted": 0,
+                    "rejected": 0,
+                    "stale": 0,
+                    "added": 0,
+                    "updated": 0,
+                    "removed": 0,
+                },
             },
         )
         group["operation_ids"].append(str(operation.id))
         group["summary"]["total"] += 1
+        group["summary"][operation.status] += 1
         summary_key = {
             "add": "added",
             "update": "updated",
@@ -71,3 +81,11 @@ def build_coach_card_snapshot(recommendation: Recommendation) -> dict[str, Any]:
         "version": 1,
         "workout_groups": list(groups.values()),
     }
+
+
+def refresh_coach_card_snapshot(recommendation: Recommendation) -> Recommendation:
+    """Rebuilds the persisted card whenever its operation ledger changes."""
+
+    recommendation.coach_card_snapshot = build_coach_card_snapshot(recommendation)
+    recommendation.save(update_fields=["coach_card_snapshot", "updated_at"])
+    return recommendation

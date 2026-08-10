@@ -91,7 +91,8 @@ def patch_conversation(
 def delete_conversation(*, user: Any, conversation_id: uuid.UUID) -> None:
     """Deletes chat history while staling its unresolved recommendation operations."""
 
-    from recommendation.models import RecommendationOperation
+    from recommendation.models import Recommendation, RecommendationOperation
+    from recommendation.services.presentation import refresh_coach_card_snapshot
 
     conversation = get_conversation(user=user, conversation_id=conversation_id)
     now = timezone.now()
@@ -103,6 +104,13 @@ def delete_conversation(*, user: Any, conversation_id: uuid.UUID) -> None:
         resolved_at=now,
         updated_at=now,
     )
+    for recommendation in Recommendation.objects.filter(conversation=conversation):
+        if not recommendation.operations.filter(
+            status=RecommendationOperation.Status.PENDING
+        ).exists():
+            recommendation.status = Recommendation.Status.COMPLETED
+            recommendation.save(update_fields=["status", "updated_at"])
+        refresh_coach_card_snapshot(recommendation)
     conversation.delete()
 
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
+from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
 from django.http import StreamingHttpResponse
 from django.test import TransactionTestCase, override_settings
@@ -14,11 +15,15 @@ from training.models import Exercise
 SCENARIO_FACTORY = "ai.implementations.scenario.create_scenario_runner"
 
 
+async def _collect_stream(response: StreamingHttpResponse) -> bytes:
+    return b"".join([item async for item in response.streaming_content])  # type: ignore[misc]
+
+
 @override_settings(COACH_RUNNER_FACTORY=SCENARIO_FACTORY)
 class ScenarioRunnerApiTests(TransactionTestCase):
     def setUp(self) -> None:
         user_model = get_user_model()
-        self.user = user_model.objects.create_user(
+        self.user = cast(Any, user_model.objects).create_user(
             email="scenario-api@example.com", password="strong-password"
         )
         self.client = APIClient()
@@ -48,7 +53,7 @@ class ScenarioRunnerApiTests(TransactionTestCase):
             format="json",
             HTTP_ACCEPT="text/event-stream",
         )
-        body = b"".join(cast(StreamingHttpResponse, response).streaming_content).decode()
+        body = async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response)).decode()
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("event: tool_started", body)

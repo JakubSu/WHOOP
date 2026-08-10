@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 
+from asgiref.sync import async_to_sync
 from django.test import SimpleTestCase, override_settings
 
 from ai.implementations.echo import EchoCoachRunner
@@ -14,6 +15,10 @@ from ai.runner import (
     ThinkingChanged,
     get_coach_runner,
 )
+
+
+async def _collect_events(runner: object, request: CoachRunRequest) -> list[object]:
+    return [event async for event in runner.stream(request)]  # type: ignore[attr-defined]
 
 
 @override_settings(
@@ -37,7 +42,7 @@ class EchoCoachRunnerTests(SimpleTestCase):
     def test_run_echoes_the_new_user_message(self) -> None:
         """The non-streaming path returns exactly the new user content."""
 
-        result = get_coach_runner().run(self.request)
+        result = async_to_sync(get_coach_runner().run)(self.request)
 
         self.assertEqual(result.content, "Repeat this.")
         self.assertEqual(result.ai_message_batch, [])
@@ -50,7 +55,7 @@ class EchoCoachRunnerTests(SimpleTestCase):
     def test_stream_emits_progress_text_and_a_completion(self) -> None:
         """The streaming path produces the normal owned runner event sequence."""
 
-        events = list(get_coach_runner().stream(self.request))
+        events = async_to_sync(_collect_events)(get_coach_runner(), self.request)
 
         self.assertEqual(events[0], ThinkingChanged(active=True))
         self.assertEqual(events[1], ThinkingChanged(active=False))

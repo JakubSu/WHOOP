@@ -17,4 +17,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
+CMD ["gunicorn", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "config.asgi:application"]

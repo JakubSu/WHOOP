@@ -2,6 +2,9 @@ from typing import Any
 
 from django.db.models import Q
 
+from recommendation.services.invalidation import (
+    stale_pending_recommendation_operations_for_workout_exercise,
+)
 from training.models import Exercise, Workout, WorkoutExercise
 
 
@@ -38,6 +41,9 @@ def update_workout_exercise(
 ) -> WorkoutExercise:
     if workout_exercise.workout.user_id != user_id:
         raise ValueError("Workout exercise was not found.")
+    stale_pending_recommendation_operations_for_workout_exercise(
+        workout_exercise_id=str(workout_exercise.id)
+    )
     payload = _normalized_workout_exercise_payload(
         data, existing=workout_exercise, user_id=user_id
     )
@@ -50,6 +56,9 @@ def update_workout_exercise(
 def delete_workout_exercise(workout_exercise: WorkoutExercise, *, user_id: str) -> None:
     if workout_exercise.workout.user_id != user_id:
         raise ValueError("Workout exercise was not found.")
+    stale_pending_recommendation_operations_for_workout_exercise(
+        workout_exercise_id=str(workout_exercise.id)
+    )
     workout_exercise.delete()
 
 

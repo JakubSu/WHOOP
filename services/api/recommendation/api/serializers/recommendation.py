@@ -3,6 +3,9 @@ from typing import Any, cast
 from rest_framework import serializers
 
 from recommendation.models import Recommendation, RecommendationOperation
+from training.api.serializers.workout import WorkoutSerializer
+from training.api.serializers.workout_exercise import WorkoutExercisePageSerializer
+from training.models import Workout, WorkoutExercise
 
 
 class RecommendationOperationSerializer(serializers.Serializer):
@@ -58,6 +61,9 @@ class RecommendationSerializer(serializers.Serializer):
     id = serializers.UUIDField(
         read_only=True, help_text="Unique identifier for the recommendation."
     )
+    status = serializers.ChoiceField(
+        choices=Recommendation.Status.choices, read_only=True
+    )
     summary = serializers.CharField(
         read_only=True, help_text="Short summary of the recommendation."
     )
@@ -66,14 +72,62 @@ class RecommendationSerializer(serializers.Serializer):
         allow_blank=True,
         help_text="Longer reason explaining why the recommendation was generated.",
     )
+    coach_card_snapshot = serializers.JSONField(read_only=True)
     operations = serializers.SerializerMethodField()
+    workouts = serializers.SerializerMethodField()
+
+    def get_workouts(self, recommendation: Recommendation) -> list[dict[str, Any]]:
+        """Returns current read-only workouts represented by pending changes."""
+
+        pending = list(
+            recommendation.operations.filter(
+                status=RecommendationOperation.Status.PENDING
+            ).order_by("created_at")
+        )
+        exercise_ids = [
+            operation.payload["workout_exercise_id"]
+            for operation in pending
+            if operation.payload.get("workout_exercise_id")
+        ]
+        exercise_workouts = {
+            str(exercise.id): str(exercise.workout_id)
+            for exercise in WorkoutExercise.objects.filter(pk__in=exercise_ids)
+        }
+        workout_ids = {
+            str(operation.payload["workout_id"])
+            for operation in pending
+            if operation.payload.get("workout_id")
+        } | set(exercise_workouts.values())
+        workouts = {
+            str(workout.id): workout
+            for workout in Workout.objects.filter(pk__in=workout_ids).prefetch_related(
+                "workout_exercises__exercise"
+            )
+        }
+        result: list[dict[str, Any]] = []
+        for group in recommendation.coach_card_snapshot.get("workout_groups", []):
+            workout = workouts.get(str(group["id"]))
+            if workout is None:
+                continue
+            exercises = sorted(
+                workout.workout_exercises.all(), key=lambda item: item.sort_order
+            )
+            result.append(
+                {
+                    "id": str(workout.id),
+                    "title": group["title"],
+                    "workout": WorkoutSerializer(workout).data,
+                    "exercises": WorkoutExercisePageSerializer(exercises, many=True).data,
+                }
+            )
+        return result
 
     def get_operations(self, recommendation: Recommendation) -> list[dict[str, Any]]:
-        """Omits stale rows and nests new-workout exercise additions under their parent."""
+        """Returns only pending changes for the active, actionable card."""
 
         operations = list(
-            recommendation.operations.exclude(
-                status=RecommendationOperation.Status.STALE
+            recommendation.operations.filter(
+                status=RecommendationOperation.Status.PENDING
             ).order_by("created_at")
         )
         serialized_operations = cast(

@@ -20,7 +20,7 @@ from recommendation.services.errors import (
     RecommendationConflict,
     RecommendationValidationError,
 )
-from recommendation.services.presentation import build_coach_card_snapshot
+from recommendation.services.presentation import refresh_coach_card_snapshot
 from training.models import Exercise, Workout, WorkoutExercise
 
 
@@ -42,6 +42,10 @@ def create_recommendation(
 
     draft = RecommendationDraft.model_validate(draft)
     _validate_conversation(user=user, conversation=conversation)
+    if not draft.operations:
+        raise RecommendationValidationError(
+            "A recommendation must include at least one operation."
+        )
     if (run_id is None) != (tool_call_id is None):
         raise RecommendationValidationError(
             "A recommendation tool call requires both run and tool call IDs."
@@ -67,7 +71,6 @@ def create_recommendation(
         Recommendation.objects.select_for_update()
         .filter(
             user=user,
-            conversation=conversation,
             status=Recommendation.Status.ACTIVE,
         )
         .first()
@@ -96,6 +99,7 @@ def create_recommendation(
             resolved_at=superseded_at,
             updated_at=superseded_at,
         )
+        refresh_coach_card_snapshot(active)
     try:
         with transaction.atomic():
             recommendation = Recommendation.objects.create(
@@ -129,8 +133,7 @@ def create_recommendation(
             reason=item.reason,
             payload=item.payload.model_dump(mode="json"),
         )
-    recommendation.coach_card_snapshot = build_coach_card_snapshot(recommendation)
-    recommendation.save(update_fields=["coach_card_snapshot", "updated_at"])
+    refresh_coach_card_snapshot(recommendation)
     if active is not None:
         active.replaced_by = recommendation
         active.save(update_fields=["replaced_by", "updated_at"])
@@ -163,13 +166,12 @@ def attach_recommendation_to_coach_message(
 def get_active_recommendation(
     *, user: Any, conversation: Any
 ) -> ActiveRecommendation | None:
-    """Returns the conversation's copyable pending proposal for the coach tool."""
+    """Returns the user's copyable pending proposal for the coach tool."""
 
     _validate_conversation(user=user, conversation=conversation)
     recommendation = (
         Recommendation.objects.filter(
             user=user,
-            conversation=conversation,
             status=Recommendation.Status.ACTIVE,
         )
         .prefetch_related("operations")

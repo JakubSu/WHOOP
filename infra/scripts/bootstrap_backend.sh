@@ -16,6 +16,7 @@ WEB_IMAGE="${8:?Immutable web image is required.}"
 API_IMAGE="${9:?Immutable API image is required.}"
 COMPOSE_CONFIG_B64="${10:?Compose configuration is required.}"
 RELEASE_SHA="${11:?Release commit SHA is required.}"
+COACH_CONFIG_B64="${12:?Coach configuration is required.}"
 
 mkdir -p "$DEPLOY_LOG_DIR"
 touch "$DEPLOY_LOG"
@@ -73,6 +74,8 @@ OPENAI_MODEL=${OPENAI_MODEL}
 WEB_IMAGE=${WEB_IMAGE}
 API_IMAGE=${API_IMAGE}
 EOF
+printf '%s' "$COACH_CONFIG_B64" | base64 --decode >>"$APP_DIR/.env"
+printf '\n' >>"$APP_DIR/.env"
 chmod 600 "$APP_DIR/.env"
 
 cat >"$APP_DIR/release.env" <<EOF

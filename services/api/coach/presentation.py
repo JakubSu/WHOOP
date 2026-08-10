@@ -35,3 +35,21 @@ def recommendation_transitions_for_message(message: Any) -> list[dict[str, Any]]
         }
         for item in Recommendation.objects.filter(replaced_by=attached[0])
     ]
+
+
+def updated_messages_for_message(message: Any) -> list[Any]:
+    """Returns only prior chat messages whose recommendation changed this turn."""
+
+    from recommendation.models import Recommendation
+
+    attached = getattr(message, "coach_card_recommendations", None)
+    if attached is None:
+        attached = list(message.recommendations.all())
+    if not attached:
+        return []
+    return [
+        item.coach_message
+        for item in Recommendation.objects.select_related("coach_message").filter(
+            replaced_by=attached[0], coach_message__isnull=False
+        )
+    ]

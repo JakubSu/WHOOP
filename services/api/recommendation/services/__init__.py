@@ -8,6 +8,10 @@ from recommendation.services.errors import (
     RecommendationNotFound,
     RecommendationValidationError,
 )
+from recommendation.services.invalidation import (
+    stale_pending_recommendation_operations_for_workout,
+    stale_pending_recommendation_operations_for_workout_exercise,
+)
 from recommendation.services.resolution import (
     accept_operation,
     accept_recommendation,
@@ -30,4 +34,6 @@ __all__ = [
     "get_recommendation",
     "reject_operation",
     "reject_recommendation",
+    "stale_pending_recommendation_operations_for_workout",
+    "stale_pending_recommendation_operations_for_workout_exercise",
 ]
