@@ -83,7 +83,9 @@ class CoachToolTests(TestCase):
         """A repeated framework retry returns one user-owned recommendation ledger."""
 
         first = create_recommendation(self.context(), draft=self.draft(self.workout.id))
-        second = create_recommendation(self.context(), draft=self.draft(self.workout.id))
+        second = create_recommendation(
+            self.context(), draft=self.draft(self.workout.id)
+        )
 
         self.assertEqual(first.recommendation_id, second.recommendation_id)
         recommendation = Recommendation.objects.get(pk=first.recommendation_id)
@@ -138,16 +140,22 @@ class CoachToolTests(TestCase):
         original_operation = RecommendationOperation.objects.get(
             recommendation=original_recommendation
         )
-        self.assertEqual(original_recommendation.status, Recommendation.Status.SUPERSEDED)
+        self.assertEqual(
+            original_recommendation.status, Recommendation.Status.SUPERSEDED
+        )
         self.assertEqual(
             original_recommendation.replaced_by_id,
             replacement_result.recommendation_id,
         )
-        self.assertEqual(original_operation.status, RecommendationOperation.Status.STALE)
+        self.assertEqual(
+            original_operation.status, RecommendationOperation.Status.STALE
+        )
         active = get_active_recommendation(self.context(tool_call_id="read"))
         self.assertIsNotNone(active)
         if active is not None:
-            self.assertEqual(active.recommendation_id, replacement_result.recommendation_id)
+            self.assertEqual(
+                active.recommendation_id, replacement_result.recommendation_id
+            )
             self.assertEqual(active.draft.summary, "Reduce volume further")
 
     def test_read_tools_return_only_user_scoped_records(self) -> None:
@@ -189,9 +197,7 @@ class CoachToolTests(TestCase):
         triceps = Exercise.objects.create(
             name="Triceps press", muscle_group=Exercise.MuscleGroup.TRICEPS
         )
-        Exercise.objects.create(
-            name="Back row", muscle_group=Exercise.MuscleGroup.BACK
-        )
+        Exercise.objects.create(name="Back row", muscle_group=Exercise.MuscleGroup.BACK)
 
         exercises = search_exercises(
             self.context(),
@@ -244,14 +250,18 @@ class CoachToolTests(TestCase):
     ) -> None:
         """The tool preserves its optional result when no WHOOP account exists."""
 
-        create_summary_service.return_value.execute.side_effect = WhoopConnectionNotFound
+        create_summary_service.return_value.execute.side_effect = (
+            WhoopConnectionNotFound
+        )
 
         self.assertIsNone(get_whoop_summary(self.context()))
 
     def test_expiring_a_failed_run_preserves_the_ledger(self) -> None:
         """A failed run expires its recommendations and stales only pending operations."""
 
-        created = create_recommendation(self.context(), draft=self.draft(self.workout.id))
+        created = create_recommendation(
+            self.context(), draft=self.draft(self.workout.id)
+        )
 
         expired_count = expire_run_recommendations(user=self.user, run_id=self.run_id)
 

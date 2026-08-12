@@ -25,7 +25,9 @@ def supersede_duplicate_active_recommendations(apps, schema_editor):
         for recommendation in active[1:]:
             recommendation.status = "superseded"
             recommendation.superseded_at = now
-            recommendation.save(using=database, update_fields=["status", "superseded_at"])
+            recommendation.save(
+                using=database, update_fields=["status", "superseded_at"]
+            )
             operation_model.objects.using(database).filter(
                 recommendation_id=recommendation.id, status="pending"
             ).update(status="stale", resolved_at=now, updated_at=now)
@@ -86,7 +88,9 @@ class Migration(migrations.Migration):
             model_name="recommendationoperation",
             name="rec_op_not_self_superseding",
         ),
-        migrations.RemoveField(model_name="recommendationoperation", name="conversation"),
+        migrations.RemoveField(
+            model_name="recommendationoperation", name="conversation"
+        ),
         migrations.RemoveField(model_name="recommendationoperation", name="message"),
         migrations.RemoveField(model_name="recommendationoperation", name="supersedes"),
         migrations.AlterField(

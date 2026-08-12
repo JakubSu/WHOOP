@@ -24,7 +24,9 @@ class CoachConversation(models.Model):
     class Meta:
         ordering: ClassVar[list[str]] = ["-updated_at", "-id"]
         indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["user", "updated_at"], name="coach_conv_user_updated_idx")
+            models.Index(
+                fields=["user", "updated_at"], name="coach_conv_user_updated_idx"
+            )
         ]
 
     def __str__(self) -> str:

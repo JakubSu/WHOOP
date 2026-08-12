@@ -37,4 +37,6 @@ class ConversationPageSerializer(serializers.Serializer):
 class ConversationPatchSerializer(serializers.Serializer):
     """Validates supported updates to a coach conversation."""
 
-    title = serializers.CharField(max_length=200, allow_blank=False, trim_whitespace=True)
+    title = serializers.CharField(
+        max_length=200, allow_blank=False, trim_whitespace=True
+    )

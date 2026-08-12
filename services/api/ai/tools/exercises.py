@@ -38,5 +38,7 @@ def search_exercises(
             prescription_type=exercise.prescription_type,
             muscle_group=exercise.muscle_group,
         )
-        for exercise in exercises.order_by("name", "id")[: max(1, min(limit, MAX_EXERCISE_RESULTS))]
+        for exercise in exercises.order_by("name", "id")[
+            : max(1, min(limit, MAX_EXERCISE_RESULTS))
+        ]
     ]

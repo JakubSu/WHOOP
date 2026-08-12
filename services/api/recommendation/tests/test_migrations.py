@@ -25,7 +25,9 @@ class OneActiveRecommendationPerUserMigrationTests(TransactionTestCase):
         cls.executor.migrate(cls.executor.loader.graph.leaf_nodes())
         super().tearDownClass()
 
-    def test_keeps_newest_active_recommendation_and_stales_older_operations(self) -> None:
+    def test_keeps_newest_active_recommendation_and_stales_older_operations(
+        self,
+    ) -> None:
         user_model = self.old_apps.get_model("users", "User")
         recommendation_model = self.old_apps.get_model(
             "recommendation", "Recommendation"

@@ -207,7 +207,9 @@ def _recommendation_card_prefetch() -> Prefetch:
     )
     return Prefetch(
         "recommendations",
-        queryset=Recommendation.objects.annotate(has_pending_operations=Exists(pending_operations)),
+        queryset=Recommendation.objects.annotate(
+            has_pending_operations=Exists(pending_operations)
+        ),
         to_attr="coach_card_recommendations",
     )
 

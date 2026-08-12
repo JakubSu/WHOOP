@@ -22,7 +22,9 @@ def normalize_muscle_groups(apps, schema_editor):
 
     Exercise = apps.get_model("training", "Exercise")
     for exercise in Exercise.objects.only("id", "muscle_group").iterator():
-        normalized = CANONICAL_GROUPS.get(exercise.muscle_group.strip().lower(), "other")
+        normalized = CANONICAL_GROUPS.get(
+            exercise.muscle_group.strip().lower(), "other"
+        )
         if exercise.muscle_group != normalized:
             Exercise.objects.filter(pk=exercise.pk).update(muscle_group=normalized)
 

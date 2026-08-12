@@ -12,7 +12,13 @@ from ai.implementations.pydantic_coach.evals.evaluators import assert_case_match
 
 class PydanticCoachEvaluationTests(SimpleTestCase):
     def test_dataset_documents_all_required_safety_and_tool_behaviors(self) -> None:
-        dataset = Path(__file__).parents[1] / "implementations" / "pydantic_coach" / "evals" / "coach.yaml"
+        dataset = (
+            Path(__file__).parents[1]
+            / "implementations"
+            / "pydantic_coach"
+            / "evals"
+            / "coach.yaml"
+        )
         cases = yaml.safe_load(dataset.read_text(encoding="utf-8"))["cases"]
         case_names = {case["name"] for case in cases}
 
@@ -39,7 +45,9 @@ class PydanticCoachEvaluationTests(SimpleTestCase):
                 recommendation_created=bool(case.get("requires_recommendation")),
             )
 
-    def test_evaluator_enforces_medical_escalation_without_a_recommendation(self) -> None:
+    def test_evaluator_enforces_medical_escalation_without_a_recommendation(
+        self,
+    ) -> None:
         case = {
             "name": "medical-escalation",
             "required_response_terms": ["urgent", "professional"],

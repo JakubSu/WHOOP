@@ -42,7 +42,10 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
         self.conversation = CoachConversation.objects.create(user=self.user)
         self.runner = ScenarioCoachRunner()
         self.exercise = Exercise.objects.create(
-            user_id="", name="Scenario squat", muscle_group="quads", prescription_type="strength"
+            user_id="",
+            name="Scenario squat",
+            muscle_group="quads",
+            prescription_type="strength",
         )
 
     def request(self, content: str) -> CoachRunRequest:
@@ -55,7 +58,9 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
         )
 
     def workout(self, name: str = "First workout") -> Workout:
-        return Workout.objects.create(user_id=str(self.user.id), name=name, date=date(2026, 8, 8))
+        return Workout.objects.create(
+            user_id=str(self.user.id), name=name, date=date(2026, 8, 8)
+        )
 
     def test_unknown_code_returns_help_without_writes(self) -> None:
         result = _run(self.runner, self.request("hello"))
@@ -74,7 +79,9 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
 
     @patch("ai.implementations.scenario.get_whoop_summary")
     def test_recovery_reports_available_summary(self, get_summary: Any) -> None:
-        get_summary.return_value = type("Summary", (), {"model_dump": lambda self: {"recovery_score": 82}})()
+        get_summary.return_value = type(
+            "Summary", (), {"model_dump": lambda self: {"recovery_score": 82}}
+        )()
 
         result = _run(self.runner, self.request("/test recovery"))
 
@@ -130,9 +137,15 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
 
         replacement = _run(self.runner, self.request("/test modify-workout"))
 
-        original_recommendation = Recommendation.objects.get(pk=original.recommendation_id)
-        self.assertEqual(original_recommendation.status, Recommendation.Status.SUPERSEDED)
-        self.assertEqual(original_recommendation.replaced_by_id, replacement.recommendation_id)
+        original_recommendation = Recommendation.objects.get(
+            pk=original.recommendation_id
+        )
+        self.assertEqual(
+            original_recommendation.status, Recommendation.Status.SUPERSEDED
+        )
+        self.assertEqual(
+            original_recommendation.replaced_by_id, replacement.recommendation_id
+        )
 
     def test_replace_active_targets_the_second_workout(self) -> None:
         first = self.workout("First workout")
@@ -145,11 +158,15 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
 
         result = _run(self.runner, self.request("/test replace-active"))
 
-        operation = Recommendation.objects.get(pk=result.recommendation_id).operations.get()
+        operation = Recommendation.objects.get(
+            pk=result.recommendation_id
+        ).operations.get()
         self.assertEqual(str(operation.payload["workout_id"]), str(second.id))
         self.assertNotEqual(str(operation.payload["workout_id"]), str(first.id))
 
-    def test_replace_active_requires_a_workout_outside_the_active_proposal(self) -> None:
+    def test_replace_active_requires_a_workout_outside_the_active_proposal(
+        self,
+    ) -> None:
         self.workout()
         original = _run(self.runner, self.request("/test modify-workout"))
 
@@ -187,9 +204,16 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
         transitions: dict[uuid.UUID, list[str]] = {}
         for event in events:
             if isinstance(event, ActivityChanged):
-                transitions.setdefault(event.activity.id, []).append(event.activity.status)
+                transitions.setdefault(event.activity.id, []).append(
+                    event.activity.status
+                )
         self.assertTrue(transitions)
-        self.assertTrue(all(statuses == ["running", "completed"] for statuses in transitions.values()))
+        self.assertTrue(
+            all(
+                statuses == ["running", "completed"]
+                for statuses in transitions.values()
+            )
+        )
         self.assertTrue(any(isinstance(event, TextDelta) for event in events))
         self.assertEqual(sum(isinstance(event, RunCompleted) for event in events), 1)
         self.assertIsInstance(events[-1], RunCompleted)

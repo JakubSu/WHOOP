@@ -34,7 +34,9 @@ def search_workouts(
             date=workout.date,
             expected_time=workout.expected_time,
         )
-        for workout in queryset.order_by("date", "id")[: max(1, min(limit, MAX_WORKOUT_RESULTS))]
+        for workout in queryset.order_by("date", "id")[
+            : max(1, min(limit, MAX_WORKOUT_RESULTS))
+        ]
     ]
 
 

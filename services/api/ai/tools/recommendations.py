@@ -30,7 +30,9 @@ def create_recommendation(
         recommendation_services.RecommendationConflict,
         recommendation_services.RecommendationValidationError,
     ) as exc:
-        raise ToolValidationError("Recommendation request could not be applied.") from exc
+        raise ToolValidationError(
+            "Recommendation request could not be applied."
+        ) from exc
     return CreatedRecommendation(recommendation_id=recommendation.id)
 
 
@@ -45,4 +47,6 @@ def get_active_recommendation(
             conversation=context.conversation,
         )
     except recommendation_services.RecommendationValidationError as exc:
-        raise ToolValidationError("Recommendation request could not be applied.") from exc
+        raise ToolValidationError(
+            "Recommendation request could not be applied."
+        ) from exc

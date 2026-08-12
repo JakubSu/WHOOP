@@ -17,9 +17,7 @@ class PydanticCoachObservabilityTests(SimpleTestCase):
         COACH_LOGFIRE_CAPTURE_BINARY_CONTENT=False,
         COACH_LOGFIRE_CAPTURE_MODEL_REQUEST_PARAMETERS=True,
     )
-    @patch(
-        "ai.implementations.pydantic_coach.observability.configure_observability"
-    )
+    @patch("ai.implementations.pydantic_coach.observability.configure_observability")
     def test_configuration_uses_django_settings(
         self, configure_observability: Mock
     ) -> None:

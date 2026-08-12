@@ -48,5 +48,7 @@ class Migration(migrations.Migration):
                 to="coaching.coachconversation",
             ),
         ),
-        migrations.RunPython(backfill_operation_conversations, migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_operation_conversations, migrations.RunPython.noop
+        ),
     ]

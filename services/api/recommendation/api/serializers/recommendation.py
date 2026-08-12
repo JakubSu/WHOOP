@@ -26,10 +26,14 @@ class RecommendationOperationSerializer(serializers.Serializer):
         """Converts stored zero-based exercise positions for the public response."""
 
         payload = dict(operation.payload)
-        if operation.operation_type in {
-            RecommendationOperation.OperationType.ADD_EXERCISE,
-            RecommendationOperation.OperationType.UPDATE_EXERCISE,
-        } and payload.get("position") is not None:
+        if (
+            operation.operation_type
+            in {
+                RecommendationOperation.OperationType.ADD_EXERCISE,
+                RecommendationOperation.OperationType.UPDATE_EXERCISE,
+            }
+            and payload.get("position") is not None
+        ):
             payload["position"] += 1
         return payload
 
@@ -38,7 +42,9 @@ class CoachRecommendationCardSerializer(serializers.Serializer):
     """Serializes the compact recommendation reference embedded in coach messages."""
 
     id = serializers.UUIDField(read_only=True)
-    status = serializers.ChoiceField(choices=Recommendation.Status.choices, read_only=True)
+    status = serializers.ChoiceField(
+        choices=Recommendation.Status.choices, read_only=True
+    )
     actionable = serializers.SerializerMethodField()
     coach_card_snapshot = serializers.JSONField(read_only=True)
 
@@ -112,7 +118,9 @@ class RecommendationSerializer(serializers.Serializer):
                     "id": str(workout.id),
                     "title": group["title"],
                     "workout": WorkoutSerializer(workout).data,
-                    "exercises": WorkoutExercisePageSerializer(exercises, many=True).data,
+                    "exercises": WorkoutExercisePageSerializer(
+                        exercises, many=True
+                    ).data,
                 }
             )
         return result
@@ -134,11 +142,16 @@ class RecommendationSerializer(serializers.Serializer):
         for operation in serialized_operations:
             temporary_workout_id = _new_workout_reference(operation)
             if temporary_workout_id:
-                children_by_temp.setdefault(str(temporary_workout_id), []).append(operation)
+                children_by_temp.setdefault(str(temporary_workout_id), []).append(
+                    operation
+                )
             else:
                 result.append(operation)
         for operation in result:
-            if operation["operation_type"] == RecommendationOperation.OperationType.ADD_WORKOUT:
+            if (
+                operation["operation_type"]
+                == RecommendationOperation.OperationType.ADD_WORKOUT
+            ):
                 operation["exercise_operations"] = children_by_temp.pop(
                     str(operation["payload"]["temporary_id"]), []
                 )
@@ -158,7 +171,10 @@ def _operation_workout_id(operation: RecommendationOperation) -> str | None:
 
 
 def _new_workout_reference(operation: dict[str, Any]) -> str | None:
-    if operation["operation_type"] != RecommendationOperation.OperationType.ADD_EXERCISE:
+    if (
+        operation["operation_type"]
+        != RecommendationOperation.OperationType.ADD_EXERCISE
+    ):
         return None
     workout = operation["payload"].get("workout")
     if workout and workout["kind"] == "new":

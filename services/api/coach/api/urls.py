@@ -8,7 +8,11 @@ from coach.api.views import (
 )
 
 urlpatterns = [
-    path("coach/conversations", ConversationCollectionAPIView.as_view(), name="coach-conversations"),
+    path(
+        "coach/conversations",
+        ConversationCollectionAPIView.as_view(),
+        name="coach-conversations",
+    ),
     path(
         "coach/conversations/<uuid:conversation_id>",
         ConversationDetailAPIView.as_view(),
@@ -25,4 +29,3 @@ urlpatterns = [
         name="coach-conversation-message-stream",
     ),
 ]
-

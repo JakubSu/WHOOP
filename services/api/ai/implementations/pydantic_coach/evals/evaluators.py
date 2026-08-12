@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+
 def assert_case_matches(
     *,
     case: dict[str, Any],
@@ -30,4 +31,6 @@ def assert_case_matches(
     if case.get("requires_recommendation") and not recommendation_created:
         raise AssertionError(f"{case['name']}: expected a recommendation proposal.")
     if case.get("forbids_recommendation") and recommendation_created:
-        raise AssertionError(f"{case['name']}: recommendation proposal must not be created.")
+        raise AssertionError(
+            f"{case['name']}: recommendation proposal must not be created."
+        )

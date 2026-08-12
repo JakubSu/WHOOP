@@ -30,7 +30,10 @@ class ScenarioRunnerApiTests(TransactionTestCase):
         self.client.force_authenticate(self.user)
         self.conversation = CoachConversation.objects.create(user=self.user)
         Exercise.objects.create(
-            user_id="", name="Scenario press", muscle_group="chest", prescription_type="strength"
+            user_id="",
+            name="Scenario press",
+            muscle_group="chest",
+            prescription_type="strength",
         )
 
     def test_message_code_persists_and_attaches_recommendation(self) -> None:
@@ -44,7 +47,9 @@ class ScenarioRunnerApiTests(TransactionTestCase):
         recommendation = Recommendation.objects.get()
         message = CoachMessage.objects.get(role=CoachMessage.Role.ASSISTANT)
         self.assertEqual(recommendation.coach_message_id, message.id)
-        self.assertEqual(response.json()["recommendation"]["id"], str(recommendation.id))
+        self.assertEqual(
+            response.json()["recommendation"]["id"], str(recommendation.id)
+        )
 
     def test_stream_emits_tool_activities_and_recommendation_card(self) -> None:
         response = self.client.post(
@@ -53,7 +58,9 @@ class ScenarioRunnerApiTests(TransactionTestCase):
             format="json",
             HTTP_ACCEPT="text/event-stream",
         )
-        body = async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response)).decode()
+        body = async_to_sync(_collect_stream)(
+            cast(StreamingHttpResponse, response)
+        ).decode()
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("event: tool_started", body)
@@ -61,7 +68,9 @@ class ScenarioRunnerApiTests(TransactionTestCase):
         self.assertIn("event: completed", body)
         self.assertIn('"coach_card_snapshot"', body)
 
-    def test_failed_scenario_expires_its_recommendation_without_saving_message(self) -> None:
+    def test_failed_scenario_expires_its_recommendation_without_saving_message(
+        self,
+    ) -> None:
         response = self.client.post(
             f"/api/v1/coach/conversations/{self.conversation.id}/messages",
             {"content": "/test fail-after-create"},

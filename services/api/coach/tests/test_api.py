@@ -80,7 +80,9 @@ class CoachConversationApiTests(TestCase):
     def test_user_can_create_and_list_only_their_conversations(self) -> None:
         """Users see only their own newly created conversations in the sidebar list."""
 
-        create_response = self.client.post("/api/v1/coach/conversations", {}, format="json")
+        create_response = self.client.post(
+            "/api/v1/coach/conversations", {}, format="json"
+        )
 
         self.assertEqual(create_response.status_code, 201)
         self.assertIsNone(create_response.json()["title"])
@@ -146,7 +148,14 @@ class CoachConversationApiTests(TestCase):
                 content=f"Message {index:02d}",
                 ai_message_batch=[{"secret": index}] if index % 2 else None,
                 activity_log=(
-                    [{"id": str(uuid.uuid4()), "kind": "other", "label": "Working on your request…", "status": "completed"}]
+                    [
+                        {
+                            "id": str(uuid.uuid4()),
+                            "kind": "other",
+                            "label": "Working on your request…",
+                            "status": "completed",
+                        }
+                    ]
                     if index % 2
                     else []
                 ),
@@ -171,7 +180,9 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(older.json()["results"][0]["activities"], [])
 
     @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
-    def test_message_run_receives_ordered_ai_batches_and_persists_complete_turn(self) -> None:
+    def test_message_run_receives_ordered_ai_batches_and_persists_complete_turn(
+        self,
+    ) -> None:
         """A completed turn receives ordered AI history and saves its visible result."""
 
         conversation = CoachConversation.objects.create(user=self.user)
@@ -282,7 +293,9 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(events[1]["event"], "thinking_started")
         self.assertEqual(events[-1]["event"], "completed")
         self.assertEqual(
-            events[-1]["data"]["message"]["recommendation"]["coach_card_snapshot"]["workout_groups"][0]["summary"]["updated"],
+            events[-1]["data"]["message"]["recommendation"]["coach_card_snapshot"][
+                "workout_groups"
+            ][0]["summary"]["updated"],
             1,
         )
         self.assertTrue(events[-1]["data"]["message"]["recommendation"]["actionable"])
@@ -330,7 +343,9 @@ class CoachConversationApiTests(TestCase):
         self.assertIn(": keepalive\n\n", body)
         self.assertIn("event: completed", body)
 
-    def test_deleting_conversation_stales_pending_operations_but_preserves_ledger(self) -> None:
+    def test_deleting_conversation_stales_pending_operations_but_preserves_ledger(
+        self,
+    ) -> None:
         """Deleting chat history preserves and stales the related recommendation ledger."""
 
         conversation = CoachConversation.objects.create(user=self.user)

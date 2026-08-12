@@ -39,26 +39,65 @@ class Migration(migrations.Migration):
             discard_legacy_coach_data,
             legacy_coach_data_cannot_be_restored,
         ),
-        migrations.RemoveIndex(model_name="coachconversation", name="coach_conv_scope_idx"),
-        migrations.RemoveIndex(model_name="coachconversation", name="coach_conv_last_msg_idx"),
-        migrations.RemoveIndex(model_name="coachmessage", name="coach_msg_conversation_idx"),
+        migrations.RemoveIndex(
+            model_name="coachconversation", name="coach_conv_scope_idx"
+        ),
+        migrations.RemoveIndex(
+            model_name="coachconversation", name="coach_conv_last_msg_idx"
+        ),
+        migrations.RemoveIndex(
+            model_name="coachmessage", name="coach_msg_conversation_idx"
+        ),
         migrations.RemoveField(model_name="coachconversation", name="page_type"),
         migrations.RemoveField(model_name="coachconversation", name="context_id"),
         migrations.RemoveField(model_name="coachconversation", name="status"),
         migrations.RemoveField(model_name="coachconversation", name="last_message_at"),
         migrations.RemoveField(model_name="coachmessage", name="metadata_json"),
         migrations.RemoveField(model_name="coachmessage", name="recommendation_id"),
-        migrations.RenameField(model_name="coachconversation", old_name="user_id", new_name="user"),
+        migrations.RenameField(
+            model_name="coachconversation", old_name="user_id", new_name="user"
+        ),
         migrations.AlterField(
             model_name="coachconversation",
             name="user",
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="coach_conversations", to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="coach_conversations",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
-        migrations.AddField(model_name="coachconversation", name="title", field=models.CharField(blank=True, max_length=200, null=True)),
-        migrations.AddField(model_name="coachmessage", name="ai_message_batch", field=models.JSONField(blank=True, null=True)),
-        migrations.AddField(model_name="coachmessage", name="activity_log", field=models.JSONField(blank=True, default=list)),
-        migrations.AlterModelOptions(name="coachconversation", options={"ordering": ["-updated_at", "-id"]}),
-        migrations.AlterModelOptions(name="coachmessage", options={"ordering": ["created_at", "id"]}),
-        migrations.AddIndex(model_name="coachconversation", index=models.Index(fields=["user", "updated_at"], name="coach_conv_user_updated_idx")),
-        migrations.AddIndex(model_name="coachmessage", index=models.Index(fields=["conversation", "created_at", "id"], name="coach_msg_conv_created_idx")),
+        migrations.AddField(
+            model_name="coachconversation",
+            name="title",
+            field=models.CharField(blank=True, max_length=200, null=True),
+        ),
+        migrations.AddField(
+            model_name="coachmessage",
+            name="ai_message_batch",
+            field=models.JSONField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name="coachmessage",
+            name="activity_log",
+            field=models.JSONField(blank=True, default=list),
+        ),
+        migrations.AlterModelOptions(
+            name="coachconversation", options={"ordering": ["-updated_at", "-id"]}
+        ),
+        migrations.AlterModelOptions(
+            name="coachmessage", options={"ordering": ["created_at", "id"]}
+        ),
+        migrations.AddIndex(
+            model_name="coachconversation",
+            index=models.Index(
+                fields=["user", "updated_at"], name="coach_conv_user_updated_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="coachmessage",
+            index=models.Index(
+                fields=["conversation", "created_at", "id"],
+                name="coach_msg_conv_created_idx",
+            ),
+        ),
     ]

@@ -18,7 +18,8 @@ class RecommendationResolutionTests(TestCase):
         )
         self.conversation = CoachConversation.objects.create(user=self.user)
         self.exercise = Exercise.objects.create(
-            name="Interval", muscle_group=Exercise.MuscleGroup.QUADS,
+            name="Interval",
+            muscle_group=Exercise.MuscleGroup.QUADS,
             prescription_type=Exercise.PrescriptionType.TIMED,
         )
 

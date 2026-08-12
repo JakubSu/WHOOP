@@ -39,7 +39,9 @@ class CoachMessageSerializer(serializers.Serializer):
     def get_activities(self, message: CoachMessage) -> list[dict[str, Any]]:
         """Exposes activity logs only for assistant messages."""
 
-        activity_log = message.activity_log if message.role == CoachMessage.Role.ASSISTANT else []
+        activity_log = (
+            message.activity_log if message.role == CoachMessage.Role.ASSISTANT else []
+        )
         return cast(
             list[dict[str, Any]], CoachActivitySerializer(activity_log, many=True).data
         )
