@@ -34,7 +34,6 @@ class RecommendationResolutionTests(TestCase):
                             "operation_type": "add_exercise",
                             "reason": "Build aerobic capacity.",
                             "payload": {
-                                "temporary_id": "exercise_1",
                                 "workout": {
                                     "kind": "new",
                                     "temporary_id": "workout_1",

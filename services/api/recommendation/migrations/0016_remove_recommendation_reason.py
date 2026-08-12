@@ -9,6 +9,7 @@ def migrate_operation_payloads(apps, schema_editor):
     for operation in operation_model.objects.using(database).all().iterator():
         payload = operation.payload
         if operation.operation_type == "add_exercise" and "workout" not in payload:
+            payload.pop("temporary_id", None)
             workout_id = payload.pop("workout_id", None)
             temporary_workout_id = payload.pop("temporary_workout_id", None)
             payload["workout"] = (

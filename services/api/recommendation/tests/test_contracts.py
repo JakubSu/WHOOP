@@ -13,7 +13,6 @@ class RecommendationContractTests(SimpleTestCase):
 
         payload = AddExercisePayload.model_validate(
             {
-                "temporary_id": "exercise_1",
                 "workout": {"kind": "existing", "workout_id": str(workout_id)},
                 "exercise_id": str(exercise_id),
                 "prescription": {
@@ -32,7 +31,6 @@ class RecommendationContractTests(SimpleTestCase):
     def test_add_exercise_accepts_new_workout_timed_prescription(self) -> None:
         payload = AddExercisePayload.model_validate(
             {
-                "temporary_id": "exercise_1",
                 "workout": {"kind": "new", "temporary_id": "workout_1"},
                 "exercise_id": str(uuid.uuid4()),
                 "prescription": {
@@ -52,7 +50,6 @@ class RecommendationContractTests(SimpleTestCase):
         with self.assertRaises(ValidationError):
             AddExercisePayload.model_validate(
                 {
-                    "temporary_id": "exercise_1",
                     "workout": {
                         "kind": "existing",
                         "workout_id": str(uuid.uuid4()),
@@ -67,7 +64,6 @@ class RecommendationContractTests(SimpleTestCase):
         with self.assertRaises(ValidationError):
             AddExercisePayload.model_validate(
                 {
-                    "temporary_id": "exercise_1",
                     "workout": {"kind": "new", "temporary_id": "workout_1"},
                     "exercise_id": str(uuid.uuid4()),
                     "prescription": {"type": "reps", "sets": 1, "seconds": 30},

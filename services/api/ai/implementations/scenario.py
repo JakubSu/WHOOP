@@ -257,7 +257,6 @@ class ScenarioCoachRunner:
                         "operation_type": "add_exercise",
                         "reason": "Include an available exercise in the new workout.",
                         "payload": {
-                            "temporary_id": "exercise_1",
                             "workout": {"kind": "new", "temporary_id": temporary_workout_id},
                             "exercise_id": str(exercise.id),
                             "prescription": {"type": "reps", "sets": 3, "reps": 10},

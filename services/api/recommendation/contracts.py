@@ -94,7 +94,6 @@ class RemoveWorkoutPayload(RecommendationModel):
 
 
 class AddExercisePayload(RecommendationModel):
-    temporary_id: str
     workout: WorkoutReference
     exercise_id: UUID
     prescription: ExercisePrescription
