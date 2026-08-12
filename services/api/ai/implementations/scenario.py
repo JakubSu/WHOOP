@@ -248,20 +248,19 @@ class ScenarioCoachRunner:
             return self._result("Setup needed: add an exercise, then run /test propose-new-workout again.")
         active = self._active_recommendation(scenario, events)
         exercise = exercises[0]
-        temporary_workout_id = uuid.uuid5(scenario.request.run_id, "scenario:new-workout")
+        temporary_workout_id = "workout_1"
         draft = RecommendationDraft.model_validate(
             {
                 "summary": "Add a simple test workout",
-                "reason": "This deterministic scenario exercises a new workout proposal.",
                 "operations": [
                     {
                         "operation_type": "add_exercise",
                         "reason": "Include an available exercise in the new workout.",
                         "payload": {
-                            "temporary_id": str(uuid.uuid5(scenario.request.run_id, "scenario:new-workout-exercise")),
-                            "temporary_workout_id": str(temporary_workout_id),
-                            "exercise": {"id": str(exercise.id), "name": exercise.name},
-                            "prescription": {"sets": 3, "reps": 10},
+                            "temporary_id": "exercise_1",
+                            "workout": {"kind": "new", "temporary_id": temporary_workout_id},
+                            "exercise_id": str(exercise.id),
+                            "prescription": {"type": "reps", "sets": 3, "reps": 10},
                             "position": 0,
                         },
                     },
@@ -269,7 +268,7 @@ class ScenarioCoachRunner:
                         "operation_type": "add_workout",
                         "reason": "Create the parent workout.",
                         "payload": {
-                            "temporary_id": str(temporary_workout_id),
+                            "temporary_id": temporary_workout_id,
                             "name": "Scenario test workout",
                             "date": (timezone.localdate() + timedelta(days=1)).isoformat(),
                             "expected_time": 30,
@@ -303,7 +302,6 @@ class ScenarioCoachRunner:
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Adjust {workout.name}",
-                "reason": "This deterministic scenario exercises an existing workout update.",
                 "operations": [{
                     "operation_type": "update_workout",
                     "reason": "Make a small, visible duration adjustment.",
@@ -352,7 +350,6 @@ class ScenarioCoachRunner:
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Replace the proposal with an update to {workout.name}",
-                "reason": "This deterministic scenario replaces the complete active proposal.",
                 "operations": [{
                     "operation_type": "update_workout",
                     "reason": "Target a different workout than the active proposal.",
@@ -388,7 +385,6 @@ class ScenarioCoachRunner:
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Retry test for {workout.name}",
-                "reason": "This deterministic scenario verifies idempotent recommendation creation.",
                 "operations": [{
                     "operation_type": "update_workout",
                     "reason": "Make a retry-safe duration adjustment.",
@@ -430,16 +426,15 @@ class ScenarioCoachRunner:
         if self._active_recommendation(scenario, events) is not None:
             return self._result("Setup needed: use a conversation without an active recommendation for /test fail-after-create.")
         exercise = exercises[0]
-        temporary_workout_id = uuid.uuid5(scenario.request.run_id, "scenario:failed-workout")
+        temporary_workout_id = "workout_1"
         draft = RecommendationDraft.model_validate(
             {
                 "summary": "Failed-run cleanup test",
-                "reason": "This recommendation must expire when the runner fails.",
                 "operations": [{
                     "operation_type": "add_workout",
                     "reason": "Create a proposal that will be expired.",
                     "payload": {
-                        "temporary_id": str(temporary_workout_id),
+                        "temporary_id": temporary_workout_id,
                         "name": f"Failed scenario {exercise.name}",
                         "date": (timezone.localdate() + timedelta(days=1)).isoformat(),
                         "expected_time": 20,

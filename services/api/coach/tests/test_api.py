@@ -227,7 +227,6 @@ class CoachConversationApiTests(TestCase):
             draft=RecommendationDraft.model_validate(
                 {
                     "summary": "Reduce volume",
-                    "reason": "Recovery is lower than usual.",
                     "operations": [
                         {
                             "operation_type": "update_workout",

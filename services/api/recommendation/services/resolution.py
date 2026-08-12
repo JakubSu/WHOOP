@@ -159,8 +159,9 @@ def _operation_bundle(
     """Returns the operation set that must be accepted together."""
 
     if operation.operation_type != "add_workout":
-        if operation.operation_type == "add_exercise" and operation.payload.get(
-            "temporary_workout_id"
+        if (
+            operation.operation_type == "add_exercise"
+            and operation.payload["workout"]["kind"] == "new"
         ):
             raise RecommendationConflict(
                 "Accept the grouped add-workout operation instead."
@@ -177,7 +178,10 @@ def _operation_bundle(
         *[
             child
             for child in children
-            if str(child.payload.get("temporary_workout_id")) == temporary_id
+            if (
+                child.payload["workout"]["kind"] == "new"
+                and child.payload["workout"]["temporary_id"] == temporary_id
+            )
         ],
     ]
 
@@ -230,21 +234,40 @@ def _apply_operation(
         )
         return
     if operation_type == "add_exercise":
+        workout_reference = payload["workout"]
         workout = (
-            temporary_workouts.get(str(payload.get("temporary_workout_id")))
-            if payload.get("temporary_workout_id")
-            else Workout.objects.get(pk=payload["workout_id"], user_id=str(user.id))
+            temporary_workouts.get(workout_reference["temporary_id"])
+            if workout_reference["kind"] == "new"
+            else Workout.objects.get(
+                pk=workout_reference["workout_id"], user_id=str(user.id)
+            )
         )
         if workout is None:
             raise ValueError("Parent workout was not accepted.")
         exercise = Exercise.objects.get(
-            pk=payload["exercise"]["id"], user_id__in=[str(user.id), ""]
+            pk=payload["exercise_id"], user_id__in=[str(user.id), ""]
+        )
+        prescription = payload["prescription"]
+        workout_exercise_fields = (
+            {
+                "sets": prescription["sets"],
+                "reps": prescription["reps"],
+                "weight": prescription.get("weight"),
+                "weight_unit": prescription.get("weight_unit", "lb"),
+                "note": prescription.get("note", ""),
+            }
+            if prescription["type"] == "reps"
+            else {
+                "sets": prescription["sets"],
+                "time": prescription["seconds"],
+                "note": prescription.get("note", ""),
+            }
         )
         WorkoutExercise.objects.create(
             workout=workout,
             exercise=exercise,
             sort_order=payload["position"],
-            **payload["prescription"],
+            **workout_exercise_fields,
         )
         return
     if operation_type == "update_workout":
@@ -265,9 +288,9 @@ def _apply_operation(
     if operation_type == "update_exercise":
         for field, value in (payload.get("changes") or {}).items():
             setattr(workout_exercise, field, value)
-        if payload.get("workout_id"):
+        if payload.get("target_workout_id"):
             workout_exercise.workout = Workout.objects.get(
-                pk=payload["workout_id"], user_id=str(user.id)
+                pk=payload["target_workout_id"], user_id=str(user.id)
             )
         if payload.get("position") is not None:
             workout_exercise.sort_order = payload["position"]

@@ -66,7 +66,6 @@ class CoachToolTests(TestCase):
         return RecommendationDraft.model_validate(
             {
                 "summary": "Reduce volume",
-                "reason": "Recovery is lower than usual.",
                 "operations": [
                     {
                         "operation_type": "update_workout",
@@ -109,7 +108,6 @@ class CoachToolTests(TestCase):
         replacement = RecommendationDraft.model_validate(
             {
                 "summary": "Reduce volume further",
-                "reason": "Recovery changed.",
                 "operations": [
                     {
                         "operation_type": "update_workout",

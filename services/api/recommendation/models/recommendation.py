@@ -38,7 +38,6 @@ class Recommendation(models.Model):
         related_name="recommendations",
     )
     summary = models.CharField(max_length=500, blank=True, default="")
-    reason = models.TextField(blank=True, default="")
     source = models.CharField(
         max_length=64,
         choices=Source.choices,

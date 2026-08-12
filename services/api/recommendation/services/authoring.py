@@ -107,7 +107,6 @@ def create_recommendation(
                 conversation=conversation,
                 coach_message=coach_message,
                 summary=draft.summary,
-                reason=draft.reason,
                 source=source,
                 run_id=run_id,
                 tool_call_id=tool_call_id,
@@ -189,7 +188,6 @@ def get_active_recommendation(
         draft=RecommendationDraft.model_validate(
             {
                 "summary": recommendation.summary,
-                "reason": recommendation.reason,
                 "operations": [
                     {
                         "operation_type": operation.operation_type,
@@ -222,22 +220,26 @@ def _validate_draft_targets(*, user: Any, draft: RecommendationDraft) -> None:
         if isinstance(item, UpdateWorkoutOperation | RemoveWorkoutOperation):
             _require_user_workout(user=user, workout_id=item.payload.workout_id)
         elif isinstance(item, AddExerciseOperation):
-            if item.payload.workout_id is not None:
-                _require_user_workout(user=user, workout_id=item.payload.workout_id)
-            elif str(item.payload.temporary_workout_id) not in temporary_workouts:
+            if item.payload.workout.kind == "existing":
+                _require_user_workout(
+                    user=user, workout_id=item.payload.workout.workout_id
+                )
+            elif item.payload.workout.temporary_id not in temporary_workouts:
                 raise RecommendationValidationError(
                     "Temporary workout was not created in this recommendation."
                 )
             if not Exercise.objects.filter(
-                pk=item.payload.exercise.id, user_id__in=[str(user.id), ""]
+                pk=item.payload.exercise_id, user_id__in=[str(user.id), ""]
             ).exists():
                 raise RecommendationValidationError("Exercise was not found.")
         elif isinstance(item, UpdateExerciseOperation):
             _require_user_workout_exercise(
                 user=user, workout_exercise_id=item.payload.workout_exercise_id
             )
-            if item.payload.workout_id is not None:
-                _require_user_workout(user=user, workout_id=item.payload.workout_id)
+            if item.payload.target_workout_id is not None:
+                _require_user_workout(
+                    user=user, workout_id=item.payload.target_workout_id
+                )
         elif isinstance(item, RemoveExerciseOperation):
             _require_user_workout_exercise(
                 user=user, workout_exercise_id=item.payload.workout_exercise_id

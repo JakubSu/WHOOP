@@ -12,18 +12,42 @@ class RecommendationModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ExerciseReference(RecommendationModel):
-    id: UUID
-    name: str
+class ExistingWorkoutRef(RecommendationModel):
+    kind: Literal["existing"]
+    workout_id: UUID
 
 
-class ExercisePrescription(RecommendationModel):
-    sets: int = Field(default=0, ge=0)
-    reps: int = Field(default=0, ge=0)
-    time: int = Field(default=0, ge=0)
+class NewWorkoutRef(RecommendationModel):
+    kind: Literal["new"]
+    temporary_id: str
+
+
+WorkoutReference = Annotated[
+    ExistingWorkoutRef | NewWorkoutRef,
+    Field(discriminator="kind"),
+]
+
+
+class RepetitionPrescription(RecommendationModel):
+    type: Literal["reps"]
+    sets: int = Field(ge=1)
+    reps: int = Field(ge=1)
     weight: Decimal | None = Field(default=None, ge=0)
     weight_unit: Literal["lb", "kg"] = "lb"
     note: str = ""
+
+
+class TimedPrescription(RecommendationModel):
+    type: Literal["time"]
+    sets: int = Field(ge=1)
+    seconds: int = Field(ge=1)
+    note: str = ""
+
+
+ExercisePrescription = Annotated[
+    RepetitionPrescription | TimedPrescription,
+    Field(discriminator="type"),
+]
 
 
 class ExerciseChanges(RecommendationModel):
@@ -54,7 +78,7 @@ class WorkoutChanges(RecommendationModel):
 
 
 class AddWorkoutPayload(RecommendationModel):
-    temporary_id: UUID
+    temporary_id: str
     name: str
     date: Date
     expected_time: int = Field(default=0, ge=0)
@@ -70,35 +94,26 @@ class RemoveWorkoutPayload(RecommendationModel):
 
 
 class AddExercisePayload(RecommendationModel):
-    temporary_id: UUID
-    workout_id: UUID | None = None
-    temporary_workout_id: UUID | None = None
-    exercise: ExerciseReference
+    temporary_id: str
+    workout: WorkoutReference
+    exercise_id: UUID
     prescription: ExercisePrescription
     position: int = Field(ge=0)
-
-    @model_validator(mode="after")
-    def require_one_workout_reference(self):
-        if (
-            sum(
-                value is not None
-                for value in (self.workout_id, self.temporary_workout_id)
-            )
-            != 1
-        ):
-            raise ValueError("Exactly one workout reference is required.")
-        return self
 
 
 class UpdateExercisePayload(RecommendationModel):
     workout_exercise_id: UUID
-    workout_id: UUID | None = None
+    target_workout_id: UUID | None = None
     changes: ExerciseChanges | None = None
     position: int | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def require_change(self):
-        if self.changes is None and self.workout_id is None and self.position is None:
+        if (
+            self.changes is None
+            and self.target_workout_id is None
+            and self.position is None
+        ):
             raise ValueError("At least one exercise or placement change is required.")
         return self
 
@@ -154,7 +169,6 @@ RecommendationOperation = Annotated[
 
 class RecommendationDraft(RecommendationModel):
     summary: str
-    reason: str
     operations: list[RecommendationOperation] = Field(min_length=1)
 
 
