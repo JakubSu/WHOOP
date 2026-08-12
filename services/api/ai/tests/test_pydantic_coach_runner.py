@@ -15,7 +15,6 @@ from pydantic_ai.models.test import TestModel
 
 from ai.implementations.pydantic_coach.contracts import (
     CoachDeps,
-    CoachResponse,
     CoachRuntimeLimits,
 )
 from ai.implementations.pydantic_coach.runner import (
@@ -26,7 +25,9 @@ from ai.implementations.pydantic_coach.runner import (
 from ai.runner import CoachRunRequest, RunCompleted, TextDelta
 
 
-async def _collect_events(runner: PydanticCoachRunner, request: CoachRunRequest) -> list[object]:
+async def _collect_events(
+    runner: PydanticCoachRunner, request: CoachRunRequest
+) -> list[object]:
     return [event async for event in runner.stream(request)]
 
 
@@ -65,7 +66,7 @@ class PydanticCoachRunnerTests(SimpleTestCase):
         self.assertEqual(history[0].parts[0].content, "second")
 
     @override_settings(
-        OPENAI_MODEL="gpt-4.1-mini",
+        OPENAI_MODEL="gpt-5.6-luna",
         OPENAI_TIMEOUT=30,
         COACH_HISTORY_MAX_BATCHES=12,
         COACH_HISTORY_MAX_TOKENS=20_000,
@@ -78,19 +79,19 @@ class PydanticCoachRunnerTests(SimpleTestCase):
         COACH_TOOL_TIMEOUT_SECONDS=10,
         COACH_LOGFIRE_ENABLED=False,
     )
-    def test_factory_builds_the_sync_runner_without_resolving_a_live_model(self) -> None:
+    def test_factory_builds_the_sync_runner_without_resolving_a_live_model(
+        self,
+    ) -> None:
         runner = create_pydantic_coach_runner()
 
         self.assertIsInstance(runner, PydanticCoachRunner)
-        self.assertEqual(runner._model_name, "gpt-4.1-mini")
+        self.assertEqual(runner._model_name, "gpt-5.6-luna")
 
-    def test_structured_agent_output_maps_to_text_then_completed_event(self) -> None:
+    def test_text_agent_output_maps_to_text_then_completed_event(self) -> None:
         agent = Agent(
-            TestModel(
-                custom_output_args={"content": "Keep the session easy.", "outcome": "insight"}
-            ),
+            TestModel(custom_output_text="Keep the session easy."),
             deps_type=CoachDeps,
-            output_type=CoachResponse,
+            output_type=str,
         )
         user = object()
         conversation = object()
@@ -103,17 +104,31 @@ class PydanticCoachRunnerTests(SimpleTestCase):
             content="What should I do today?",
             ai_message_batches=[],
         )
-        runner = PydanticCoachRunner(limits=_limits(), model_name="unused", timeout_seconds=5)
+        runner = PydanticCoachRunner(
+            limits=_limits(), model_name="unused", timeout_seconds=5
+        )
 
         with (
-            patch("ai.implementations.pydantic_coach.runner.create_coach_agent", return_value=agent),
-            patch("ai.implementations.pydantic_coach.runner.get_user_model", return_value=user_model),
-            patch("ai.implementations.pydantic_coach.runner.CoachConversation.objects", conversations),
+            patch(
+                "ai.implementations.pydantic_coach.runner.create_coach_agent",
+                return_value=agent,
+            ),
+            patch(
+                "ai.implementations.pydantic_coach.runner.get_user_model",
+                return_value=user_model,
+            ),
+            patch(
+                "ai.implementations.pydantic_coach.runner.CoachConversation.objects",
+                conversations,
+            ),
         ):
             events = async_to_sync(_collect_events)(runner, request)
             thread_names_after = {thread.name for thread in enumerate_threads()}
 
-        self.assertTrue(any(event == TextDelta(delta="Keep the session easy.") for event in events))
+        self.assertEqual(
+            "".join(event.delta for event in events if isinstance(event, TextDelta)),
+            "Keep the session easy.",
+        )
         self.assertNotIn("pydantic-coach-run", thread_names_after)
         completed = events[-1]
         self.assertIsInstance(completed, RunCompleted)

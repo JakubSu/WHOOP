@@ -6,22 +6,9 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any, Literal
-
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any
 
 from ai.runner import CoachActivity
-
-CoachOutcome = Literal["insight", "recommendation_proposed", "safety_escalation"]
-
-
-class CoachResponse(BaseModel):
-    """Validated private output that is mapped to the existing public API."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    content: str = Field(min_length=1, max_length=8_000)
-    outcome: CoachOutcome
 
 
 @dataclass(frozen=True)

@@ -6,4 +6,3 @@ class CoachConfig(AppConfig):
     name = "coach"
     # Keep the historical migration identity and existing coaching_* tables.
     label = "coaching"
-

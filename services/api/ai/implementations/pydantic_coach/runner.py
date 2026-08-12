@@ -36,7 +36,6 @@ from coach.models import CoachConversation
 
 from .agent import create_coach_agent
 from .contracts import CoachDeps, CoachRunState, CoachRuntimeLimits
-from .observability import configure_observability
 
 logger = logging.getLogger(__name__)
 
@@ -184,14 +183,13 @@ class PydanticCoachRunner:
             if activity.status in {"completed", "failed"}
         ]
         yield ThinkingChanged(active=False)
-        # Structured output is usually returned through an internal output tool,
-        # rather than a TextPart. The existing SSE protocol still expects the
-        # response text to arrive as deltas before the completed event.
+        # Plain text output arrives as TextPart deltas. Retain this fallback for
+        # models/tests that return a completed result without a text delta.
         if not emitted_text:
-            yield TextDelta(delta=result.output.content)
+            yield TextDelta(delta=result.output)
         yield RunCompleted(
             CoachRunResult(
-                content=result.output.content,
+                content=result.output,
                 ai_message_batch=ai_message_batch,
                 activities=terminal_activities,
                 recommendation_id=state.recommendation_id,
@@ -202,10 +200,6 @@ class PydanticCoachRunner:
 def create_pydantic_coach_runner() -> PydanticCoachRunner:
     """Build the explicit production runner from trusted Django settings."""
 
-    configure_observability(
-        enabled=bool(getattr(settings, "COACH_LOGFIRE_ENABLED", False)),
-        service_name=str(getattr(settings, "LOGFIRE_SERVICE_NAME", "whoop-coach")),
-    )
     return PydanticCoachRunner(
         model_name=str(settings.OPENAI_MODEL),
         timeout_seconds=float(settings.OPENAI_TIMEOUT),

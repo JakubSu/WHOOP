@@ -11,18 +11,17 @@ from pydantic_ai.models.test import TestModel
 from ai.implementations.pydantic_coach.agent import create_coach_agent
 from ai.implementations.pydantic_coach.contracts import (
     CoachDeps,
-    CoachResponse,
     CoachRunState,
     CoachRuntimeLimits,
 )
 
 
 class PydanticCoachAgentTests(SimpleTestCase):
-    def test_agent_has_a_stable_observable_name_and_structured_output(self) -> None:
-        agent = create_coach_agent(model_name="gpt-4.1-mini", tool_timeout_seconds=10)
+    def test_agent_has_a_stable_observable_name_and_text_output(self) -> None:
+        agent = create_coach_agent(model_name="gpt-5.6-luna", tool_timeout_seconds=10)
 
         self.assertEqual(agent.name, "whoop_coach")
-        self.assertIs(agent.output_type, CoachResponse)
+        self.assertIs(agent.output_type, str)
         self.assertEqual(len(agent.toolsets), 1)
 
     def test_runtime_limits_reject_unbounded_or_invalid_values(self) -> None:
@@ -39,8 +38,8 @@ class PydanticCoachAgentTests(SimpleTestCase):
                 tool_timeout_seconds=10,
             )
 
-    def test_structured_output_is_validated_with_pydantic_ais_test_model(self) -> None:
-        agent = create_coach_agent(model_name="gpt-4.1-mini", tool_timeout_seconds=10)
+    def test_text_output_is_validated_with_pydantic_ais_test_model(self) -> None:
+        agent = create_coach_agent(model_name="gpt-5.6-luna", tool_timeout_seconds=10)
         limits = CoachRuntimeLimits(
             history_max_batches=12,
             history_max_tokens=20_000,
@@ -61,11 +60,10 @@ class PydanticCoachAgentTests(SimpleTestCase):
         )
         model = TestModel(
             call_tools=[],
-            custom_output_args={"content": "Keep today easy.", "outcome": "insight"},
+            custom_output_text="Keep today easy.",
         )
 
         with agent.override(model=model):
             result = agent.run_sync("Should I train?", deps=deps)
 
-        self.assertEqual(result.output.outcome, "insight")
-        self.assertEqual(result.output.content, "Keep today easy.")
+        self.assertEqual(result.output, "Keep today easy.")

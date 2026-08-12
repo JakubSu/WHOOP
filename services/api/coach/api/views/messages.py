@@ -133,7 +133,9 @@ class MessageCollectionAPIView(APIView):
             user_content=content,
             result=result,
         )
-        return Response(CoachMessageSerializer(message).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CoachMessageSerializer(message).data, status=status.HTTP_201_CREATED
+        )
 
 
 class MessageStreamAPIView(APIView):
@@ -342,16 +344,10 @@ def _merge_terminal_activities(
     """Combines streamed and final terminal activities by stable activity ID."""
 
     merged = {
-        item.id: item
-        for item in streamed
-        if item.status in {"completed", "failed"}
+        item.id: item for item in streamed if item.status in {"completed", "failed"}
     }
     merged.update(
-        {
-            item.id: item
-            for item in final
-            if item.status in {"completed", "failed"}
-        }
+        {item.id: item for item in final if item.status in {"completed", "failed"}}
     )
     return list(merged.values())
 
@@ -359,7 +355,9 @@ def _merge_terminal_activities(
 def _sse(name: str, data: dict[str, Any]) -> bytes:
     """Formats one owned event as a server-sent event frame."""
 
-    return f"event: {name}\ndata: {json.dumps(data, separators=(',', ':'))}\n\n".encode()
+    return (
+        f"event: {name}\ndata: {json.dumps(data, separators=(',', ':'))}\n\n".encode()
+    )
 
 
 async def _with_sse_heartbeats(
@@ -400,6 +398,8 @@ def _completed_message_payload(message: Any) -> tuple[dict[str, Any], Any, list[
         recommendation_transitions_for_message(message),
         cast(
             list[Any],
-            CoachMessageSerializer(updated_messages_for_message(message), many=True).data,
+            CoachMessageSerializer(
+                updated_messages_for_message(message), many=True
+            ).data,
         ),
     )

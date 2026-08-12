@@ -25,7 +25,7 @@ from ai.tools.errors import ToolNotFoundError, ToolValidationError
 from recommendation.contracts import RecommendationDraft
 from training.models import Exercise
 
-from .contracts import CoachDeps, CoachResponse
+from .contracts import CoachDeps
 
 _ACTIVITY_BY_TOOL = {
     "search_workouts": ("workout_data", "Looking up your workouts…"),
@@ -81,7 +81,7 @@ async def _call(ctx: RunContext[CoachDeps], tool_name: str, function: Any, **kwa
     return result
 
 
-def register_tools(agent: Agent[CoachDeps, CoachResponse]) -> None:
+def register_tools(agent: Agent[CoachDeps, str]) -> None:
     """Register only the small, eagerly available Coach tool catalog."""
 
     @agent.tool

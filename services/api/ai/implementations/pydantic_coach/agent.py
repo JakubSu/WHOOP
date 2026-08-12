@@ -7,7 +7,7 @@ from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.messages import ModelMessage
 
-from .contracts import CoachDeps, CoachResponse
+from .contracts import CoachDeps
 from .prompts import COACH_INSTRUCTIONS
 from .tools import register_tools
 
@@ -27,13 +27,13 @@ def _keep_bounded_history(
 
 def create_coach_agent(
     *, model_name: str, tool_timeout_seconds: float
-) -> Agent[CoachDeps, CoachResponse]:
+) -> Agent[CoachDeps, str]:
     """Build a fresh typed agent so settings and tests cannot leak between runs."""
-    agent: Agent[CoachDeps, CoachResponse] = Agent(
+    agent: Agent[CoachDeps, str] = Agent(
         f"openai:{model_name}",
         name="whoop_coach",
         deps_type=CoachDeps,
-        output_type=CoachResponse,
+        output_type=str,
         instructions=COACH_INSTRUCTIONS,
         retries={"tools": 1, "output": 1},
         tool_timeout=tool_timeout_seconds,
@@ -46,11 +46,9 @@ def create_coach_agent(
         return f"Today is {timezone.localdate().isoformat()}. You are coaching one authenticated user."
 
     @agent.output_validator
-    def validate_output(ctx: RunContext[CoachDeps], output: CoachResponse) -> CoachResponse:
-        if not output.content.strip():
+    def validate_output(ctx: RunContext[CoachDeps], output: str) -> str:
+        if not output.strip():
             raise ModelRetry("Return a non-empty user-facing response.")
-        if ctx.deps.state.recommendation_id is not None and output.outcome != "recommendation_proposed":
-            raise ModelRetry("A recommendation proposal was created, so set outcome to recommendation_proposed.")
         return output
 
     register_tools(agent)
