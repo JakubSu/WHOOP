@@ -54,6 +54,17 @@ class Migration(migrations.Migration):
         migrations.RemoveField(model_name="coachconversation", name="last_message_at"),
         migrations.RemoveField(model_name="coachmessage", name="metadata_json"),
         migrations.RemoveField(model_name="coachmessage", name="recommendation_id"),
+        # `user_id` began as a CharField with db_index=True. PostgreSQL creates
+        # this extra pattern-ops index for text columns, but it cannot survive
+        # the UUID conversion below. Django does not remove it because the
+        # target ForeignKey is indexed as well.
+        migrations.RunSQL(
+            sql=(
+                "DROP INDEX IF EXISTS "
+                "coaching_coachconversation_user_id_fd228c8b_like"
+            ),
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.RenameField(
             model_name="coachconversation", old_name="user_id", new_name="user"
         ),
