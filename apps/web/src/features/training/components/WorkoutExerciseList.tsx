@@ -18,12 +18,6 @@ import { Plus } from "lucide-react";
 import { type WorkoutExerciseDisplay } from "../types";
 import { type DraftExercise } from "../hooks/useWorkoutEditor";
 import { ExerciseCard } from "./ExerciseCard";
-import { RecommendationPanel } from "../../recommendations/components/RecommendationPanel";
-import { type Exercise } from "../types";
-import {
-  type Recommendation,
-  type RecommendationOperation,
-} from "../../recommendations/types";
 
 type WorkoutExerciseListProps = {
   exercises: WorkoutExerciseDisplay[];
@@ -33,14 +27,6 @@ type WorkoutExerciseListProps = {
   onRemoveExercise: (exercise: WorkoutExerciseDisplay) => void;
   onReorder: (activeId: string, overId: string) => void;
   onOpenAddDialog: () => void;
-  recommendation: Recommendation | null;
-  recommendationLibrary: Exercise[];
-  onSaveRecommendation: (operation: RecommendationOperation) => void;
-  onAcceptRecommendation: (id: string) => void;
-  onRejectRecommendation: (id: string) => void;
-  savingRecommendationId: string | null;
-  acceptingRecommendationId: string | null;
-  rejectingRecommendationId: string | null;
 };
 
 export function WorkoutExerciseList({
@@ -51,14 +37,6 @@ export function WorkoutExerciseList({
   onRemoveExercise,
   onReorder,
   onOpenAddDialog,
-  recommendation,
-  recommendationLibrary,
-  onSaveRecommendation,
-  onAcceptRecommendation,
-  onRejectRecommendation,
-  savingRecommendationId,
-  acceptingRecommendationId,
-  rejectingRecommendationId,
 }: WorkoutExerciseListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -70,55 +48,9 @@ export function WorkoutExerciseList({
   if (!isEditing) {
     return (
       <>
-        {recommendation ? (
-          <RecommendationPanel
-            recommendation={recommendation}
-            exercises={exercises}
-            library={recommendationLibrary}
-            placement={0}
-            addsOnly
-            onSave={onSaveRecommendation}
-            onAccept={onAcceptRecommendation}
-            onReject={onRejectRecommendation}
-            savingId={savingRecommendationId}
-            acceptingId={acceptingRecommendationId}
-            rejectingId={rejectingRecommendationId}
-          />
-        ) : null}
-        {exercises.map((exercise, index) => (
+        {exercises.map((exercise) => (
           <div key={exercise.id}>
-            {recommendation ? (
-              <RecommendationPanel
-                recommendation={recommendation}
-                exercises={exercises}
-                library={recommendationLibrary}
-                placement={index}
-                movedPreview
-                onSave={onSaveRecommendation}
-                onAccept={onAcceptRecommendation}
-                onReject={onRejectRecommendation}
-                savingId={savingRecommendationId}
-                acceptingId={acceptingRecommendationId}
-                rejectingId={rejectingRecommendationId}
-              />
-            ) : null}
-            {isMovedFrom(index, recommendation, exercises) ? null : (
-              <ExerciseCard exercise={exercise} />
-            )}
-            {recommendation ? (
-              <RecommendationPanel
-                recommendation={recommendation}
-                exercises={exercises}
-                library={recommendationLibrary}
-                placement={index}
-                onSave={onSaveRecommendation}
-                onAccept={onAcceptRecommendation}
-                onReject={onRejectRecommendation}
-                savingId={savingRecommendationId}
-                acceptingId={acceptingRecommendationId}
-                rejectingId={rejectingRecommendationId}
-              />
-            ) : null}
+            <ExerciseCard exercise={exercise} />
           </div>
         ))}
       </>
@@ -162,29 +94,6 @@ export function WorkoutExerciseList({
       </button>
     </>
   );
-}
-
-function isMovedFrom(
-  index: number,
-  recommendation: Recommendation | null,
-  exercises: WorkoutExerciseDisplay[],
-) {
-  return Boolean(
-    recommendation?.operations.some(
-      (operation) =>
-        operation.operation_type === "update_exercise" &&
-        operation.payload.position &&
-        targetIndex(operation.payload.workout_exercise_id, exercises) === index,
-    ),
-  );
-}
-
-function targetIndex(id: string, exercises: WorkoutExerciseDisplay[]) {
-  const found = exercises.findIndex((exercise) => exercise.id === id);
-  if (found >= 0) return found;
-  if (id === "first-exercise") return 0;
-  if (id === "second-exercise") return Math.min(1, exercises.length - 1);
-  return exercises.length - 1;
 }
 
 function SortableExerciseCard({

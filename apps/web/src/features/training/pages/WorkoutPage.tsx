@@ -6,7 +6,6 @@ import { ScrollableStack } from '../../../shared/layout/ScrollableStack'
 import { TrainingLayout } from '../../../shared/layout/TrainingLayout'
 import { useCoachPageContext } from '../../coach/context/CoachOverlayContext'
 import { getCoachPageContextForRoute } from '../../coach/services/coachContext'
-import { useWorkoutRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
 import { AddExerciseDialog } from '../components/AddExerciseDialog'
 import { WorkoutExerciseList } from '../components/WorkoutExerciseList'
 import { WorkoutHeader } from '../components/WorkoutHeader'
@@ -23,7 +22,6 @@ export function WorkoutPage() {
     workoutPage.exerciseDisplays,
     workoutPage.workout?.name,
   )
-  const recommendation = useWorkoutRecommendation(workoutPage.resolvedWorkoutId)
   const coachContext = useMemo(
     () => getCoachPageContextForRoute(location.pathname),
     [location.pathname],
@@ -71,30 +69,19 @@ export function WorkoutPage() {
             onRemoveExercise={editor.removeExercise}
             onReorder={editor.reorder}
             onUpdateExercise={editor.updateExercise}
-            recommendation={recommendation.recommendation}
-            recommendationLibrary={recommendation.exerciseLibrary}
-            onSaveRecommendation={recommendation.saveOperation}
-            onAcceptRecommendation={recommendation.acceptOperation}
-            onRejectRecommendation={recommendation.rejectOperation}
-            savingRecommendationId={recommendation.savingOperationId}
-            acceptingRecommendationId={recommendation.acceptingOperationId}
-            rejectingRecommendationId={recommendation.rejectingOperationId}
           />
         </ScrollableStack>
-
-        {!editor.isEditing ? <>
-          <div className="workout-status-stack"><InlineError message={recommendation.error ? getErrorMessage(recommendation.error) : null} /></div>
-          {recommendation.isLoading ? <p className="muted">Loading recommendations...</p> : null}
-        </> : null}
 
         <AddExerciseDialog
           exercises={editor.exerciseLibrary}
           isLoading={editor.isExerciseLibraryLoading}
           isCreating={editor.isCreatingExercise}
+          muscleGroupFilter={editor.muscleGroupFilter}
           open={editor.isAddOpen}
           onAdd={editor.addExercise}
           onCreate={editor.createExercise}
           onOpenChange={editor.setIsAddOpen}
+          onMuscleGroupFilterChange={editor.setMuscleGroupFilter}
         />
       </section>
     </TrainingLayout>

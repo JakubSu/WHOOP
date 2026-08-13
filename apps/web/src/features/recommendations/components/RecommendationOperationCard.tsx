@@ -5,6 +5,7 @@ import {
   type WorkoutExerciseDisplay,
 } from "../../training/types";
 import { type Prescription, type RecommendationOperation } from "../types";
+import { updateChangeEntries } from "../services/operationChanges";
 
 type Props = {
   operation: RecommendationOperation;
@@ -21,7 +22,7 @@ type Props = {
 const labels: Record<string, string> = {
   sets: "Sets",
   reps: "Reps",
-  time: "Time",
+  seconds: "Time",
   weight: "Weight",
   weight_unit: "Unit",
   note: "Note",
@@ -55,7 +56,7 @@ export function RecommendationOperationCard(props: Props) {
         </span>
         <strong>
           {props.operation.operation_type === "add_exercise"
-            ? props.operation.payload.exercise.name
+            ? exerciseName(props.operation, props.exerciseLibrary)
             : (props.exercise?.exerciseName ?? operation.display_text)}
         </strong>
       </header>
@@ -151,7 +152,7 @@ function Proposal({
     <div className="recommendation-details">
       {editing ? (
         <select
-          value={operation.payload.exercise.id}
+          value={operation.payload.exercise_id}
           onChange={(event) => {
             const exercise = library.find(
               (item) => item.id === event.target.value,
@@ -161,7 +162,7 @@ function Proposal({
                 ...operation,
                 payload: {
                   ...operation.payload,
-                  exercise: { id: exercise.id, name: exercise.name },
+                  exercise_id: exercise.id,
                 },
               });
           }}
@@ -216,10 +217,10 @@ function Update({
   editing: boolean;
   onChange: (operation: RecommendationOperation) => void;
 }) {
-  const changes = operation.payload.changes;
+  const changes = operation.payload.changes ?? {};
   return (
     <div className="recommendation-details">
-      {Object.entries(changes).map(([field, value]) => (
+      {updateChangeEntries(changes).map(([field, value]) => (
         <label key={field}>
           {labels[field] ?? field}
           <del>
@@ -288,16 +289,19 @@ function PrescriptionView({
 }) {
   return (
     <>
-      {(["sets", "reps", "time", "weight"] as const).map((field) => (
+      {(values.type === "time"
+        ? (["sets", "seconds"] as const)
+        : (["sets", "reps", "weight"] as const)
+      ).map((field) => (
         <label key={field}>
           {labels[field]}
           {editable ? (
             <input
-              value={values[field] ?? ""}
-              onChange={(event) =>
-                onChange({
-                  [field]:
-                    field === "weight"
+                value={values[field] ?? ""}
+                onChange={(event) =>
+                  onChange({
+                    [field]:
+                      field === "weight"
                       ? event.target.value
                       : Number(event.target.value),
                 })
@@ -317,6 +321,18 @@ function tagFor(type: RecommendationOperation["operation_type"]) {
     : type === "remove_exercise"
       ? "REMOVE"
       : "MODIFY";
+}
+function exerciseName(
+  operation: Extract<
+    RecommendationOperation,
+    { operation_type: "add_exercise" }
+  >,
+  library: Exercise[],
+) {
+  return (
+    library.find((exercise) => exercise.id === operation.payload.exercise_id)
+      ?.name ?? operation.display_text
+  );
 }
 function positionOf(exercise: WorkoutExerciseDisplay | undefined) {
   return (exercise?.sort_order ?? 0) + 1;
