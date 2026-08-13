@@ -12,23 +12,28 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from pydantic_ai import AgentRunResultEvent
+from pydantic_ai import Agent, AgentRunResultEvent
 from pydantic_ai.messages import (
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
     ModelMessagesTypeAdapter,
     PartDeltaEvent,
     PartStartEvent,
     TextPart,
     TextPartDelta,
     ThinkingPart,
+    ToolReturnPart,
 )
 from pydantic_ai.usage import UsageLimits
 
 from ai.runner import (
     ActivityChanged,
+    CoachActivity,
     CoachRunnerEvent,
     CoachRunRequest,
     CoachRunResult,
     RunCompleted,
+    RunFailed,
     TextDelta,
     ThinkingChanged,
 )
@@ -36,6 +41,7 @@ from coach.models import CoachConversation
 
 from .agent import create_coach_agent
 from .contracts import CoachDeps, CoachRunState, CoachRuntimeLimits
+from .tools import activity_for_tool
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +55,10 @@ class PydanticCoachRunner:
         self._limits = limits
         self._model_name = model_name
         self._timeout_seconds = timeout_seconds
+        self._agent: Agent[CoachDeps, str] = create_coach_agent(
+            model_name=model_name,
+            tool_timeout_seconds=limits.tool_timeout_seconds,
+        )
 
     async def run(self, request: CoachRunRequest) -> CoachRunResult:
         """Run to completion for the non-streaming Coach endpoint."""
@@ -56,6 +66,8 @@ class PydanticCoachRunner:
         async for event in self.stream(request):
             if isinstance(event, RunCompleted):
                 return event.result
+            if isinstance(event, RunFailed):
+                raise TypeError(f"Pydantic Coach run failed: {event.code}")
         raise RuntimeError("Pydantic Coach run ended without a completion event.")
 
     async def stream(self, request: CoachRunRequest) -> AsyncIterator[CoachRunnerEvent]:
@@ -93,17 +105,14 @@ class PydanticCoachRunner:
             count_tokens_before_request=False,
             cost_limit=self._limits.cost_limit_usd,
         )
-        agent = create_coach_agent(
-            model_name=self._model_name,
-            tool_timeout_seconds=self._limits.tool_timeout_seconds,
-        )
         yield ThinkingChanged(active=True)
+        thinking_active = True
         result: Any = None
         emitted_text = False
         started_at = time.monotonic()
         try:
             async with asyncio.timeout(self._timeout_seconds):
-                async with agent.run_stream_events(
+                async with self._agent.run_stream_events(
                     request.content,
                     deps=deps,
                     message_history=history,
@@ -111,29 +120,66 @@ class PydanticCoachRunner:
                     conversation_id=str(request.conversation_id),
                     usage_limits=usage_limits,
                 ) as events:
-                    async for event in events:
-                        while not activity_events.empty():
-                            yield activity_events.get_nowait()
-                        if isinstance(event, PartStartEvent) and isinstance(
-                            event.part, ThinkingPart
-                        ):
-                            yield ThinkingChanged(active=True)
-                        elif isinstance(event, PartStartEvent) and isinstance(
-                            event.part, TextPart
-                        ):
-                            yield ThinkingChanged(active=False)
-                            if event.part.content:
-                                emitted_text = True
-                                yield TextDelta(delta=event.part.content)
-                        elif isinstance(event, PartDeltaEvent) and isinstance(
-                            event.delta, TextPartDelta
-                        ):
-                            yield ThinkingChanged(active=False)
-                            if event.delta.content_delta:
-                                emitted_text = True
-                                yield TextDelta(delta=event.delta.content_delta)
-                        elif isinstance(event, AgentRunResultEvent):
-                            result = event.result
+                    event_iterator = aiter(events)
+                    event_task = asyncio.ensure_future(anext(event_iterator))
+                    activity_task = asyncio.create_task(activity_events.get())
+                    try:
+                        while True:
+                            done, _ = await asyncio.wait(
+                                {event_task, activity_task},
+                                return_when=asyncio.FIRST_COMPLETED,
+                            )
+                            if activity_task in done:
+                                yield activity_task.result()
+                                activity_task = asyncio.create_task(
+                                    activity_events.get()
+                                )
+                            if event_task in done:
+                                try:
+                                    event = event_task.result()
+                                except StopAsyncIteration:
+                                    break
+                                event_task = asyncio.ensure_future(anext(event_iterator))
+                                logger.info(
+                                    "event_type=%s event=%s",
+                                    type(event).__name__,
+                                    event,
+                                )
+                                activity = _activity_from_native_event(event)
+                                if activity is not None:
+                                    state.publish(activity)
+                                if isinstance(event, PartStartEvent) and isinstance(
+                                    event.part, ThinkingPart
+                                ):
+                                    if not thinking_active:
+                                        yield ThinkingChanged(active=True)
+                                        thinking_active = True
+                                elif isinstance(event, PartStartEvent) and isinstance(
+                                    event.part, TextPart
+                                ):
+                                    if thinking_active:
+                                        yield ThinkingChanged(active=False)
+                                        thinking_active = False
+                                    if event.part.content:
+                                        emitted_text = True
+                                        yield TextDelta(delta=event.part.content)
+                                elif isinstance(event, PartDeltaEvent) and isinstance(
+                                    event.delta, TextPartDelta
+                                ):
+                                    if thinking_active:
+                                        yield ThinkingChanged(active=False)
+                                        thinking_active = False
+                                    if event.delta.content_delta:
+                                        emitted_text = True
+                                        yield TextDelta(delta=event.delta.content_delta)
+                                elif isinstance(event, AgentRunResultEvent):
+                                    result = event.result
+                    finally:
+                        for task in (event_task, activity_task):
+                            task.cancel()
+                        await asyncio.gather(
+                            event_task, activity_task, return_exceptions=True
+                        )
 
                     if result is None:
                         raise RuntimeError(
@@ -156,18 +202,30 @@ class PydanticCoachRunner:
                 round((time.monotonic() - started_at) * 1000),
                 running,
             )
-            raise
+            for activity in state.fail_running():
+                yield ActivityChanged(activity)
+            if thinking_active:
+                yield ThinkingChanged(active=False)
+            yield RunFailed(code="timeout", retryable=True)
+            return
         except asyncio.CancelledError:
+            state.fail_running()
             logger.info("coach_run_cancelled run_id=%s", request.run_id)
             raise
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - normalized into the runner protocol
             logger.warning(
-                "coach_run_error run_id=%s elapsed_ms=%s error_type=%s",
+                "coach_run_error run_id=%s elapsed_ms=%s error_type=%s error=%s",
                 request.run_id,
                 round((time.monotonic() - started_at) * 1000),
                 type(exc).__name__,
+                str(exc),
             )
-            raise
+            for activity in state.fail_running():
+                yield ActivityChanged(activity)
+            if thinking_active:
+                yield ThinkingChanged(active=False)
+            yield RunFailed(code="coach_run_failed", retryable=True)
+            return
 
         logger.info(
             "coach_run_completed run_id=%s elapsed_ms=%s activity_count=%s",
@@ -182,7 +240,8 @@ class PydanticCoachRunner:
             for activity in state.activities.values()
             if activity.status in {"completed", "failed"}
         ]
-        yield ThinkingChanged(active=False)
+        if thinking_active:
+            yield ThinkingChanged(active=False)
         # Plain text output arrives as TextPart deltas. Retain this fallback for
         # models/tests that return a completed result without a text delta.
         if not emitted_text:
@@ -195,6 +254,26 @@ class PydanticCoachRunner:
                 recommendation_id=state.recommendation_id,
             )
         )
+
+
+def _activity_from_native_event(event: Any) -> CoachActivity | None:
+    """Maps Pydantic AI function-tool lifecycle events into owned activities."""
+
+    if isinstance(event, FunctionToolCallEvent):
+        activity = activity_for_tool(
+            event.part.tool_name, event.part.tool_call_id, "running"
+        )
+        return activity
+    if isinstance(event, FunctionToolResultEvent):
+        part = event.part
+        status = (
+            "completed"
+            if isinstance(part, ToolReturnPart) and part.outcome == "success"
+            else "failed"
+        )
+        activity = activity_for_tool(part.tool_name or "", part.tool_call_id, status)
+        return activity
+    return None
 
 
 def create_pydantic_coach_runner() -> PydanticCoachRunner:

@@ -48,12 +48,28 @@ class CoachRunState:
     """Mutable run-local state that the model cannot supply or alter directly."""
 
     activity_sink: Callable[[CoachActivity], None]
-    activities: dict[uuid.UUID, CoachActivity] = field(default_factory=dict)
+    activities: dict[str, CoachActivity] = field(default_factory=dict)
     recommendation_id: uuid.UUID | None = None
 
     def publish(self, activity: CoachActivity) -> None:
         self.activities[activity.id] = activity
         self.activity_sink(activity)
+
+    def fail_running(self) -> list[CoachActivity]:
+        """Marks unfinished activities terminal without publishing duplicate events."""
+
+        failed: list[CoachActivity] = []
+        for activity in self.activities.values():
+            if activity.status == "running":
+                terminal = CoachActivity(
+                    id=activity.id,
+                    kind=activity.kind,
+                    label=activity.label,
+                    status="failed",
+                )
+                self.activities[terminal.id] = terminal
+                failed.append(terminal)
+        return failed
 
 
 @dataclass(frozen=True)

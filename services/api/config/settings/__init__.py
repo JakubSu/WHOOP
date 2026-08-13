@@ -5,8 +5,8 @@ import os
 environment = os.environ.get("DJANGO_ENV", "local").strip().lower()
 
 if environment == "local":
-    from .local import *  # noqa: F403
+    from .local import *
 elif environment == "production":
-    from .production import *  # noqa: F403
+    from .production import *
 else:
     raise RuntimeError('DJANGO_ENV must be either "local" or "production".')

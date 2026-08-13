@@ -48,7 +48,7 @@ Set these GitHub `production` environment variables:
 - `AWS_REGION` (`us-east-1` by default)
 - `AWS_ROLE_TO_ASSUME` (the `github_actions_role_arn` Terraform output)
 - `CADDY_ACME_EMAIL`
-- Optional runtime values: `OPENAI_MODEL`, `POSTGRES_DB`, `POSTGRES_USER`, and `SSM_PARAMETER_PREFIX`
+- Optional runtime values: `OPENAI_MODEL` and `SSM_PARAMETER_PREFIX`
 
 The EC2 host does not fetch source code or build images. It receives the checked-out Compose configuration and image digests from the workflow, pulls those images from ECR, runs migrations, and starts Docker Compose. ECR lifecycle policies retain only the three newest immutable releases per service.
 

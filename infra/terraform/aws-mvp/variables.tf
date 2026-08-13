@@ -132,6 +132,12 @@ variable "openai_api_key" {
   sensitive   = true
 }
 
+variable "logfire_token" {
+  description = "Production Logfire write token written to SSM Parameter Store."
+  type        = string
+  sensitive   = true
+}
+
 variable "whoop_client_id" {
   description = "Production WHOOP OAuth client ID written to SSM Parameter Store."
   type        = string

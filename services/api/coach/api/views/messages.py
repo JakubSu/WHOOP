@@ -28,6 +28,7 @@ from ai.runner import (
     CoachRunRequest,
     CoachRunResult,
     RunCompleted,
+    RunFailed,
     TextDelta,
     ThinkingChanged,
     get_coach_runner,
@@ -170,8 +171,8 @@ class MessageStreamAPIView(APIView):
         async def stream() -> AsyncIterator[bytes]:
             sequence = 0
             thinking_active = False
-            activities: dict[uuid.UUID, CoachActivity] = {}
-            active_activity_ids: set[uuid.UUID] = set()
+            activities: dict[str, CoachActivity] = {}
+            active_activity_ids: set[str] = set()
             completed = False
 
             def event(name: str, payload: dict[str, Any] | None = None) -> bytes:
@@ -255,6 +256,22 @@ class MessageStreamAPIView(APIView):
                                 "message": payload,
                                 "recommendation_transitions": transitions,
                                 "updated_messages": updated_messages,
+                            },
+                        )
+                        completed = True
+                        break
+                    if isinstance(runner_event, RunFailed):
+                        await sync_to_async(_expire_failed_run, thread_sensitive=True)(
+                            request.user, run_request.run_id
+                        )
+                        if thinking_active:
+                            yield event("thinking_finished")
+                        yield event(
+                            "error",
+                            {
+                                "code": runner_event.code,
+                                "message": "I couldn't complete that request.",
+                                "retryable": runner_event.retryable,
                             },
                         )
                         completed = True

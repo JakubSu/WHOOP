@@ -9,14 +9,12 @@ APP_DOMAIN="${1:?App domain is required.}"
 CADDY_ACME_EMAIL="${2:?Caddy ACME email is required.}"
 AWS_REGION="${3:?AWS region is required.}"
 SSM_PARAMETER_PREFIX="${4:?SSM parameter prefix is required.}"
-POSTGRES_DB="${5:-whoop_ai_coach}"
-POSTGRES_USER="${6:-whoop_ai_coach}"
-OPENAI_MODEL="${7:-gpt-4.1-mini}"
-WEB_IMAGE="${8:?Immutable web image is required.}"
-API_IMAGE="${9:?Immutable API image is required.}"
-COMPOSE_CONFIG_B64="${10:?Compose configuration is required.}"
-RELEASE_SHA="${11:?Release commit SHA is required.}"
-COACH_CONFIG_B64="${12:?Coach configuration is required.}"
+OPENAI_MODEL="${5:-gpt-5.6-luna}"
+WEB_IMAGE="${6:?Immutable web image is required.}"
+API_IMAGE="${7:?Immutable API image is required.}"
+COMPOSE_CONFIG_B64="${8:?Compose configuration is required.}"
+RELEASE_SHA="${9:?Release commit SHA is required.}"
+COACH_CONFIG_B64="${10:?Coach configuration is required.}"
 
 mkdir -p "$DEPLOY_LOG_DIR"
 touch "$DEPLOY_LOG"
@@ -48,12 +46,28 @@ echo "API image: $API_IMAGE"
 
 mkdir -p "$APP_DIR"
 mkdir -p "$APP_DIR/secrets"
-aws ssm get-parameter \
-  --region "$AWS_REGION" \
-  --name "${SSM_PARAMETER_PREFIX%/}/postgres/password" \
-  --with-decryption \
-  --query 'Parameter.Value' \
-  --output text >"$APP_DIR/secrets/postgres_password"
+
+read_ssm_secret() {
+  local env_name="$1"
+  local parameter_name="$2"
+  local value
+  value="$(aws ssm get-parameter \
+    --region "$AWS_REGION" \
+    --name "${SSM_PARAMETER_PREFIX%/}/$parameter_name" \
+    --with-decryption \
+    --query 'Parameter.Value' \
+    --output text)"
+  printf -v "$env_name" '%s' "$value"
+}
+
+read_ssm_secret SECRET_KEY "django/secret-key"
+read_ssm_secret OPENAI_API_KEY "openai/api-key"
+read_ssm_secret LOGFIRE_TOKEN "logfire/token"
+read_ssm_secret WHOOP_CLIENT_ID "whoop/client-id"
+read_ssm_secret WHOOP_CLIENT_SECRET "whoop/client-secret"
+read_ssm_secret WHOOP_TOKEN_ENCRYPTION_KEY "whoop/token-encryption-key"
+read_ssm_secret POSTGRES_PASSWORD "postgres/password"
+printf '%s' "$POSTGRES_PASSWORD" >"$APP_DIR/secrets/postgres_password"
 chmod 600 "$APP_DIR/secrets/postgres_password"
 
 compose_tmp="$(mktemp "$APP_DIR/compose.yml.XXXXXX")"
@@ -68,12 +82,14 @@ CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL}
 AWS_REGION=${AWS_REGION}
 SSM_PARAMETER_PREFIX=${SSM_PARAMETER_PREFIX%/}
 CLOUDWATCH_LOG_GROUP=${SSM_PARAMETER_PREFIX%/}/docker
-POSTGRES_DB=${POSTGRES_DB}
-POSTGRES_USER=${POSTGRES_USER}
 OPENAI_MODEL=${OPENAI_MODEL}
 WEB_IMAGE=${WEB_IMAGE}
 API_IMAGE=${API_IMAGE}
 EOF
+for secret_name in SECRET_KEY OPENAI_API_KEY LOGFIRE_TOKEN WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET WHOOP_TOKEN_ENCRYPTION_KEY POSTGRES_PASSWORD; do
+  secret_value="${!secret_name}"
+  printf "%s='%s'\n" "$secret_name" "${secret_value//\'/\'\\\'\'}" >>"$APP_DIR/.env"
+done
 printf '%s' "$COACH_CONFIG_B64" | base64 --decode >>"$APP_DIR/.env"
 printf '\n' >>"$APP_DIR/.env"
 chmod 600 "$APP_DIR/.env"

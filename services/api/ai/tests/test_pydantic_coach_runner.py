@@ -11,6 +11,12 @@ from unittest.mock import patch
 from asgiref.sync import async_to_sync
 from django.test import SimpleTestCase, override_settings
 from pydantic_ai import Agent
+from pydantic_ai.messages import (
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models.test import TestModel
 
 from ai.implementations.pydantic_coach.contracts import (
@@ -19,10 +25,11 @@ from ai.implementations.pydantic_coach.contracts import (
 )
 from ai.implementations.pydantic_coach.runner import (
     PydanticCoachRunner,
+    _activity_from_native_event,
     _restore_history,
     create_pydantic_coach_runner,
 )
-from ai.runner import CoachRunRequest, RunCompleted, TextDelta
+from ai.runner import CoachRunRequest, RunCompleted, TextDelta, ThinkingChanged
 
 
 async def _collect_events(
@@ -82,10 +89,16 @@ class PydanticCoachRunnerTests(SimpleTestCase):
     def test_factory_builds_the_sync_runner_without_resolving_a_live_model(
         self,
     ) -> None:
-        runner = create_pydantic_coach_runner()
+        with patch(
+            "ai.implementations.pydantic_coach.runner.create_coach_agent"
+        ) as create_agent:
+            runner = create_pydantic_coach_runner()
 
         self.assertIsInstance(runner, PydanticCoachRunner)
         self.assertEqual(runner._model_name, "gpt-5.6-luna")
+        create_agent.assert_called_once_with(
+            model_name="gpt-5.6-luna", tool_timeout_seconds=10.0
+        )
 
     def test_text_agent_output_maps_to_text_then_completed_event(self) -> None:
         agent = Agent(
@@ -104,15 +117,11 @@ class PydanticCoachRunnerTests(SimpleTestCase):
             content="What should I do today?",
             ai_message_batches=[],
         )
-        runner = PydanticCoachRunner(
-            limits=_limits(), model_name="unused", timeout_seconds=5
-        )
-
         with (
             patch(
                 "ai.implementations.pydantic_coach.runner.create_coach_agent",
                 return_value=agent,
-            ),
+            ) as create_agent,
             patch(
                 "ai.implementations.pydantic_coach.runner.get_user_model",
                 return_value=user_model,
@@ -122,8 +131,16 @@ class PydanticCoachRunnerTests(SimpleTestCase):
                 conversations,
             ),
         ):
+            runner = PydanticCoachRunner(
+                limits=_limits(), model_name="unused", timeout_seconds=5
+            )
             events = async_to_sync(_collect_events)(runner, request)
+            repeated_events = async_to_sync(_collect_events)(runner, request)
             thread_names_after = {thread.name for thread in enumerate_threads()}
+
+        create_agent.assert_called_once_with(
+            model_name="unused", tool_timeout_seconds=10
+        )
 
         self.assertEqual(
             "".join(event.delta for event in events if isinstance(event, TextDelta)),
@@ -134,3 +151,41 @@ class PydanticCoachRunnerTests(SimpleTestCase):
         self.assertIsInstance(completed, RunCompleted)
         assert isinstance(completed, RunCompleted)
         self.assertEqual(completed.result.content, "Keep the session easy.")
+        self.assertEqual(
+            "".join(
+                event.delta for event in repeated_events if isinstance(event, TextDelta)
+            ),
+            "Keep the session easy.",
+        )
+        self.assertEqual(
+            [
+                event
+                for event in events
+                if isinstance(event, ThinkingChanged) and not event.active
+            ],
+            [ThinkingChanged(active=False)],
+        )
+
+    def test_native_function_tool_events_share_the_provider_call_id(self) -> None:
+        call_id = "call_opaque_provider_id"
+        started = _activity_from_native_event(
+            FunctionToolCallEvent(
+                ToolCallPart("search_workouts", tool_call_id=call_id)
+            )
+        )
+        completed = _activity_from_native_event(
+            FunctionToolResultEvent(
+                ToolReturnPart(
+                    "search_workouts", content="ok", tool_call_id=call_id
+                )
+            )
+        )
+
+        self.assertIsNotNone(started)
+        self.assertIsNotNone(completed)
+        assert started is not None
+        assert completed is not None
+        self.assertEqual(started.id, call_id)
+        self.assertEqual(completed.id, call_id)
+        self.assertEqual(started.status, "running")
+        self.assertEqual(completed.status, "completed")

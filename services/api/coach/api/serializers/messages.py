@@ -9,7 +9,7 @@ from recommendation.models import Recommendation
 class CoachActivitySerializer(serializers.Serializer):
     """Serializes a sanitized assistant tool activity."""
 
-    id = serializers.UUIDField(read_only=True)
+    id = serializers.CharField(read_only=True)
     kind = serializers.ChoiceField(
         choices=[
             "recovery_data",

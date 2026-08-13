@@ -92,8 +92,7 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
       AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
       CADDY_ACME_EMAIL: ${{ vars.CADDY_ACME_EMAIL }}
-      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1-mini' }}
-      COACH_RUNNER_FACTORY: ${{ vars.COACH_RUNNER_FACTORY || 'ai.implementations.pydantic_coach.create_pydantic_coach_runner' }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-luna' }}
       COACH_HISTORY_MAX_BATCHES: ${{ vars.COACH_HISTORY_MAX_BATCHES || '12' }}
       COACH_HISTORY_MAX_TOKENS: ${{ vars.COACH_HISTORY_MAX_TOKENS || '20000' }}
       COACH_MAX_MODEL_REQUESTS: ${{ vars.COACH_MAX_MODEL_REQUESTS || '6' }}
@@ -105,10 +104,6 @@ jobs:
       COACH_STREAM_KEEPALIVE_SECONDS: ${{ vars.COACH_STREAM_KEEPALIVE_SECONDS || '15' }}
       COACH_MAX_COST_USD: ${{ vars.COACH_MAX_COST_USD || '0.05' }}
       COACH_LOGFIRE_ENABLED: ${{ vars.COACH_LOGFIRE_ENABLED || 'true' }}
-      LOGFIRE_SERVICE_NAME: ${{ vars.LOGFIRE_SERVICE_NAME || 'whoop-coach' }}
-      LOGFIRE_ENVIRONMENT: ${{ vars.LOGFIRE_ENVIRONMENT || 'production' }}
-      POSTGRES_DB: ${{ vars.POSTGRES_DB || 'whoop_ai_coach' }}
-      POSTGRES_USER: ${{ vars.POSTGRES_USER || 'whoop_ai_coach' }}
       SSM_PARAMETER_PREFIX: ${{ vars.SSM_PARAMETER_PREFIX || '/whoop-ai-coach/prod' }}
       RELEASE_SHA: ${{ needs.resolve-release.outputs.sha }}
       ECR_WEB_REPOSITORY: whoop-ai-coach/web
@@ -244,7 +239,6 @@ jobs:
           coach_config = "\n".join(
               f"{key}={os.environ[key]}"
               for key in (
-                  "COACH_RUNNER_FACTORY",
                   "COACH_HISTORY_MAX_BATCHES",
                   "COACH_HISTORY_MAX_TOKENS",
                   "COACH_MAX_MODEL_REQUESTS",
@@ -256,8 +250,6 @@ jobs:
                   "COACH_STREAM_KEEPALIVE_SECONDS",
                   "COACH_MAX_COST_USD",
                   "COACH_LOGFIRE_ENABLED",
-                  "LOGFIRE_SERVICE_NAME",
-                  "LOGFIRE_ENVIRONMENT",
               )
           )
 
@@ -266,8 +258,6 @@ jobs:
               os.environ["CADDY_ACME_EMAIL"],
               os.environ["AWS_REGION"],
               os.environ["SSM_PARAMETER_PREFIX"],
-              os.environ["POSTGRES_DB"],
-              os.environ["POSTGRES_USER"],
               os.environ["OPENAI_MODEL"],
               os.environ["WEB_IMAGE"],
               os.environ["API_IMAGE"],

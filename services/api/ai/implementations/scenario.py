@@ -113,7 +113,9 @@ class ScenarioCoachRunner:
         activity_events: ActivitySink | None = None,
     ) -> CoachRunResult:
         scenario = self._scenario_context(request)
-        handlers: dict[str, Callable[[ScenarioContext, ActivitySink | None], CoachRunResult]] = {
+        handlers: dict[
+            str, Callable[[ScenarioContext, ActivitySink | None], CoachRunResult]
+        ] = {
             "/test search-workouts": self._search_workouts,
             "/test recovery": self._recovery,
             "/test propose-new-workout": self._propose_new_workout,
@@ -139,7 +141,9 @@ class ScenarioCoachRunner:
             if activity_events is not None:
                 activity_events(event)
 
-        return handler(scenario, paced_activity_events if activity_events is not None else None)
+        return handler(
+            scenario, paced_activity_events if activity_events is not None else None
+        )
 
     def _scenario_context(self, request: CoachRunRequest) -> ScenarioContext:
         user_model = get_user_model()
@@ -148,7 +152,9 @@ class ScenarioCoachRunner:
             pk=request.conversation_id, user_id=request.user_id
         ).first()
         if user is None or conversation is None:
-            raise ScenarioRunnerError("Scenario request is outside the active conversation.")
+            raise ScenarioRunnerError(
+                "Scenario request is outside the active conversation."
+            )
         return ScenarioContext(
             request=request,
             user=user,
@@ -167,29 +173,34 @@ class ScenarioCoachRunner:
         call: Callable[[CoachToolContext], Any],
         tool_call_id: str | None = None,
     ) -> Any:
+        resolved_tool_call_id = tool_call_id or step
         activity = CoachActivity(
-            id=uuid.uuid5(scenario.request.run_id, f"{scenario.code}:{step}"),
+            id=resolved_tool_call_id,
             kind=kind,  # type: ignore[arg-type]
             label=label,
             status="running",
         )
         if events is not None:
             events(ActivityChanged(activity))
-        context = scenario.tool_context(tool_call_id or step)
+        context = scenario.tool_context(resolved_tool_call_id)
         result = call(context)
         if events is not None:
-            events(ActivityChanged(
-                CoachActivity(
-                    id=activity.id,
-                    kind=activity.kind,
-                    label=activity.label,
-                    status="completed",
+            events(
+                ActivityChanged(
+                    CoachActivity(
+                        id=activity.id,
+                        kind=activity.kind,
+                        label=activity.label,
+                        status="completed",
+                    )
                 )
-            ))
+            )
         return result
 
     @staticmethod
-    def _result(content: str, recommendation_id: uuid.UUID | None = None) -> CoachRunResult:
+    def _result(
+        content: str, recommendation_id: uuid.UUID | None = None
+    ) -> CoachRunResult:
         return CoachRunResult(
             content=content,
             ai_message_batch=[],
@@ -212,10 +223,17 @@ class ScenarioCoachRunner:
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         workouts = self._tool(
-            scenario, events, step="search", kind="training_data", label="Searching workouts", call=search_workouts
+            scenario,
+            events,
+            step="search",
+            kind="training_data",
+            label="Searching workouts",
+            call=search_workouts,
         )
         if not workouts:
-            return self._result("Setup needed: create a workout, then run /test search-workouts again.")
+            return self._result(
+                "Setup needed: create a workout, then run /test search-workouts again."
+            )
         workout = self._tool(
             scenario,
             events,
@@ -232,20 +250,34 @@ class ScenarioCoachRunner:
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         summary = self._tool(
-            scenario, events, step="get-summary", kind="recovery_data", label="Loading recovery data", call=get_whoop_summary
+            scenario,
+            events,
+            step="get-summary",
+            kind="recovery_data",
+            label="Loading recovery data",
+            call=get_whoop_summary,
         )
         if summary is None:
-            return self._result("WHOOP is not connected, so no recovery summary is available.")
+            return self._result(
+                "WHOOP is not connected, so no recovery summary is available."
+            )
         return self._result(f"Recovery summary: {summary.model_dump()}")
 
     def _propose_new_workout(
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         exercises = self._tool(
-            scenario, events, step="search-exercises", kind="training_data", label="Searching exercises", call=search_exercises
+            scenario,
+            events,
+            step="search-exercises",
+            kind="training_data",
+            label="Searching exercises",
+            call=search_exercises,
         )
         if not exercises:
-            return self._result("Setup needed: add an exercise, then run /test propose-new-workout again.")
+            return self._result(
+                "Setup needed: add an exercise, then run /test propose-new-workout again."
+            )
         active = self._active_recommendation(scenario, events)
         exercise = exercises[0]
         temporary_workout_id = "workout_1"
@@ -257,7 +289,10 @@ class ScenarioCoachRunner:
                         "operation_type": "add_exercise",
                         "reason": "Include an available exercise in the new workout.",
                         "payload": {
-                            "workout": {"kind": "new", "temporary_id": temporary_workout_id},
+                            "workout": {
+                                "kind": "new",
+                                "temporary_id": temporary_workout_id,
+                            },
                             "exercise_id": str(exercise.id),
                             "prescription": {"type": "reps", "sets": 3, "reps": 10},
                             "position": 0,
@@ -269,7 +304,9 @@ class ScenarioCoachRunner:
                         "payload": {
                             "temporary_id": temporary_workout_id,
                             "name": "Scenario test workout",
-                            "date": (timezone.localdate() + timedelta(days=1)).isoformat(),
+                            "date": (
+                                timezone.localdate() + timedelta(days=1)
+                            ).isoformat(),
                             "expected_time": 30,
                         },
                     },
@@ -277,18 +314,30 @@ class ScenarioCoachRunner:
             }
         )
         created = self._create(
-            scenario, events, draft=draft, replaces=active.recommendation_id if active else None
+            scenario,
+            events,
+            draft=draft,
+            replaces=active.recommendation_id if active else None,
         )
-        return self._result("Created a new-workout recommendation.", created.recommendation_id)
+        return self._result(
+            "Created a new-workout recommendation.", created.recommendation_id
+        )
 
     def _modify_workout(
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         workouts = self._tool(
-            scenario, events, step="search", kind="training_data", label="Searching workouts", call=search_workouts
+            scenario,
+            events,
+            step="search",
+            kind="training_data",
+            label="Searching workouts",
+            call=search_workouts,
         )
         if not workouts:
-            return self._result("Setup needed: create a workout, then run /test modify-workout again.")
+            return self._result(
+                "Setup needed: create a workout, then run /test modify-workout again."
+            )
         workout = self._tool(
             scenario,
             events,
@@ -301,29 +350,44 @@ class ScenarioCoachRunner:
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Adjust {workout.name}",
-                "operations": [{
-                    "operation_type": "update_workout",
-                    "reason": "Make a small, visible duration adjustment.",
-                    "payload": {
-                        "workout_id": str(workout.id),
-                        "changes": {"expected_time": workout.expected_time + 5},
-                    },
-                }],
+                "operations": [
+                    {
+                        "operation_type": "update_workout",
+                        "reason": "Make a small, visible duration adjustment.",
+                        "payload": {
+                            "workout_id": str(workout.id),
+                            "changes": {"expected_time": workout.expected_time + 5},
+                        },
+                    }
+                ],
             }
         )
         created = self._create(
-            scenario, events, draft=draft, replaces=active.recommendation_id if active else None
+            scenario,
+            events,
+            draft=draft,
+            replaces=active.recommendation_id if active else None,
         )
-        return self._result(f"Created an update recommendation for {workout.name}.", created.recommendation_id)
+        return self._result(
+            f"Created an update recommendation for {workout.name}.",
+            created.recommendation_id,
+        )
 
     def _replace_active(
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         active = self._active_recommendation(scenario, events)
         if active is None:
-            return self._result("Setup needed: create an active recommendation before running /test replace-active.")
+            return self._result(
+                "Setup needed: create an active recommendation before running /test replace-active."
+            )
         workouts = self._tool(
-            scenario, events, step="search", kind="training_data", label="Searching workouts", call=search_workouts
+            scenario,
+            events,
+            step="search",
+            kind="training_data",
+            label="Searching workouts",
+            call=search_workouts,
         )
         targeted_workout_ids = {
             str(operation.payload.workout_id)
@@ -331,7 +395,11 @@ class ScenarioCoachRunner:
             if getattr(operation.payload, "workout_id", None) is not None
         }
         replacement_summary = next(
-            (workout for workout in workouts if str(workout.id) not in targeted_workout_ids),
+            (
+                workout
+                for workout in workouts
+                if str(workout.id) not in targeted_workout_ids
+            ),
             None,
         )
         if replacement_summary is None:
@@ -344,34 +412,47 @@ class ScenarioCoachRunner:
             step="get-workout",
             kind="training_data",
             label="Loading replacement workout details",
-            call=lambda context: get_workout(context, workout_id=replacement_summary.id),
+            call=lambda context: get_workout(
+                context, workout_id=replacement_summary.id
+            ),
         )
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Replace the proposal with an update to {workout.name}",
-                "operations": [{
-                    "operation_type": "update_workout",
-                    "reason": "Target a different workout than the active proposal.",
-                    "payload": {
-                        "workout_id": str(workout.id),
-                        "changes": {"expected_time": workout.expected_time + 10},
-                    },
-                }],
+                "operations": [
+                    {
+                        "operation_type": "update_workout",
+                        "reason": "Target a different workout than the active proposal.",
+                        "payload": {
+                            "workout_id": str(workout.id),
+                            "changes": {"expected_time": workout.expected_time + 10},
+                        },
+                    }
+                ],
             }
         )
         created = self._create(
             scenario, events, draft=draft, replaces=active.recommendation_id
         )
-        return self._result("Replaced the active recommendation.", created.recommendation_id)
+        return self._result(
+            "Replaced the active recommendation.", created.recommendation_id
+        )
 
     def _retry_create(
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         workouts = self._tool(
-            scenario, events, step="search", kind="training_data", label="Searching workouts", call=search_workouts
+            scenario,
+            events,
+            step="search",
+            kind="training_data",
+            label="Searching workouts",
+            call=search_workouts,
         )
         if not workouts:
-            return self._result("Setup needed: create a workout, then run /test retry-create again.")
+            return self._result(
+                "Setup needed: create a workout, then run /test retry-create again."
+            )
         workout = self._tool(
             scenario,
             events,
@@ -384,14 +465,16 @@ class ScenarioCoachRunner:
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Retry test for {workout.name}",
-                "operations": [{
-                    "operation_type": "update_workout",
-                    "reason": "Make a retry-safe duration adjustment.",
-                    "payload": {
-                        "workout_id": str(workout.id),
-                        "changes": {"expected_time": workout.expected_time + 1},
-                    },
-                }],
+                "operations": [
+                    {
+                        "operation_type": "update_workout",
+                        "reason": "Make a retry-safe duration adjustment.",
+                        "payload": {
+                            "workout_id": str(workout.id),
+                            "changes": {"expected_time": workout.expected_time + 1},
+                        },
+                    }
+                ],
             }
         )
         first = self._create(
@@ -411,34 +494,51 @@ class ScenarioCoachRunner:
             tool_call_id="create",
         )
         if first.recommendation_id != second.recommendation_id:
-            raise ScenarioRunnerError("Scenario retry created more than one recommendation.")
-        return self._result("Retry returned the original recommendation.", first.recommendation_id)
+            raise ScenarioRunnerError(
+                "Scenario retry created more than one recommendation."
+            )
+        return self._result(
+            "Retry returned the original recommendation.", first.recommendation_id
+        )
 
     def _fail_after_create(
         self, scenario: ScenarioContext, events: ActivitySink | None
     ) -> CoachRunResult:
         exercises = self._tool(
-            scenario, events, step="search-exercises", kind="training_data", label="Searching exercises", call=search_exercises
+            scenario,
+            events,
+            step="search-exercises",
+            kind="training_data",
+            label="Searching exercises",
+            call=search_exercises,
         )
         if not exercises:
-            return self._result("Setup needed: add an exercise, then run /test fail-after-create again.")
+            return self._result(
+                "Setup needed: add an exercise, then run /test fail-after-create again."
+            )
         if self._active_recommendation(scenario, events) is not None:
-            return self._result("Setup needed: use a conversation without an active recommendation for /test fail-after-create.")
+            return self._result(
+                "Setup needed: use a conversation without an active recommendation for /test fail-after-create."
+            )
         exercise = exercises[0]
         temporary_workout_id = "workout_1"
         draft = RecommendationDraft.model_validate(
             {
                 "summary": "Failed-run cleanup test",
-                "operations": [{
-                    "operation_type": "add_workout",
-                    "reason": "Create a proposal that will be expired.",
-                    "payload": {
-                        "temporary_id": temporary_workout_id,
-                        "name": f"Failed scenario {exercise.name}",
-                        "date": (timezone.localdate() + timedelta(days=1)).isoformat(),
-                        "expected_time": 20,
-                    },
-                }],
+                "operations": [
+                    {
+                        "operation_type": "add_workout",
+                        "reason": "Create a proposal that will be expired.",
+                        "payload": {
+                            "temporary_id": temporary_workout_id,
+                            "name": f"Failed scenario {exercise.name}",
+                            "date": (
+                                timezone.localdate() + timedelta(days=1)
+                            ).isoformat(),
+                            "expected_time": 20,
+                        },
+                    }
+                ],
             }
         )
         self._create(scenario, events, draft=draft)

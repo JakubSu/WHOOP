@@ -20,7 +20,7 @@ ActivityStatus = Literal["running", "completed", "failed"]
 class CoachActivity:
     """A sanitized tool activity that is safe to persist and show to users."""
 
-    id: uuid.UUID
+    id: str
     kind: ActivityKind
     label: str
     status: ActivityStatus
@@ -88,7 +88,17 @@ class RunCompleted:
     result: CoachRunResult
 
 
-CoachRunnerEvent = TextDelta | ThinkingChanged | ActivityChanged | RunCompleted
+@dataclass(frozen=True)
+class RunFailed:
+    """The terminal streaming event describing a safely classed failed run."""
+
+    code: str
+    retryable: bool
+
+
+CoachRunnerEvent = (
+    TextDelta | ThinkingChanged | ActivityChanged | RunCompleted | RunFailed
+)
 
 
 class CoachRunner(Protocol):
@@ -124,11 +134,32 @@ def create_unavailable_runner() -> CoachRunner:
     return UnavailableCoachRunner()
 
 
-def get_coach_runner() -> CoachRunner:
-    """Loads the configured coach runner implementation."""
+_startup_coach_runner: CoachRunner | None = None
+
+
+def _create_coach_runner() -> CoachRunner:
+    """Construct the runner selected by the current settings."""
 
     factory_path = getattr(
         settings, "COACH_RUNNER_FACTORY", "ai.runner.create_unavailable_runner"
     )
     factory = import_string(factory_path)
-    return factory()
+    runner = factory()
+    return runner
+
+
+def initialize_coach_runner() -> CoachRunner:
+    """Build the configured runner once during application startup."""
+
+    global _startup_coach_runner
+    if _startup_coach_runner is None:
+        _startup_coach_runner = _create_coach_runner()
+    return _startup_coach_runner
+
+
+def get_coach_runner() -> CoachRunner:
+    """Return the startup runner, or lazily build one outside app startup."""
+
+    if _startup_coach_runner is not None:
+        return _startup_coach_runner
+    return _create_coach_runner()

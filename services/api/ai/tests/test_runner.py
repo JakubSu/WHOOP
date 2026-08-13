@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from unittest.mock import patch
 
 from asgiref.sync import async_to_sync
 from django.test import SimpleTestCase, override_settings
@@ -14,6 +15,7 @@ from ai.runner import (
     TextDelta,
     ThinkingChanged,
     get_coach_runner,
+    initialize_coach_runner,
 )
 
 
@@ -63,3 +65,11 @@ class EchoCoachRunnerTests(SimpleTestCase):
         completed = events[3]
         assert isinstance(completed, RunCompleted)
         self.assertEqual(completed.result.content, "Repeat this.")
+
+    def test_initialized_runner_is_reused_by_requests(self) -> None:
+        """Startup construction prevents subsequent requests rebuilding the runner."""
+
+        with patch("ai.runner._startup_coach_runner", None):
+            initialized = initialize_coach_runner()
+
+            self.assertIs(get_coach_runner(), initialized)

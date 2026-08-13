@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from django.db.models import Q
+
 from ai.tools.context import CoachToolContext
 from ai.tools.contracts import ExerciseSummary
 from ai.tools.errors import ToolValidationError
-from django.db.models import Q
 from training.models import Exercise
 
 MAX_EXERCISE_RESULTS = 200

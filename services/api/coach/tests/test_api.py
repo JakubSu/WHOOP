@@ -16,6 +16,7 @@ from ai.runner import (
     CoachActivity,
     CoachRunResult,
     RunCompleted,
+    RunFailed,
     TextDelta,
 )
 from ai.tests.fakes import runner
@@ -192,7 +193,7 @@ class CoachConversationApiTests(TestCase):
             content="Earlier",
             ai_message_batch=[{"batch": 1}],
         )
-        activity_id = uuid.uuid4()
+        activity_id = str(uuid.uuid4())
         runner.result = CoachRunResult(
             content="Reduce today’s volume.",
             ai_message_batch=[{"batch": 2}],
@@ -228,7 +229,7 @@ class CoachConversationApiTests(TestCase):
         """The stream sanitizes runner details and links committed recommendation operations."""
 
         conversation = CoachConversation.objects.create(user=self.user)
-        activity_id = uuid.uuid4()
+        activity_id = str(uuid.uuid4())
         workout = Workout.objects.create(
             user_id=str(self.user.id), name="Tempo run", date="2026-08-05"
         )
@@ -317,6 +318,27 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(recommendation.coach_message, saved)
         operation = RecommendationOperation.objects.get(recommendation=recommendation)
         self.assertEqual(operation.status, RecommendationOperation.Status.PENDING)
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_stream_exposes_a_runner_terminal_failure(self) -> None:
+        """A terminal runner failure becomes a structured, retryable SSE error."""
+
+        conversation = CoachConversation.objects.create(user=self.user)
+        runner.events = [RunFailed(code="timeout", retryable=True)]
+
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages/stream",
+            {"content": "How am I doing?"},
+            format="json",
+            HTTP_ACCEPT="text/event-stream",
+        )
+        body = async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response)).decode()
+        events = _parse_events(body)
+
+        self.assertEqual(events[-1]["event"], "error")
+        self.assertEqual(events[-1]["data"]["code"], "timeout")
+        self.assertTrue(events[-1]["data"]["retryable"])
+        self.assertFalse(conversation.messages.exists())
 
     @override_settings(
         COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner",

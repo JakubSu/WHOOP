@@ -15,6 +15,7 @@ cloudwatch_log_retention_days = 30
 cloudflare_api_token        = "replace-me"
 django_secret_key           = "replace-me"
 openai_api_key              = "replace-me"
+logfire_token               = "replace-me"
 whoop_client_id             = "replace-me"
 whoop_client_secret         = "replace-me"
 whoop_token_encryption_key  = "replace-me"

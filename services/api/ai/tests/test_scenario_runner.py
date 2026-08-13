@@ -201,7 +201,7 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
 
         self.assertEqual(pause.call_args_list, [call(0.75), call(0.75), call(0.75)])
 
-        transitions: dict[uuid.UUID, list[str]] = {}
+        transitions: dict[str, list[str]] = {}
         for event in events:
             if isinstance(event, ActivityChanged):
                 transitions.setdefault(event.activity.id, []).append(
