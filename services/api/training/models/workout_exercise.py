@@ -26,7 +26,12 @@ class WorkoutExercise(models.Model):
     exercise_id: uuid.UUID
 
     class Meta:
-        ordering: ClassVar[list[str]] = ["workout", "sort_order", "created_at", "exercise__name"]
+        ordering: ClassVar[list[str]] = [
+            "workout",
+            "sort_order",
+            "created_at",
+            "exercise__name",
+        ]
 
     def __str__(self) -> str:
         return f"{self.workout.name}: {self.exercise.name}"

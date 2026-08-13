@@ -6,32 +6,54 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [  # noqa: RUF012
-    ]
+    dependencies = []
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.CreateModel(
-            name='Exercise',
+            name="Exercise",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('user_id', models.CharField(blank=True, default='', max_length=200)),
-                ('name', models.CharField(max_length=200)),
-                ('category', models.CharField(choices=[('strength', 'Strength'), ('conditioning', 'Conditioning'), ('cardio', 'Cardio'), ('mobility', 'Mobility'), ('recovery', 'Recovery')], default='strength', max_length=32)),
-                ('primary_muscle_group', models.CharField(blank=True, default='', max_length=200)),
-                ('equipment', models.CharField(blank=True, default='', max_length=200)),
-                ('notes', models.TextField(blank=True, default='')),
-                ('default_sets', models.PositiveIntegerField(default=0)),
-                ('default_reps', models.PositiveIntegerField(default=0)),
-                ('is_favorite', models.BooleanField(default=False)),
-                ('is_avoided', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("user_id", models.CharField(blank=True, default="", max_length=200)),
+                ("name", models.CharField(max_length=200)),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("strength", "Strength"),
+                            ("conditioning", "Conditioning"),
+                            ("cardio", "Cardio"),
+                            ("mobility", "Mobility"),
+                            ("recovery", "Recovery"),
+                        ],
+                        default="strength",
+                        max_length=32,
+                    ),
+                ),
+                (
+                    "primary_muscle_group",
+                    models.CharField(blank=True, default="", max_length=200),
+                ),
+                ("equipment", models.CharField(blank=True, default="", max_length=200)),
+                ("notes", models.TextField(blank=True, default="")),
+                ("default_sets", models.PositiveIntegerField(default=0)),
+                ("default_reps", models.PositiveIntegerField(default=0)),
+                ("is_favorite", models.BooleanField(default=False)),
+                ("is_avoided", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
     ]

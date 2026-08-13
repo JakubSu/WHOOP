@@ -7,11 +7,11 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("training", "0001_initial"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.CreateModel(
             name="Workout",
             fields=[

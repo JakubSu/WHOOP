@@ -5,9 +5,9 @@ import ts from 'typescript'
 
 function stripReactRouterImport(source) {
   return source
-    .replace("import { matchPath } from 'react-router-dom'\n", '')
+    .replace(/import \{ matchPath \} from 'react-router-dom'\r?\n/, '')
     .replace(
-      "const workoutMatch = matchPath('/workouts/:workoutId', pathname)\n  const workoutId = workoutMatch?.params.workoutId",
+      /const workoutMatch = matchPath\('\/workouts\/:workoutId', pathname\)\r?\n  const workoutId = workoutMatch\?\.params\.workoutId/,
       "const workoutId = pathname.startsWith('/workouts/') ? pathname.slice('/workouts/'.length) : undefined",
     )
 }

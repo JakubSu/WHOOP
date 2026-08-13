@@ -1,25 +1,39 @@
-from recommendation.services.recommendation import (
+from recommendation.services.authoring import (
+    attach_recommendation_to_coach_message,
+    create_recommendation,
+    get_active_recommendation,
+)
+from recommendation.services.errors import (
     RecommendationConflict,
     RecommendationNotFound,
     RecommendationValidationError,
+)
+from recommendation.services.invalidation import (
+    stale_pending_recommendation_operations_for_workout,
+    stale_pending_recommendation_operations_for_workout_exercise,
+)
+from recommendation.services.resolution import (
+    accept_operation,
     accept_recommendation,
-    create_recommendation_from_workout_patch,
+    expire_run_recommendations,
     get_recommendation,
-    list_recommendations,
+    reject_operation,
     reject_recommendation,
-    serialize_recommendation,
-    update_recommendation_status,
 )
 
 __all__ = [
     "RecommendationConflict",
     "RecommendationNotFound",
     "RecommendationValidationError",
+    "accept_operation",
     "accept_recommendation",
-    "create_recommendation_from_workout_patch",
+    "attach_recommendation_to_coach_message",
+    "create_recommendation",
+    "expire_run_recommendations",
+    "get_active_recommendation",
     "get_recommendation",
-    "list_recommendations",
+    "reject_operation",
     "reject_recommendation",
-    "serialize_recommendation",
-    "update_recommendation_status",
+    "stale_pending_recommendation_operations_for_workout",
+    "stale_pending_recommendation_operations_for_workout_exercise",
 ]

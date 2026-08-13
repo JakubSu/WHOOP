@@ -7,6 +7,16 @@
 
 	root * /srv
 
+	@coach_stream path_regexp coach_stream ^/api/v1/coach/conversations/[^/]+/messages/stream$
+	handle @coach_stream {
+		reverse_proxy api:8000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-For {remote_host}
+			flush_interval -1
+		}
+	}
+
 	handle /api/* {
 		reverse_proxy api:8000 {
 			header_up Host {host}
@@ -14,6 +24,8 @@
 			header_up X-Forwarded-For {remote_host}
 		}
 	}
+
+	redir /admin /admin/ permanent
 
 	handle /admin/* {
 		reverse_proxy api:8000 {

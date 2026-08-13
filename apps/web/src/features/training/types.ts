@@ -1,3 +1,5 @@
+import { type MuscleGroup } from './constants/muscleGroups'
+
 export type TrainingPlan = {
   id: string
   name: string
@@ -40,7 +42,7 @@ export type ExerciseSummary = {
   id: string
   name: string
   prescription_type: 'strength' | 'timed'
-  muscle_group: string
+  muscle_group: MuscleGroup
 }
 
 export type Exercise = {
@@ -51,7 +53,7 @@ export type Exercise = {
   default_reps: number
   default_weight: string | null
   default_weight_unit: string
-  muscle_group: string
+  muscle_group: MuscleGroup
   default_time: number
   notes: string
 }

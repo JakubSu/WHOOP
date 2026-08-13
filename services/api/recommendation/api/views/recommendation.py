@@ -1,196 +1,90 @@
-from typing import Any, cast
-
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
-from rest_framework import permissions, status
-from rest_framework.exceptions import APIException, NotFound, ValidationError
+from rest_framework import permissions
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from recommendation import services
-from recommendation.api.serializers import (
-    AcceptRecommendationSerializer,
-    RecommendationErrorDetailSerializer,
-    RecommendationSerializer,
-    RecommendationUpdateSerializer,
+from recommendation.api.serializers import RecommendationSerializer
+from recommendation.services import (
+    RecommendationConflict,
+    RecommendationNotFound,
+    accept_operation,
+    accept_recommendation,
+    get_recommendation,
+    reject_operation,
+    reject_recommendation,
 )
-
-
-class Conflict(APIException):
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = "Conflict."
-    default_code = "conflict"
-
-
-class RecommendationCollectionAPIView(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = RecommendationSerializer
-
-    @extend_schema(
-        tags=["Recommendations"],
-        summary="List recommendations",
-        description="Returns recommendations visible to the authenticated user.",
-        parameters=[
-            OpenApiParameter(
-                name="status",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                required=False,
-                description="Filter recommendations by status.",
-            )
-        ],
-        responses={200: RecommendationSerializer(many=True)},
-    )
-    def get(self, request: Request) -> Response:
-        recommendations = services.list_recommendations(
-            str(request.user.id),
-            status=request.query_params.get("status"),
-        )
-        return Response(
-            [
-                services.serialize_recommendation(recommendation)
-                for recommendation in recommendations
-            ]
-        )
 
 
 class RecommendationDetailAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = RecommendationSerializer
 
-    @extend_schema(
-        tags=["Recommendations"],
-        summary="Get recommendation",
-        description="Returns a single recommendation.",
-        responses={
-            200: RecommendationSerializer,
-            404: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation not found.",
-            ),
-        },
-    )
     def get(self, request: Request, id: str) -> Response:
-        recommendation = services.get_recommendation(str(request.user.id), str(id))
+        recommendation = get_recommendation(request.user, str(id))
         if recommendation is None:
             raise NotFound()
-        return Response(services.serialize_recommendation(recommendation))
-
-    @extend_schema(
-        tags=["Recommendations"],
-        summary="Update recommendation partially",
-        description="Updates recommendation review status.",
-        request=RecommendationUpdateSerializer,
-        responses={
-            200: RecommendationSerializer,
-            400: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Validation error.",
-            ),
-            404: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation not found.",
-            ),
-            409: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation is no longer pending.",
-            ),
-        },
-    )
-    def patch(self, request: Request, id: str) -> Response:
-        serializer = RecommendationUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated_data = cast(dict[str, Any], serializer.validated_data)
-        status_value = validated_data.get("status")
-        if not status_value:
-            raise ValidationError({"detail": "status is required."})
-        try:
-            recommendation = services.update_recommendation_status(
-                str(request.user.id),
-                str(id),
-                status=str(status_value),
-            )
-        except services.RecommendationNotFound as exc:
-            raise NotFound(str(exc)) from exc
-        except services.RecommendationConflict as exc:
-            raise Conflict(str(exc)) from exc
-        except services.RecommendationValidationError as exc:
-            raise ValidationError({"detail": str(exc)}) from exc
-        return Response(services.serialize_recommendation(recommendation))
+        return Response(RecommendationSerializer(recommendation).data)
 
 
-class RecommendationAcceptAPIView(APIView):
+class RecommendationActionAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = AcceptRecommendationSerializer
 
-    @extend_schema(
-        tags=["Recommendations"],
-        summary="Accept recommendation",
-        description="Accepts a pending recommendation and applies its operation.",
-        request=AcceptRecommendationSerializer,
-        responses={
-            200: RecommendationSerializer,
-            400: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Validation error.",
-            ),
-            404: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation not found.",
-            ),
-            409: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation is no longer pending or the workout version conflicts.",
-            ),
-        },
-    )
-    def post(self, request: Request, id: str) -> Response:
-        serializer = AcceptRecommendationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated_data = cast(dict[str, Any], serializer.validated_data)
+    def post(self, request: Request, id: str, action: str) -> Response:
+        if action not in {"accept", "reject"}:
+            raise NotFound()
         try:
-            recommendation = services.accept_recommendation(
-                str(request.user.id),
-                str(id),
-                expected_workout_version=validated_data.get("expected_workout_version"),
+            handler = (
+                accept_recommendation if action == "accept" else reject_recommendation
             )
-        except services.RecommendationNotFound as exc:
+            recommendation = handler(user=request.user, recommendation_id=str(id))
+        except RecommendationNotFound as exc:
             raise NotFound(str(exc)) from exc
-        except services.RecommendationConflict as exc:
-            raise Conflict(str(exc)) from exc
-        except services.RecommendationValidationError as exc:
-            raise ValidationError({"detail": str(exc)}) from exc
-        return Response(services.serialize_recommendation(recommendation))
+        except RecommendationConflict as exc:
+            raise ValidationError(str(exc)) from exc
+        return Response(RecommendationSerializer(recommendation).data)
 
 
-class RecommendationRejectAPIView(APIView):
+class RecommendationOperationAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = RecommendationSerializer
 
-    @extend_schema(
-        tags=["Recommendations"],
-        summary="Reject recommendation",
-        description="Rejects a pending recommendation.",
-        request=None,
-        responses={
-            200: RecommendationSerializer,
-            404: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation not found.",
-            ),
-            409: OpenApiResponse(
-                response=RecommendationErrorDetailSerializer,
-                description="Recommendation is no longer pending.",
-            ),
-        },
-    )
-    def post(self, request: Request, id: str) -> Response:
+    def post(
+        self, request: Request, id: str, operation_id: str, action: str
+    ) -> Response:
+        if action not in {"accept", "reject"}:
+            raise NotFound()
         try:
-            recommendation = services.reject_recommendation(
-                str(request.user.id), str(id)
+            handler = accept_operation if action == "accept" else reject_operation
+            recommendation = handler(
+                user=request.user,
+                recommendation_id=str(id),
+                operation_id=str(operation_id),
+            )
+        except RecommendationNotFound as exc:
+            raise NotFound(str(exc)) from exc
+        except RecommendationConflict as exc:
+            raise ValidationError(str(exc)) from exc
+        return Response(RecommendationSerializer(recommendation).data)
+
+
+"""     
+    disable the operation update as coach displays recommendaitons and 
+    do not wanna get mismatch between recommendaiton and the coach message 
+
+    def patch(self, request: Request, id: str, operation_id: str) -> Response:
+        try:
+            recommendation = services.revise_operation(
+                user=request.user,
+                recommendation_id=str(id),
+                operation_id=str(operation_id),
+                replacement=cast(dict[str, Any], request.data),
             )
         except services.RecommendationNotFound as exc:
             raise NotFound(str(exc)) from exc
-        except services.RecommendationConflict as exc:
-            raise Conflict(str(exc)) from exc
+        except (
+            services.RecommendationConflict,
+            services.RecommendationValidationError,
+        ) as exc:
+            raise ValidationError(str(exc)) from exc
         return Response(services.serialize_recommendation(recommendation))
+"""

@@ -13,11 +13,11 @@ from users.services.profile import (
 
 __all__ = [
     "AuthenticateUserService",
+    "ClearWhoopUserIdService",
+    "GetProfileService",
     "LogoutUserService",
     "RefreshSessionService",
     "RegisterUserService",
-    "GetProfileService",
-    "ClearWhoopUserIdService",
     "SetWhoopUserIdService",
     "UpdateProfileService",
 ]

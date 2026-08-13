@@ -3,13 +3,16 @@ import { getErrorMessage } from '@/shared/api/errors'
 import { Alert, Button, Dialog, DialogContent, DialogTitle, Input, Label } from '@/shared/components/ui'
 import { type ExerciseInput } from '../api/trainingApi'
 import { type Exercise } from '../types'
+import { MUSCLE_GROUP_LABELS, MUSCLE_GROUPS, type MuscleGroup } from '../constants/muscleGroups'
 
 type AddExerciseDialogProps = {
   exercises: Exercise[]
   isLoading: boolean
   isCreating: boolean
+  muscleGroupFilter: MuscleGroup | undefined
   open: boolean
   onOpenChange: (open: boolean) => void
+  onMuscleGroupFilterChange: (muscleGroup: MuscleGroup | undefined) => void
   onAdd: (exercise: Exercise, values: ExerciseValues) => void
   onCreate: (input: ExerciseInput) => Promise<Exercise>
 }
@@ -28,8 +31,10 @@ export function AddExerciseDialog({
   exercises,
   isLoading,
   isCreating,
+  muscleGroupFilter,
   open,
   onOpenChange,
+  onMuscleGroupFilterChange,
   onAdd,
   onCreate,
 }: AddExerciseDialogProps) {
@@ -108,6 +113,7 @@ export function AddExerciseDialog({
           <div className="mt-4">
             <Label htmlFor="exercise-search">Search exercise library</Label>
             <Input className="mt-2" id="exercise-search" autoFocus placeholder="Search exercises" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <div className="mt-3"><Label htmlFor="exercise-muscle-group-filter">Muscle group</Label><select id="exercise-muscle-group-filter" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={muscleGroupFilter ?? ''} onChange={(event) => onMuscleGroupFilterChange(event.target.value === '' ? undefined : event.target.value as MuscleGroup)}><option value="">All muscle groups</option>{MUSCLE_GROUPS.map((muscleGroup) => <option key={muscleGroup} value={muscleGroup}>{MUSCLE_GROUP_LABELS[muscleGroup]}</option>)}</select></div>
             <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
               {isLoading ? <p className="p-2 text-sm text-muted-foreground">Loading exercises…</p> : null}
               {!isLoading && normalizedQuery && matchingExercises.length === 0 ? (
@@ -126,7 +132,7 @@ export function AddExerciseDialog({
             {createError ? <Alert>{createError}</Alert> : null}
             <div><Label htmlFor="created-exercise-name">Exercise name</Label><Input id="created-exercise-name" className="mt-1" autoFocus required value={definition.name} onChange={(event) => setDefinition({ ...definition, name: event.target.value })} /></div>
             <div><Label htmlFor="created-exercise-type">Prescription type</Label><select id="created-exercise-type" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={definition.prescription_type} onChange={(event) => setDefinition({ ...definition, prescription_type: event.target.value as Exercise['prescription_type'] })}><option value="strength">Strength</option><option value="timed">Timed</option></select></div>
-            <div><Label htmlFor="created-exercise-muscle-group">Muscle group</Label><Input id="created-exercise-muscle-group" className="mt-1" placeholder="Optional" value={definition.muscle_group} onChange={(event) => setDefinition({ ...definition, muscle_group: event.target.value })} /></div>
+            <div><Label htmlFor="created-exercise-muscle-group">Muscle group</Label><select id="created-exercise-muscle-group" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm" required value={definition.muscle_group} onChange={(event) => setDefinition({ ...definition, muscle_group: event.target.value as MuscleGroup })}>{MUSCLE_GROUPS.map((muscleGroup) => <option key={muscleGroup} value={muscleGroup}>{MUSCLE_GROUP_LABELS[muscleGroup]}</option>)}</select></div>
             {isCreatingTimedExercise ? <div className="grid grid-cols-2 gap-3"><NumberField label="Default seconds" value={definition.default_time} onChange={(default_time) => setDefinition({ ...definition, default_time })} /><div><Label htmlFor="created-exercise-weight">Default weight</Label><Input id="created-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={definition.default_weight ?? ''} onChange={(event) => setDefinition({ ...definition, default_weight: event.target.value || null })} /></div><UnitField id="created-exercise-unit" value={definition.default_weight_unit} onChange={(default_weight_unit) => setDefinition({ ...definition, default_weight_unit })} /></div> : <div className="grid grid-cols-2 gap-3"><NumberField label="Default sets" value={definition.default_sets} onChange={(default_sets) => setDefinition({ ...definition, default_sets })} /><NumberField label="Default reps" value={definition.default_reps} onChange={(default_reps) => setDefinition({ ...definition, default_reps })} /><div><Label htmlFor="created-exercise-weight">Default weight</Label><Input id="created-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={definition.default_weight ?? ''} onChange={(event) => setDefinition({ ...definition, default_weight: event.target.value || null })} /></div><UnitField id="created-exercise-unit" value={definition.default_weight_unit} onChange={(default_weight_unit) => setDefinition({ ...definition, default_weight_unit })} /></div>}
             <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" disabled={isCreating} onClick={() => setStep('search')}>Back</Button><Button type="submit" disabled={isCreating}>{isCreating ? 'Creating…' : 'Create exercise'}</Button></div>
           </form>
@@ -152,7 +158,7 @@ function emptyDefinition(name = ''): ExerciseInput {
     default_reps: 0,
     default_weight: null,
     default_weight_unit: 'lb',
-    muscle_group: '',
+    muscle_group: 'other',
     default_time: 0,
     notes: '',
   }

@@ -13,6 +13,7 @@ import {
 } from '../api/trainingApi'
 import { type Exercise, type WorkoutExerciseDisplay } from '../types'
 import { type ExerciseValues } from '../components/AddExerciseDialog'
+import { type MuscleGroup } from '../constants/muscleGroups'
 
 export type DraftExercise = WorkoutExerciseDisplay & { isNew?: boolean }
 
@@ -26,20 +27,18 @@ export function useWorkoutEditor(
   const [draftExercises, setDraftExercises] = useState<DraftExercise[]>([])
   const [originalExercises, setOriginalExercises] = useState<DraftExercise[]>([])
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [muscleGroupFilter, setMuscleGroupFilter] = useState<MuscleGroup | undefined>()
   const [draftWorkoutName, setDraftWorkoutName] = useState(workoutName ?? '')
   const [originalWorkoutName, setOriginalWorkoutName] = useState(workoutName ?? '')
   const exerciseLibrary = useQuery({
-    queryKey: ['exercises'],
-    queryFn: listExercises,
+    queryKey: ['exercises', muscleGroupFilter],
+    queryFn: () => listExercises({ muscleGroup: muscleGroupFilter }),
     enabled: isEditing,
   })
   const createExerciseMutation = useMutation({
     mutationFn: createExercise,
-    onSuccess: (exercise) => {
-      queryClient.setQueryData<Exercise[]>(['exercises'], (current) => {
-        const next = [...(current ?? []), exercise]
-        return next.sort((left, right) => left.name.localeCompare(right.name))
-      })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['exercises'] })
     },
   })
 
@@ -162,6 +161,7 @@ export function useWorkoutEditor(
     draftWorkoutName,
     isAddOpen,
     exerciseLibrary: exerciseLibrary.data ?? [],
+    muscleGroupFilter,
     isExerciseLibraryLoading: exerciseLibrary.isLoading,
     isCreatingExercise: createExerciseMutation.isPending,
     saveError: saveMutation.error,
@@ -172,6 +172,7 @@ export function useWorkoutEditor(
     save: () => saveMutation.mutate(),
     openAddDialog: () => setIsAddOpen(true),
     setIsAddOpen,
+    setMuscleGroupFilter,
     addExercise,
     createExercise: (input: ExerciseInput) => createExerciseMutation.mutateAsync(input),
     updateExercise,

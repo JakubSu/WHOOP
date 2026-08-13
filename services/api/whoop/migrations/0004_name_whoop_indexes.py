@@ -5,25 +5,24 @@ from django.db.migrations.operations.models import RenameIndex
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('whoop', '0003_whoopoauthstate_frontend_success_url'),
+        ("whoop", "0003_whoopoauthstate_frontend_success_url"),
     ]
 
     operations = [
         RenameIndex(
-            model_name='whoopoauthstate',
-            new_name='whoop_oauth_state_idx',
-            old_name='whoop_whoop_state_c46967_idx',
+            model_name="whoopoauthstate",
+            new_name="whoop_oauth_state_idx",
+            old_name="whoop_whoop_state_c46967_idx",
         ),
         RenameIndex(
-            model_name='whoopoauthstate',
-            new_name='whoop_oauth_user_created_idx',
-            old_name='whoop_whoop_user_id_717adb_idx',
+            model_name="whoopoauthstate",
+            new_name="whoop_oauth_user_created_idx",
+            old_name="whoop_whoop_user_id_717adb_idx",
         ),
         RenameIndex(
-            model_name='whoopsnapshot',
-            new_name='whoop_snapshot_user_date_idx',
-            old_name='whoop_whoop_user_id_740e56_idx',
+            model_name="whoopsnapshot",
+            new_name="whoop_snapshot_user_date_idx",
+            old_name="whoop_whoop_user_id_740e56_idx",
         ),
     ]

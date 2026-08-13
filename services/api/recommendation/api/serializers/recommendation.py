@@ -1,76 +1,182 @@
+from typing import Any, cast
+
 from rest_framework import serializers
 
-
-class AcceptRecommendationSerializer(serializers.Serializer):
-    expected_workout_version = serializers.CharField(
-        required=False,
-        allow_blank=False,
-        help_text="Optional workout version the client expects before accepting the recommendation.",
-    )
+from recommendation.models import Recommendation, RecommendationOperation
+from training.api.serializers.workout import WorkoutSerializer
+from training.api.serializers.workout_exercise import WorkoutExercisePageSerializer
+from training.models import Workout, WorkoutExercise
 
 
-class RecommendationErrorDetailSerializer(serializers.Serializer):
-    detail = serializers.CharField()
+class RecommendationOperationSerializer(serializers.Serializer):
+    """Serializes one recommendation operation for the actionable detail view."""
 
-
-class RecommendationUpdateSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
     status = serializers.ChoiceField(
-        choices=["pending", "applied", "rejected", "stale", "failed"],
-        required=False,
-        help_text="Recommendation status.",
+        choices=RecommendationOperation.Status.choices, read_only=True
     )
+    operation_type = serializers.ChoiceField(
+        choices=RecommendationOperation.OperationType.choices, read_only=True
+    )
+    display_text = serializers.CharField(read_only=True)
+    reason = serializers.CharField(read_only=True)
+    payload = serializers.SerializerMethodField()
+
+    def get_payload(self, operation: RecommendationOperation) -> dict[str, Any]:
+        """Converts stored zero-based exercise positions for the public response."""
+
+        payload = dict(operation.payload)
+        if (
+            operation.operation_type
+            in {
+                RecommendationOperation.OperationType.ADD_EXERCISE,
+                RecommendationOperation.OperationType.UPDATE_EXERCISE,
+            }
+            and payload.get("position") is not None
+        ):
+            payload["position"] += 1
+        return payload
+
+
+class CoachRecommendationCardSerializer(serializers.Serializer):
+    """Serializes the compact recommendation reference embedded in coach messages."""
+
+    id = serializers.UUIDField(read_only=True)
+    status = serializers.ChoiceField(
+        choices=Recommendation.Status.choices, read_only=True
+    )
+    actionable = serializers.SerializerMethodField()
+    coach_card_snapshot = serializers.JSONField(read_only=True)
+
+    def get_actionable(self, recommendation: Recommendation) -> bool:
+        """Uses the message-list annotation when present, otherwise derives it."""
+
+        has_pending_operations = getattr(recommendation, "has_pending_operations", None)
+        if has_pending_operations is None:
+            has_pending_operations = recommendation.operations.filter(
+                status=RecommendationOperation.Status.PENDING
+            ).exists()
+        return recommendation.status == Recommendation.Status.ACTIVE and bool(
+            has_pending_operations
+        )
 
 
 class RecommendationSerializer(serializers.Serializer):
+    """Serializes the full actionable recommendation response."""
+
     id = serializers.UUIDField(
         read_only=True, help_text="Unique identifier for the recommendation."
     )
-    user_id = serializers.CharField(
-        read_only=True, help_text="User identifier that owns the recommendation."
+    status = serializers.ChoiceField(
+        choices=Recommendation.Status.choices, read_only=True
     )
-    workout_id = serializers.UUIDField(
-        read_only=True, help_text="Workout identifier the recommendation applies to."
-    )
-    snapshot_version = serializers.CharField(
-        read_only=True,
-        help_text="Workout version used when the recommendation was generated.",
-    )
-    status = serializers.CharField(read_only=True, help_text="Recommendation status.")
     summary = serializers.CharField(
         read_only=True, help_text="Short summary of the recommendation."
     )
-    reason = serializers.CharField(
-        read_only=True,
-        allow_blank=True,
-        help_text="Longer reason explaining why the recommendation was generated.",
-    )
-    source = serializers.CharField(
-        read_only=True,
-        help_text="Recommendation source such as daily_recommendation or coach_chat.",
-    )
-    coach_conversation_id = serializers.UUIDField(
-        read_only=True,
-        allow_null=True,
-        help_text="Coach conversation that created this recommendation, when applicable.",
-    )
-    coach_message_id = serializers.UUIDField(
-        read_only=True,
-        allow_null=True,
-        help_text="Coach assistant message that created this recommendation, when applicable.",
-    )
-    operation_type = serializers.CharField(
-        read_only=True, help_text="Domain operation type."
-    )
-    payload = serializers.JSONField(
-        read_only=True,
-        help_text="Operation-specific payload describing the proposed workout change.",
-    )
-    display_text = serializers.CharField(
-        read_only=True, help_text="Human-readable summary of the operation."
-    )
-    created_at = serializers.DateTimeField(
-        read_only=True, help_text="Timestamp when the recommendation was created."
-    )
-    updated_at = serializers.DateTimeField(
-        read_only=True, help_text="Timestamp when the recommendation was last updated."
-    )
+    coach_card_snapshot = serializers.JSONField(read_only=True)
+    operations = serializers.SerializerMethodField()
+    workouts = serializers.SerializerMethodField()
+
+    def get_workouts(self, recommendation: Recommendation) -> list[dict[str, Any]]:
+        """Returns current read-only workouts represented by pending changes."""
+
+        pending = list(
+            recommendation.operations.filter(
+                status=RecommendationOperation.Status.PENDING
+            ).order_by("created_at")
+        )
+        exercise_ids = [
+            operation.payload["workout_exercise_id"]
+            for operation in pending
+            if operation.payload.get("workout_exercise_id")
+        ]
+        exercise_workouts = {
+            str(exercise.id): str(exercise.workout_id)
+            for exercise in WorkoutExercise.objects.filter(pk__in=exercise_ids)
+        }
+        workout_ids = {
+            workout_id
+            for operation in pending
+            if (workout_id := _operation_workout_id(operation)) is not None
+        } | set(exercise_workouts.values())
+        workouts = {
+            str(workout.id): workout
+            for workout in Workout.objects.filter(pk__in=workout_ids).prefetch_related(
+                "workout_exercises__exercise"
+            )
+        }
+        result: list[dict[str, Any]] = []
+        for group in recommendation.coach_card_snapshot.get("workout_groups", []):
+            workout = workouts.get(str(group["id"]))
+            if workout is None:
+                continue
+            exercises = sorted(
+                workout.workout_exercises.all(), key=lambda item: item.sort_order
+            )
+            result.append(
+                {
+                    "id": str(workout.id),
+                    "title": group["title"],
+                    "workout": WorkoutSerializer(workout).data,
+                    "exercises": WorkoutExercisePageSerializer(
+                        exercises, many=True
+                    ).data,
+                }
+            )
+        return result
+
+    def get_operations(self, recommendation: Recommendation) -> list[dict[str, Any]]:
+        """Returns only pending changes for the active, actionable card."""
+
+        operations = list(
+            recommendation.operations.filter(
+                status=RecommendationOperation.Status.PENDING
+            ).order_by("created_at")
+        )
+        serialized_operations = cast(
+            list[dict[str, Any]],
+            RecommendationOperationSerializer(operations, many=True).data,
+        )
+        children_by_temp: dict[str, list[dict[str, Any]]] = {}
+        result: list[dict[str, Any]] = []
+        for operation in serialized_operations:
+            temporary_workout_id = _new_workout_reference(operation)
+            if temporary_workout_id:
+                children_by_temp.setdefault(str(temporary_workout_id), []).append(
+                    operation
+                )
+            else:
+                result.append(operation)
+        for operation in result:
+            if (
+                operation["operation_type"]
+                == RecommendationOperation.OperationType.ADD_WORKOUT
+            ):
+                operation["exercise_operations"] = children_by_temp.pop(
+                    str(operation["payload"]["temporary_id"]), []
+                )
+        return result
+
+
+def _operation_workout_id(operation: RecommendationOperation) -> str | None:
+    payload = operation.payload
+    if payload.get("workout_id"):
+        return str(payload["workout_id"])
+    if payload.get("target_workout_id"):
+        return str(payload["target_workout_id"])
+    workout = payload.get("workout")
+    if workout and workout["kind"] == "existing":
+        return str(workout["workout_id"])
+    return None
+
+
+def _new_workout_reference(operation: dict[str, Any]) -> str | None:
+    if (
+        operation["operation_type"]
+        != RecommendationOperation.OperationType.ADD_EXERCISE
+    ):
+        return None
+    workout = operation["payload"].get("workout")
+    if workout and workout["kind"] == "new":
+        return workout["temporary_id"]
+    return None

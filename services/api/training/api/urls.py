@@ -12,12 +12,22 @@ from training.api.views import (
 
 urlpatterns = [
     path("exercises/", ExerciseCollectionAPIView.as_view(), name="exercise-collection"),
-    path("exercises/<uuid:pk>/", ExerciseDetailAPIView.as_view(), name="exercise-detail"),
+    path(
+        "exercises/<uuid:pk>/", ExerciseDetailAPIView.as_view(), name="exercise-detail"
+    ),
     path("workouts/landing/", WorkoutLandingAPIView.as_view(), name="workout-landing"),
     path("workouts/", WorkoutCollectionAPIView.as_view(), name="workout-collection"),
     path("workouts/<uuid:pk>/", WorkoutDetailAPIView.as_view(), name="workout-detail"),
-    path("workouts/<uuid:pk>/exercises/", WorkoutExercisePageCollectionAPIView.as_view(), name="workout-exercise-page-collection"),
-    path("workouts/<uuid:pk>/exercises/<uuid:workout_exercise_id>/", WorkoutExercisePageDetailAPIView.as_view(), name="workout-exercise-page-detail"),
+    path(
+        "workouts/<uuid:pk>/exercises/",
+        WorkoutExercisePageCollectionAPIView.as_view(),
+        name="workout-exercise-page-collection",
+    ),
+    path(
+        "workouts/<uuid:pk>/exercises/<uuid:workout_exercise_id>/",
+        WorkoutExercisePageDetailAPIView.as_view(),
+        name="workout-exercise-page-detail",
+    ),
 ]
 
 # Training-plan endpoints are intentionally disabled while the public API is

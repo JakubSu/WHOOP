@@ -23,14 +23,24 @@ class WorkoutExerciseSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
         extra_kwargs: ClassVar[dict[str, dict[str, str]]] = {
             "workout": {"help_text": "Workout identifier this entry belongs to."},
-            "exercise": {"help_text": "Exercise identifier referenced by this workout entry."},
+            "exercise": {
+                "help_text": "Exercise identifier referenced by this workout entry."
+            },
             "sets": {"help_text": "Programmed set count for the workout exercise."},
-            "reps": {"help_text": "Programmed repetition count for the workout exercise."},
-            "time": {"help_text": "Programmed duration in seconds for timed exercises."},
-            "sort_order": {"help_text": "Display order of the exercise inside the workout."},
+            "reps": {
+                "help_text": "Programmed repetition count for the workout exercise."
+            },
+            "time": {
+                "help_text": "Programmed duration in seconds for timed exercises."
+            },
+            "sort_order": {
+                "help_text": "Display order of the exercise inside the workout."
+            },
             "weight": {"help_text": "Optional prescribed weight value."},
             "weight_unit": {"help_text": "Unit for the prescribed weight value."},
-            "note": {"help_text": "Optional note specific to this workout exercise entry."},
+            "note": {
+                "help_text": "Optional note specific to this workout exercise entry."
+            },
         }
 
 
@@ -48,14 +58,24 @@ class WorkoutExerciseRequestSerializer(serializers.ModelSerializer):
             "note",
         )
         extra_kwargs: ClassVar[dict[str, dict[str, str]]] = {
-            "exercise": {"help_text": "Exercise identifier referenced by this workout entry."},
+            "exercise": {
+                "help_text": "Exercise identifier referenced by this workout entry."
+            },
             "sets": {"help_text": "Programmed set count for the workout exercise."},
-            "reps": {"help_text": "Programmed repetition count for the workout exercise."},
-            "time": {"help_text": "Programmed duration in seconds for timed exercises."},
-            "sort_order": {"help_text": "Display order of the exercise inside the workout."},
+            "reps": {
+                "help_text": "Programmed repetition count for the workout exercise."
+            },
+            "time": {
+                "help_text": "Programmed duration in seconds for timed exercises."
+            },
+            "sort_order": {
+                "help_text": "Display order of the exercise inside the workout."
+            },
             "weight": {"help_text": "Optional prescribed weight value."},
             "weight_unit": {"help_text": "Unit for the prescribed weight value."},
-            "note": {"help_text": "Optional note specific to this workout exercise entry."},
+            "note": {
+                "help_text": "Optional note specific to this workout exercise entry."
+            },
         }
 
 

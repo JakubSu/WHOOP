@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+import json
 from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -45,7 +46,9 @@ class WhoopApiViewTests(TestCase):
         )
 
     @patch("whoop.api.views.services.create_build_connect_url_service")
-    def test_connect_url_forwards_frontend_success_url(self, factory: MagicMock) -> None:
+    def test_connect_url_forwards_frontend_success_url(
+        self, factory: MagicMock
+    ) -> None:
         service = MagicMock()
         service.execute.return_value = {
             "state": "secure-state",
@@ -97,7 +100,9 @@ class WhoopApiViewTests(TestCase):
 
     @patch("whoop.api.views.services.create_complete_connection_service")
     @override_settings(WHOOP_FRONTEND_SUCCESS_URL="")
-    def test_callback_redirects_to_state_bound_frontend_success_url(self, factory: MagicMock) -> None:
+    def test_callback_redirects_to_state_bound_frontend_success_url(
+        self, factory: MagicMock
+    ) -> None:
         service = MagicMock()
         service.execute.return_value = MagicMock(
             frontend_success_url="http://localhost:5173/connect-whoop/success?whoop=connected"
@@ -108,8 +113,8 @@ class WhoopApiViewTests(TestCase):
         response = cast(
             Response,
             client.get(
-            reverse("whoop-callback"),
-            {"code": "code-123", "state": "secure-state"},
+                reverse("whoop-callback"),
+                {"code": "code-123", "state": "secure-state"},
             ),
         )
 
@@ -120,8 +125,12 @@ class WhoopApiViewTests(TestCase):
         )
 
     @patch("whoop.api.views.services.create_complete_connection_service")
-    @override_settings(WHOOP_FRONTEND_SUCCESS_URL="http://localhost:5173/connect-whoop/success")
-    def test_callback_uses_global_fallback_when_state_has_no_success_url(self, factory: MagicMock) -> None:
+    @override_settings(
+        WHOOP_FRONTEND_SUCCESS_URL="http://localhost:5173/connect-whoop/success"
+    )
+    def test_callback_uses_global_fallback_when_state_has_no_success_url(
+        self, factory: MagicMock
+    ) -> None:
         service = MagicMock()
         service.execute.return_value = MagicMock(frontend_success_url="")
         factory.return_value = service
@@ -130,8 +139,8 @@ class WhoopApiViewTests(TestCase):
         response = cast(
             Response,
             client.get(
-            reverse("whoop-callback"),
-            {"code": "code-123", "state": "secure-state"},
+                reverse("whoop-callback"),
+                {"code": "code-123", "state": "secure-state"},
             ),
         )
 
@@ -153,14 +162,14 @@ class WhoopApiViewTests(TestCase):
         response = cast(
             Response,
             client.get(
-            reverse("whoop-callback"),
-            {"code": "code-123", "state": "expired-state"},
+                reverse("whoop-callback"),
+                {"code": "code-123", "state": "expired-state"},
             ),
         )
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.json(),
+            json.loads(response.content),
             {"detail": "Invalid or expired WHOOP OAuth state."},
         )
 

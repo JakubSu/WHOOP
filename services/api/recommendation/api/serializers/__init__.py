@@ -1,13 +1,9 @@
 from recommendation.api.serializers.recommendation import (
-    AcceptRecommendationSerializer,
-    RecommendationErrorDetailSerializer,
+    CoachRecommendationCardSerializer,
     RecommendationSerializer,
-    RecommendationUpdateSerializer,
 )
 
 __all__ = [
-    "AcceptRecommendationSerializer",
-    "RecommendationErrorDetailSerializer",
+    "CoachRecommendationCardSerializer",
     "RecommendationSerializer",
-    "RecommendationUpdateSerializer",
 ]

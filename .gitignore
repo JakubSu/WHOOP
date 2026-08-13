@@ -1,6 +1,7 @@
 # Secrets
 .env*
 !.env.example
+.logfire/
 
 # Dependencies
 node_modules

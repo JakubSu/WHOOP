@@ -1,95 +1,136 @@
-import { type Recommendation } from '../recommendations/types'
-import { type CoachPageContext } from './services/coachContext'
-
 export type CoachMessageRole = 'user' | 'assistant'
+export type CoachActivityKind =
+  | 'recovery_data'
+  | 'training_data'
+  | 'workout_data'
+  | 'recommendation'
+  | 'other'
+export type CoachActivityStatus = 'running' | 'completed' | 'failed'
 
-export type CoachPersistedMessage = {
+export type CoachActivity = {
+  id: string
+  kind: CoachActivityKind
+  label: string
+  status: CoachActivityStatus
+}
+
+export type CoachRecommendationSummary = {
+  total: number
+  pending: number
+  accepted: number
+  rejected: number
+  stale: number
+  added: number
+  updated: number
+  removed: number
+}
+
+export type CoachRecommendationWorkoutGroup = {
+  id: string
+  title: string
+  operation_ids: string[]
+  summary: CoachRecommendationSummary
+}
+
+export type CoachCardSnapshot = {
+  version: 1
+  workout_groups: CoachRecommendationWorkoutGroup[]
+}
+
+export type CoachRecommendationReference = {
+  id: string
+  status: 'active' | 'completed' | 'superseded' | 'expired'
+  actionable: boolean
+  coach_card_snapshot: CoachCardSnapshot
+}
+
+export type CoachOperation = { id: string; recommendation_id?: string; type: string; status: string }
+export type CoachRecommendation = {
+  id: string
+  summary: string
+  reason: string
+  status: 'active' | 'completed' | 'superseded' | 'expired'
+  groups: Array<{ id: string; title: string; operations: CoachOperation[] }>
+}
+
+export type CoachRecommendationTransition = {
+  recommendation_id: string
+  status: 'completed' | 'superseded' | 'expired'
+  actionable: false
+  replaced_by_recommendation_id?: string
+}
+
+export type CoachMessage = {
   id: string
   role: CoachMessageRole
   content: string
-  metadata_json: Record<string, unknown>
-  recommendation_id: string | null
   created_at: string
+  activities: CoachActivity[]
+  recommendation: CoachRecommendationReference | null
+  /** @deprecated Message payloads no longer populate this field. */
+  operations?: CoachOperation[]
 }
 
-export type CoachConversationMessages = {
+export type CoachConversation = {
+  id: string
+  title: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CoachConversationSummary = {
+  id: string
+  title: string | null
+  last_message_preview: string | null
+  updated_at: string
+}
+
+export type CoachConversationPage = {
+  next: string | null
+  results: CoachConversationSummary[]
+}
+
+export type CoachMessagePage = {
+  next: string | null
+  results: CoachMessage[]
+}
+
+type StreamEnvelope = {
+  version: 1
+  sequence: number
+  run_id: string
   conversation_id: string
-  page_context?: CoachPageContext
-  messages: CoachPersistedMessage[]
+  message_id: string
 }
-
-export type CoachChatItem =
-  | {
-      id: string
-      type: 'message'
-      role: CoachMessageRole
-      content: string
-    }
-  | {
-      id: string
-      type: 'progress'
-      content: string
-    }
-  | {
-      id: string
-      type: 'tool'
-      content: string
-    }
-  | {
-      id: string
-      type: 'recommendation'
-      recommendation: Recommendation
-    }
-  | {
-      id: string
-      type: 'error'
-      content: string
-    }
 
 export type CoachStreamEvent =
+  | { event: 'message_started'; data: StreamEnvelope }
   | {
-      event: 'conversation_started'
-      data: {
-        conversation_id: string
-        page_context: CoachPageContext
-      }
+      event: 'thinking_started'
+      data: StreamEnvelope & { label: string }
+    }
+  | { event: 'thinking_finished'; data: StreamEnvelope }
+  | {
+      event: 'tool_started' | 'tool_completed' | 'tool_failed'
+      data: StreamEnvelope & { activity: CoachActivity }
     }
   | {
-      event: 'assistant_progress'
-      data: {
-        message: string
-      }
+      event: 'text_delta'
+      data: StreamEnvelope & { delta: string }
     }
   | {
-      event: 'tool_call_started' | 'tool_call_completed'
-      data: {
-        label?: string
-        summary?: string
-        tool?: string
-      }
-    }
-  | {
-      event: 'assistant_delta'
-      data: {
-        text: string
-      }
-    }
-  | {
-      event: 'recommendation_created'
-      data: {
-        recommendation: Recommendation
-      }
-    }
-  | {
-      event: 'assistant_done'
-      data: {
-        message: CoachPersistedMessage
+      event: 'completed'
+      data: StreamEnvelope & {
+        message: CoachMessage
+        recommendation_transitions: CoachRecommendationTransition[]
+        updated_messages: CoachMessage[]
       }
     }
   | {
       event: 'error'
-      data: {
+      data: StreamEnvelope & {
         code: string
         message: string
+        retryable: boolean
       }
     }

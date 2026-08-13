@@ -35,17 +35,24 @@ class TrainingPlanCollectionAPIView(APIView):
         request=TrainingPlanSerializer,
         responses={
             201: TrainingPlanSerializer,
-            400: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Validation error."),
+            400: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Validation error.",
+            ),
         },
     )
     def post(self, request: Request) -> Response:
         serializer = TrainingPlanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            training_plan = services.create_training_plan(validated_data_as_dict(serializer), user_id=str(request.user.id))
+            training_plan = services.create_training_plan(
+                validated_data_as_dict(serializer), user_id=str(request.user.id)
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
-        return Response(TrainingPlanSerializer(training_plan).data, status=status.HTTP_201_CREATED)
+        return Response(
+            TrainingPlanSerializer(training_plan).data, status=status.HTTP_201_CREATED
+        )
 
 
 class TrainingPlanDetailAPIView(APIView):
@@ -58,7 +65,10 @@ class TrainingPlanDetailAPIView(APIView):
         description="Returns a single training plan owned by the authenticated user.",
         responses={
             200: TrainingPlanSerializer,
-            404: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Training plan not found."),
+            404: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Training plan not found.",
+            ),
         },
     )
     def get(self, request: Request, pk: str) -> Response:
@@ -74,8 +84,14 @@ class TrainingPlanDetailAPIView(APIView):
         request=TrainingPlanSerializer,
         responses={
             200: TrainingPlanSerializer,
-            400: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Validation error."),
-            404: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Training plan not found."),
+            400: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Validation error.",
+            ),
+            404: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Training plan not found.",
+            ),
         },
     )
     def patch(self, request: Request, pk: str) -> Response:
@@ -83,10 +99,14 @@ class TrainingPlanDetailAPIView(APIView):
         if training_plan is None:
             raise NotFound()
 
-        serializer = TrainingPlanSerializer(training_plan, data=request.data, partial=True)
+        serializer = TrainingPlanSerializer(
+            training_plan, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         try:
-            updated = services.update_training_plan(training_plan, validated_data_as_dict(serializer))
+            updated = services.update_training_plan(
+                training_plan, validated_data_as_dict(serializer)
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(TrainingPlanSerializer(updated).data)
@@ -98,8 +118,14 @@ class TrainingPlanDetailAPIView(APIView):
         request=TrainingPlanSerializer,
         responses={
             200: TrainingPlanSerializer,
-            400: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Validation error."),
-            404: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Training plan not found."),
+            400: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Validation error.",
+            ),
+            404: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Training plan not found.",
+            ),
         },
     )
     def put(self, request: Request, pk: str) -> Response:
@@ -110,7 +136,9 @@ class TrainingPlanDetailAPIView(APIView):
         serializer = TrainingPlanSerializer(training_plan, data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            updated = services.update_training_plan(training_plan, validated_data_as_dict(serializer))
+            updated = services.update_training_plan(
+                training_plan, validated_data_as_dict(serializer)
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(TrainingPlanSerializer(updated).data)
@@ -121,7 +149,10 @@ class TrainingPlanDetailAPIView(APIView):
         description="Deletes a training plan owned by the authenticated user.",
         responses={
             204: OpenApiResponse(description="Training plan deleted."),
-            404: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Training plan not found."),
+            404: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Training plan not found.",
+            ),
         },
     )
     def delete(self, request: Request, pk: str) -> Response:
@@ -142,7 +173,10 @@ class TrainingPlanWorkoutCollectionAPIView(APIView):
         description="Returns the workouts that belong to a specific training plan.",
         responses={
             200: PlanWorkoutSerializer(many=True),
-            404: OpenApiResponse(response=TrainingPlanErrorDetailSerializer, description="Training plan not found."),
+            404: OpenApiResponse(
+                response=TrainingPlanErrorDetailSerializer,
+                description="Training plan not found.",
+            ),
         },
     )
     def get(self, request: Request, pk: str) -> Response:

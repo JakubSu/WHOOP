@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from whoop.exceptions import WhoopParseError
 from whoop.whoop_api.dto import (
@@ -41,12 +42,16 @@ def serialize_datetime(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def parse_token_response(data: dict[str, Any], *, refresh_token: str | None = None) -> WhoopToken:
+def parse_token_response(
+    data: dict[str, Any], *, refresh_token: str | None = None
+) -> WhoopToken:
     expires_at = None
     if data.get("expires_in") is not None:
         from datetime import timedelta
 
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(data["expires_in"]))
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            seconds=int(data["expires_in"])
+        )
     return WhoopToken(
         access_token=str(_require(data, "access_token")),
         refresh_token=data.get("refresh_token", refresh_token),
@@ -144,9 +149,15 @@ def parse_sleep_score(data: dict[str, Any]) -> SleepScore:
         stage_summary=parse_sleep_stage_summary(_require(data, "stage_summary")),
         sleep_needed=parse_sleep_needed(_require(data, "sleep_needed")),
         respiratory_rate=_optional_float(data, "respiratory_rate"),
-        sleep_performance_percentage=_optional_float(data, "sleep_performance_percentage"),
-        sleep_consistency_percentage=_optional_float(data, "sleep_consistency_percentage"),
-        sleep_efficiency_percentage=_optional_float(data, "sleep_efficiency_percentage"),
+        sleep_performance_percentage=_optional_float(
+            data, "sleep_performance_percentage"
+        ),
+        sleep_consistency_percentage=_optional_float(
+            data, "sleep_consistency_percentage"
+        ),
+        sleep_efficiency_percentage=_optional_float(
+            data, "sleep_efficiency_percentage"
+        ),
     )
 
 
@@ -155,8 +166,12 @@ def parse_sleep_stage_summary(data: dict[str, Any]) -> SleepStageSummary:
         total_in_bed_time_milli=int(_require(data, "total_in_bed_time_milli")),
         total_awake_time_milli=int(_require(data, "total_awake_time_milli")),
         total_no_data_time_milli=int(_require(data, "total_no_data_time_milli")),
-        total_light_sleep_time_milli=int(_require(data, "total_light_sleep_time_milli")),
-        total_slow_wave_sleep_time_milli=int(_require(data, "total_slow_wave_sleep_time_milli")),
+        total_light_sleep_time_milli=int(
+            _require(data, "total_light_sleep_time_milli")
+        ),
+        total_slow_wave_sleep_time_milli=int(
+            _require(data, "total_slow_wave_sleep_time_milli")
+        ),
         total_rem_sleep_time_milli=int(_require(data, "total_rem_sleep_time_milli")),
         sleep_cycle_count=int(_require(data, "sleep_cycle_count")),
         disturbance_count=int(_require(data, "disturbance_count")),
@@ -167,7 +182,9 @@ def parse_sleep_needed(data: dict[str, Any]) -> SleepNeeded:
     return SleepNeeded(
         baseline_milli=int(_require(data, "baseline_milli")),
         need_from_sleep_debt_milli=int(_require(data, "need_from_sleep_debt_milli")),
-        need_from_recent_strain_milli=int(_require(data, "need_from_recent_strain_milli")),
+        need_from_recent_strain_milli=int(
+            _require(data, "need_from_recent_strain_milli")
+        ),
         need_from_recent_nap_milli=int(_require(data, "need_from_recent_nap_milli")),
     )
 

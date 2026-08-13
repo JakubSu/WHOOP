@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 from django.test import SimpleTestCase
 
 from whoop.whoop_api.auth_service import AuthService
-from whoop.whoop_api.base_client import BaseWhoopClient
 from whoop.whoop_api.cycle_service import CycleService
 from whoop.whoop_api.recovery_service import RecoveryService
 from whoop.whoop_api.sleep_service import SleepService
@@ -32,7 +31,11 @@ class WhoopApiServiceTests(SimpleTestCase):
 
     def test_auth_service_exchanges_code(self) -> None:
         client = MagicMock()
-        client.post.return_value = {"access_token": "access", "refresh_token": "refresh", "expires_in": 3600}
+        client.post.return_value = {
+            "access_token": "access",
+            "refresh_token": "refresh",
+            "expires_in": 3600,
+        }
         auth_service = AuthService(
             client=client,
             client_id="client-id",
@@ -115,6 +118,12 @@ class WhoopApiServiceTests(SimpleTestCase):
         SleepService(client).get_sleep("sleep-id")
         WorkoutService(client).get_workout("workout-id")
 
-        self.assertEqual(client.get.call_args_list[0].args[0], "/v2/cycle/93845/recovery")
-        self.assertEqual(client.get.call_args_list[1].args[0], "/v2/activity/sleep/sleep-id")
-        self.assertEqual(client.get.call_args_list[2].args[0], "/v2/activity/workout/workout-id")
+        self.assertEqual(
+            client.get.call_args_list[0].args[0], "/v2/cycle/93845/recovery"
+        )
+        self.assertEqual(
+            client.get.call_args_list[1].args[0], "/v2/activity/sleep/sleep-id"
+        )
+        self.assertEqual(
+            client.get.call_args_list[2].args[0], "/v2/activity/workout/workout-id"
+        )

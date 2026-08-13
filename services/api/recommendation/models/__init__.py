@@ -1,3 +1,3 @@
-from recommendation.models.recommendation import Recommendation
+from recommendation.models.recommendation import Recommendation, RecommendationOperation
 
-__all__ = ["Recommendation"]
+__all__ = ["Recommendation", "RecommendationOperation"]

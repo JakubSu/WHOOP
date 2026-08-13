@@ -4,12 +4,11 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("training", "0004_exercise_default_intensity_and_more"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.RenameField(
             model_name="exercise",
             old_name="primary_muscle_group",

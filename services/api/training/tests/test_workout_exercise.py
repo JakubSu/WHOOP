@@ -88,7 +88,9 @@ class WorkoutExerciseServiceTests(TestCase):
         self.assertEqual(workout_exercise.weight_unit, "kg")
 
     def test_create_workout_with_training_plan(self) -> None:
-        training_plan = services.create_training_plan({"name": "Strength Block"}, user_id=self.user_id)
+        training_plan = services.create_training_plan(
+            {"name": "Strength Block"}, user_id=self.user_id
+        )
         workout = services.create_workout(
             {
                 "name": "Lower Body",

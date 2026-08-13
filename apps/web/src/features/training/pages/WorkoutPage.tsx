@@ -2,13 +2,10 @@ import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { InlineError } from '../../../shared/components/InlineError'
-import { PrimaryButton } from '../../../shared/components/PrimaryButton'
 import { ScrollableStack } from '../../../shared/layout/ScrollableStack'
 import { TrainingLayout } from '../../../shared/layout/TrainingLayout'
 import { useCoachPageContext } from '../../coach/context/CoachOverlayContext'
 import { getCoachPageContextForRoute } from '../../coach/services/coachContext'
-import { RecommendationPanel } from '../../recommendations/components/RecommendationPanel'
-import { useWorkoutRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
 import { AddExerciseDialog } from '../components/AddExerciseDialog'
 import { WorkoutExerciseList } from '../components/WorkoutExerciseList'
 import { WorkoutHeader } from '../components/WorkoutHeader'
@@ -25,7 +22,6 @@ export function WorkoutPage() {
     workoutPage.exerciseDisplays,
     workoutPage.workout?.name,
   )
-  const recommendation = useWorkoutRecommendation(workoutPage.resolvedWorkoutId)
   const coachContext = useMemo(
     () => getCoachPageContextForRoute(location.pathname),
     [location.pathname],
@@ -74,22 +70,18 @@ export function WorkoutPage() {
             onReorder={editor.reorder}
             onUpdateExercise={editor.updateExercise}
           />
-          {!editor.isEditing && recommendation.recommendation ? <RecommendationPanel recommendation={recommendation.recommendation} exerciseDisplays={workoutPage.exerciseDisplays} onAcceptOperation={recommendation.acceptOperation} onRejectOperation={recommendation.rejectOperation} acceptingOperationId={recommendation.acceptingOperationId} rejectingOperationId={recommendation.rejectingOperationId} /> : null}
         </ScrollableStack>
-
-        {!editor.isEditing ? <>
-          <div className="workout-status-stack"><InlineError message={recommendation.error ? getErrorMessage(recommendation.error) : null} /></div>
-          {recommendation.isWorkoutReadyToSave ? <PrimaryButton className="workout-recommendation-button" type="button" isLoading={recommendation.isSavingWorkout} onClick={recommendation.saveWorkout}>Save Workout</PrimaryButton> : !recommendation.recommendation ? <PrimaryButton className="workout-recommendation-button" type="button" isLoading={recommendation.isGenerating} disabled={!workoutPage.resolvedWorkoutId} onClick={recommendation.generate}>Get Recommendation</PrimaryButton> : null}
-        </> : null}
 
         <AddExerciseDialog
           exercises={editor.exerciseLibrary}
           isLoading={editor.isExerciseLibraryLoading}
           isCreating={editor.isCreatingExercise}
+          muscleGroupFilter={editor.muscleGroupFilter}
           open={editor.isAddOpen}
           onAdd={editor.addExercise}
           onCreate={editor.createExercise}
           onOpenChange={editor.setIsAddOpen}
+          onMuscleGroupFilterChange={editor.setMuscleGroupFilter}
         />
       </section>
     </TrainingLayout>

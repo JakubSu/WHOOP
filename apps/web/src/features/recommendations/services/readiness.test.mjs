@@ -26,7 +26,6 @@ function recommendation(status, operationStatuses) {
     reason: '',
     operations: operationStatuses.map((operationStatus, index) => ({
       id: `op-${index + 1}`,
-      sequence: index + 1,
       operation_type: 'update_exercise',
       status: operationStatus,
       payload: {},

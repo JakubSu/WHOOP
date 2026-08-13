@@ -2,7 +2,9 @@ from rest_framework import serializers
 
 
 class RegisterSerializer(serializers.Serializer):
-    email = serializers.EmailField(help_text="Email address used to create and sign in to the account.")
+    email = serializers.EmailField(
+        help_text="Email address used to create and sign in to the account."
+    )
     password = serializers.CharField(
         write_only=True,
         min_length=8,
@@ -17,8 +19,12 @@ class RegisterSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField(help_text="Email address associated with the user account.")
-    password = serializers.CharField(write_only=True, help_text="Plaintext account password.")
+    email = serializers.EmailField(
+        help_text="Email address associated with the user account."
+    )
+    password = serializers.CharField(
+        write_only=True, help_text="Plaintext account password."
+    )
 
 
 class RefreshSerializer(serializers.Serializer):
@@ -45,12 +51,20 @@ class ProfileSerializer(serializers.Serializer):
         allow_blank=True,
         help_text="User-facing display name that can be updated from the profile screen.",
     )
-    whoop_user_id = serializers.CharField(read_only=True, help_text="WHOOP user identifier when the account is connected.")
+    whoop_user_id = serializers.CharField(
+        read_only=True, help_text="WHOOP user identifier when the account is connected."
+    )
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
 
 class AuthSessionSerializer(serializers.Serializer):
     user = ProfileSerializer(read_only=True, help_text="Authenticated user profile.")
-    access = serializers.CharField(read_only=True, help_text="Short-lived JWT access token for authenticated API calls.")
-    refresh = serializers.CharField(read_only=True, help_text="Long-lived JWT refresh token also mirrored to an HTTP-only cookie.")
+    access = serializers.CharField(
+        read_only=True,
+        help_text="Short-lived JWT access token for authenticated API calls.",
+    )
+    refresh = serializers.CharField(
+        read_only=True,
+        help_text="Long-lived JWT refresh token also mirrored to an HTTP-only cookie.",
+    )

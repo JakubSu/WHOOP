@@ -1,6 +1,9 @@
 from whoop.whoop_api.base_client import BaseWhoopClient
 from whoop.whoop_api.dto import UserBasicProfile, UserBodyMeasurement
-from whoop.whoop_api.parsers import parse_user_basic_profile, parse_user_body_measurement
+from whoop.whoop_api.parsers import (
+    parse_user_basic_profile,
+    parse_user_body_measurement,
+)
 
 
 class UserService:

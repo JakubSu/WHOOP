@@ -1,74 +1,68 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import {
-  approveRecommendationOperation,
-  getPendingWorkoutRecommendation,
-  rejectRecommendationOperation,
-} from '../api/recommendationApi'
-import { isRecommendationReadyToSave } from '../services/readiness'
-import { type Recommendation } from '../types'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { listExercises } from '../../training/api/trainingApi'
+import { approveRecommendation, approveRecommendationOperation, getRecommendation, rejectRecommendation, rejectRecommendationOperation, saveRecommendationOperation } from '../api/recommendationApi'
+import { type Recommendation, type RecommendationOperation } from '../types'
 
-export function useWorkoutRecommendation(workoutId: string | undefined) {
-  const queryClient = useQueryClient()
-  const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
-  const isWorkoutReadyToSave = isRecommendationReadyToSave(recommendation)
-  const loadRecommendation = useMutation({
-    mutationFn: () => getPendingWorkoutRecommendation(workoutId ?? ''),
-    onSuccess: setRecommendation,
+/** Loads and mutates a recommendation explicitly identified by the coach flow. */
+export function useRecommendation(
+  recommendationId: string | null | undefined,
+  workoutId?: string,
+  enabled = true,
+) {
+  const client = useQueryClient()
+  const key = ['recommendation', recommendationId] as const
+  const recommendation = useQuery<Recommendation>({
+    queryKey: key,
+    queryFn: () => getRecommendation(recommendationId!),
+    enabled: enabled && Boolean(recommendationId),
+  })
+  const library = useQuery({
+    queryKey: ['exercises'],
+    queryFn: () => listExercises(),
+    enabled: enabled && Boolean(recommendationId),
+  })
+  const storeRecommendation = (nextRecommendation: Recommendation) => {
+    client.setQueryData(key, nextRecommendation)
+    return Promise.all([
+    client.invalidateQueries({ queryKey: ['workout', workoutId] }),
+    client.invalidateQueries({ queryKey: ['workout-exercises', workoutId] }),
+    client.invalidateQueries({ queryKey: ['workouts'] }),
+    ])
+  }
+  const save = useMutation({
+    mutationFn: (operation: RecommendationOperation) => saveRecommendationOperation(recommendation.data?.id ?? '', operation),
+    onSuccess: storeRecommendation,
   })
   const accept = useMutation({
-    mutationFn: (operationId: string) =>
-      approveRecommendationOperation(recommendation?.id ?? '', operationId),
-    onSuccess: async (nextRecommendation) => {
-      setRecommendation(nextRecommendation)
-      await queryClient.invalidateQueries({ queryKey: ['workout', workoutId] })
-      await queryClient.invalidateQueries({ queryKey: ['workout-exercises'] })
-    },
+    mutationFn: (operationId: string) => approveRecommendationOperation(recommendation.data?.id ?? '', operationId),
+    onSuccess: storeRecommendation,
   })
   const reject = useMutation({
-    mutationFn: (operationId: string) =>
-      rejectRecommendationOperation(recommendation?.id ?? '', operationId),
-    onSuccess: (nextRecommendation) => {
-      setRecommendation(nextRecommendation)
-    },
+    mutationFn: (operationId: string) => rejectRecommendationOperation(recommendation.data?.id ?? '', operationId),
+    onSuccess: storeRecommendation,
   })
-  const saveWorkout = useMutation({
-    mutationFn: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['workout', workoutId] })
-      await queryClient.invalidateQueries({ queryKey: ['workout-exercises'] })
-    },
-    onSuccess: () => {
-      setRecommendation(null)
-    },
+  const acceptAll = useMutation({
+    mutationFn: () => approveRecommendation(recommendation.data?.id ?? ''),
+    onSuccess: storeRecommendation,
   })
-
+  const rejectAll = useMutation({
+    mutationFn: () => rejectRecommendation(recommendation.data?.id ?? ''),
+    onSuccess: storeRecommendation,
+  })
   return {
-    recommendation,
-    generate: () => {
-      if (workoutId) {
-        loadRecommendation.mutate()
-      }
-    },
-    acceptOperation: (operationId: string) => {
-      if (recommendation) {
-        accept.mutate(operationId)
-      }
-    },
-    rejectOperation: (operationId: string) => {
-      if (recommendation) {
-        reject.mutate(operationId)
-      }
-    },
-    saveWorkout: () => {
-      if (isWorkoutReadyToSave) {
-        saveWorkout.mutate()
-      }
-    },
-    isGenerating: loadRecommendation.isPending,
-    isSavingWorkout: saveWorkout.isPending,
-    isWorkoutReadyToSave,
+    recommendation: recommendation.data ?? null,
+    exerciseLibrary: library.data ?? [],
+    saveOperation: (operation: RecommendationOperation) => save.mutate(operation),
+    acceptOperation: (id: string) => accept.mutateAsync(id),
+    rejectOperation: (id: string) => reject.mutateAsync(id),
+    acceptAll: () => acceptAll.mutateAsync(),
+    rejectAll: () => rejectAll.mutateAsync(),
+    savingOperationId: save.isPending ? save.variables.id : null,
     acceptingOperationId: accept.isPending ? accept.variables : null,
     rejectingOperationId: reject.isPending ? reject.variables : null,
-    error: loadRecommendation.error ?? accept.error ?? reject.error ?? saveWorkout.error,
+    isBulkAccepting: acceptAll.isPending,
+    isBulkRejecting: rejectAll.isPending,
+    isLoading: recommendation.isLoading,
+    error: recommendation.error ?? library.error ?? save.error ?? accept.error ?? reject.error ?? acceptAll.error ?? rejectAll.error,
   }
 }

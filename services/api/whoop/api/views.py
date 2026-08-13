@@ -1,19 +1,27 @@
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema, inline_serializer
-from rest_framework import permissions, status
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
+from rest_framework import permissions, serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import serializers
 
 from whoop import services
-from whoop.api.serializers import WhoopCallbackResultSerializer, WhoopConnectUrlSerializer, WhoopSummarySerializer
+from whoop.api.serializers import (
+    WhoopCallbackResultSerializer,
+    WhoopConnectUrlSerializer,
+    WhoopSummarySerializer,
+)
 from whoop.exceptions import WhoopConnectionNotFound
 from whoop.workflows.summary import disconnected_summary
-
 
 ErrorDetailSerializer = inline_serializer(
     name="WhoopErrorDetail",
@@ -45,7 +53,10 @@ class WhoopConnectAPIView(APIView):
         ],
         responses={
             200: WhoopConnectUrlSerializer,
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Invalid query parameter or WHOOP connection setup error."),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer,
+                description="Invalid query parameter or WHOOP connection setup error.",
+            ),
         },
         examples=[
             OpenApiExample(
@@ -96,7 +107,10 @@ class WhoopCallbackAPIView(APIView):
         responses={
             200: WhoopCallbackResultSerializer,
             302: OpenApiResponse(description="Redirect to the frontend success URL."),
-            400: OpenApiResponse(response=ErrorDetailSerializer, description="Missing query parameters or invalid WHOOP callback state."),
+            400: OpenApiResponse(
+                response=ErrorDetailSerializer,
+                description="Missing query parameters or invalid WHOOP callback state.",
+            ),
         },
         examples=[
             OpenApiExample(
@@ -116,7 +130,9 @@ class WhoopCallbackAPIView(APIView):
             raise ValidationError({"detail": "Invalid WHOOP OAuth state."})
 
         try:
-            mapping = services.create_complete_connection_service().execute(state=state, code=code)
+            mapping = services.create_complete_connection_service().execute(
+                state=state, code=code
+            )
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
@@ -137,7 +153,10 @@ class WhoopSummaryAPIView(APIView):
         description="Returns a summary of the authenticated user's latest WHOOP data. If WHOOP is not connected, a disconnected summary is returned with a 404 status.",
         responses={
             200: WhoopSummarySerializer,
-            404: OpenApiResponse(response=WhoopSummarySerializer, description="WHOOP is not connected for the authenticated user."),
+            404: OpenApiResponse(
+                response=WhoopSummarySerializer,
+                description="WHOOP is not connected for the authenticated user.",
+            ),
         },
     )
     def get(self, request: Request) -> Response:
@@ -163,11 +182,15 @@ class WhoopDisconnectAPIView(APIView):
         request=None,
         responses={
             204: OpenApiResponse(description="WHOOP connection removed."),
-            404: OpenApiResponse(response=ErrorDetailSerializer, description="WHOOP was not connected."),
+            404: OpenApiResponse(
+                response=ErrorDetailSerializer, description="WHOOP was not connected."
+            ),
         },
     )
     def post(self, request: Request) -> Response:
-        disconnected = services.create_disconnect_service().execute(str(request.user.id))
+        disconnected = services.create_disconnect_service().execute(
+            str(request.user.id)
+        )
         if not disconnected:
             raise NotFound("WHOOP is not connected.")
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -50,3 +50,13 @@ class ExerciseSerializer(serializers.ModelSerializer):
 
 class ExerciseErrorDetailSerializer(serializers.Serializer):
     detail = serializers.CharField()
+
+
+class ExerciseListQuerySerializer(serializers.Serializer):
+    """Validates the optional primary-muscle-group exercise-library filter."""
+
+    muscleGroup = serializers.ChoiceField(
+        choices=Exercise.MuscleGroup.choices,
+        required=False,
+        help_text="Optional primary muscle group used to filter the exercise library.",
+    )

@@ -1,5 +1,3 @@
-# ruff: noqa: RUF012
-
 from django.db import migrations, models
 
 

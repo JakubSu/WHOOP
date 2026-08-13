@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -13,7 +12,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="WhoopConnection",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ("user_id", models.CharField(max_length=64, unique=True)),
                 ("whoop_user_id", models.CharField(max_length=64)),
                 ("access_token_encrypted", models.TextField()),
@@ -32,18 +39,51 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="WhoopSnapshot",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ("user_id", models.CharField(max_length=64)),
                 ("snapshot_date", models.DateField()),
-                ("recovery_score", models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
+                (
+                    "recovery_score",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=5, null=True
+                    ),
+                ),
                 (
                     "sleep_performance_percent",
-                    models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=5, null=True
+                    ),
                 ),
-                ("day_strain", models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ("hrv_rmssd_milli", models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True)),
-                ("resting_heart_rate", models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True)),
-                ("sleep_duration_minutes", models.PositiveIntegerField(blank=True, null=True)),
+                (
+                    "day_strain",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=5, null=True
+                    ),
+                ),
+                (
+                    "hrv_rmssd_milli",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=8, null=True
+                    ),
+                ),
+                (
+                    "resting_heart_rate",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=6, null=True
+                    ),
+                ),
+                (
+                    "sleep_duration_minutes",
+                    models.PositiveIntegerField(blank=True, null=True),
+                ),
                 ("recent_workout_count", models.PositiveIntegerField(default=0)),
                 ("raw_payload", models.JSONField(blank=True, default=dict)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
@@ -54,6 +94,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="whoopsnapshot",
-            index=models.Index(fields=["user_id", "snapshot_date"], name="whoop_whoop_user_id_740e56_idx"),
+            index=models.Index(
+                fields=["user_id", "snapshot_date"],
+                name="whoop_whoop_user_id_740e56_idx",
+            ),
         ),
     ]

@@ -11,7 +11,11 @@ from whoop.models import WhoopSnapshot
 
 class WhoopSnapshotRepository:
     def get_latest_for_user(self, user_id: str) -> WhoopSnapshot | None:
-        return WhoopSnapshot.objects.filter(user_id=user_id).order_by("-snapshot_date", "-created_at").first()
+        return (
+            WhoopSnapshot.objects.filter(user_id=user_id)
+            .order_by("-snapshot_date", "-created_at")
+            .first()
+        )
 
     def get_recent_for_user(
         self,
@@ -20,20 +24,32 @@ class WhoopSnapshotRepository:
         max_age: timedelta,
     ) -> WhoopSnapshot | None:
         cutoff = timezone.now() - max_age
-        return WhoopSnapshot.objects.filter(
-            user_id=user_id,
-            created_at__gte=cutoff,
-        ).order_by("-created_at").first()
+        return (
+            WhoopSnapshot.objects.filter(
+                user_id=user_id,
+                created_at__gte=cutoff,
+            )
+            .order_by("-created_at")
+            .first()
+        )
 
     def get_today_for_user(self, user_id: str) -> WhoopSnapshot | None:
-        return WhoopSnapshot.objects.filter(user_id=user_id, snapshot_date=timezone.localdate()).order_by("-created_at").first()
+        return (
+            WhoopSnapshot.objects.filter(
+                user_id=user_id, snapshot_date=timezone.localdate()
+            )
+            .order_by("-created_at")
+            .first()
+        )
 
     def save_snapshot(self, *, user_id: str, data: dict[str, Any]) -> WhoopSnapshot:
         return WhoopSnapshot.objects.create(
             user_id=user_id,
             snapshot_date=data["snapshot_date"],
             recovery_score=_decimal_or_none(data.get("recovery_score")),
-            sleep_performance_percent=_decimal_or_none(data.get("sleep_performance_percent")),
+            sleep_performance_percent=_decimal_or_none(
+                data.get("sleep_performance_percent")
+            ),
             day_strain=_decimal_or_none(data.get("day_strain")),
             hrv_rmssd_milli=_decimal_or_none(data.get("hrv_rmssd_milli")),
             resting_heart_rate=_decimal_or_none(data.get("resting_heart_rate")),

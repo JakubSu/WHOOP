@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Generic, TypeVar
 
-
 T = TypeVar("T")
 
 
@@ -22,7 +21,9 @@ class WhoopToken:
         expires_at = self.expires_at
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
-        return expires_at.astimezone(timezone.utc) <= datetime.now(timezone.utc) + timedelta(seconds=leeway_seconds)
+        return expires_at.astimezone(timezone.utc) <= datetime.now(
+            timezone.utc
+        ) + timedelta(seconds=leeway_seconds)
 
 
 @dataclass(slots=True)

@@ -20,7 +20,8 @@ class WhoopConnectionRepository:
     def get_tokens(self, connection: WhoopConnection) -> WhoopToken:
         return WhoopToken(
             access_token=self.token_crypto.decrypt(connection.access_token_encrypted),
-            refresh_token=self.token_crypto.decrypt(connection.refresh_token_encrypted) or None,
+            refresh_token=self.token_crypto.decrypt(connection.refresh_token_encrypted)
+            or None,
             expires_at=connection.expires_at,
             scope=connection.scopes or None,
         )
@@ -37,7 +38,9 @@ class WhoopConnectionRepository:
             defaults={
                 "whoop_user_id": str(whoop_user_id),
                 "access_token_encrypted": self.token_crypto.encrypt(token.access_token),
-                "refresh_token_encrypted": self.token_crypto.encrypt(token.refresh_token),
+                "refresh_token_encrypted": self.token_crypto.encrypt(
+                    token.refresh_token
+                ),
                 "expires_at": token.expires_at,
                 "scopes": token.scope or "",
                 "revoked_at": None,
@@ -45,10 +48,16 @@ class WhoopConnectionRepository:
         )
         return connection
 
-    def update_tokens(self, connection: WhoopConnection, token: WhoopToken) -> WhoopConnection:
-        connection.access_token_encrypted = self.token_crypto.encrypt(token.access_token)
+    def update_tokens(
+        self, connection: WhoopConnection, token: WhoopToken
+    ) -> WhoopConnection:
+        connection.access_token_encrypted = self.token_crypto.encrypt(
+            token.access_token
+        )
         if token.refresh_token:
-            connection.refresh_token_encrypted = self.token_crypto.encrypt(token.refresh_token)
+            connection.refresh_token_encrypted = self.token_crypto.encrypt(
+                token.refresh_token
+            )
         connection.expires_at = token.expires_at
         if token.scope:
             connection.scopes = token.scope
