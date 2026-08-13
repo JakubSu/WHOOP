@@ -176,7 +176,7 @@ class CoachToolTests(TestCase):
         )
 
         workouts = search_workouts(self.context(), limit=1000)
-        exercises = search_exercises(self.context(), query="", limit=1000)
+        exercises = search_exercises(self.context(), names=[], limit=1000)
 
         self.assertEqual([item.id for item in workouts], [self.workout.id])
         exercise_ids = {item.id for item in exercises}
@@ -201,7 +201,7 @@ class CoachToolTests(TestCase):
 
         exercises = search_exercises(
             self.context(),
-            query="press",
+            names=["press"],
             muscle_groups=[
                 Exercise.MuscleGroup.CHEST,
                 Exercise.MuscleGroup.TRICEPS,
@@ -214,6 +214,28 @@ class CoachToolTests(TestCase):
             Exercise.objects.get(name="Back row").id,
             exercise_ids,
         )
+
+    def test_exercise_search_matches_any_requested_name(self) -> None:
+        """The tool matches any requested name fragment."""
+
+        chest = Exercise.objects.create(
+            name="Chest press", muscle_group=Exercise.MuscleGroup.CHEST
+        )
+        triceps = Exercise.objects.create(
+            name="Triceps extension", muscle_group=Exercise.MuscleGroup.TRICEPS
+        )
+        other = Exercise.objects.create(
+            name="Back row", muscle_group=Exercise.MuscleGroup.BACK
+        )
+
+        exercises = search_exercises(
+            self.context(),
+            names=["chest", "triceps"],
+        )
+
+        exercise_ids = {item.id for item in exercises}
+        self.assertTrue({chest.id, triceps.id}.issubset(exercise_ids))
+        self.assertNotIn(other.id, exercise_ids)
 
     @patch("ai.tools.recovery.services.create_summary_service")
     def test_whoop_summary_uses_the_whoop_summary_service(

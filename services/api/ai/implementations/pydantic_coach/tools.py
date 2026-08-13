@@ -107,12 +107,12 @@ def register_tools(agent: Agent[CoachDeps, str]) -> None:
     @agent.tool
     async def search_exercises_tool(
         ctx: RunContext[CoachDeps],
-        query: str | None = None,
+        names: list[str] | None = None,
         muscle_groups: list[Exercise.MuscleGroup] | None = None,
         limit: int = 20,
     ) -> list[ExerciseSummary]:
         """Search the user's and shared exercise library."""
-        return await _call(ctx, "search_exercises", search_exercises, query=query, muscle_groups=muscle_groups, limit=limit)
+        return await _call(ctx, "search_exercises", search_exercises, names=names, muscle_groups=muscle_groups, limit=limit)
 
     @agent.tool
     async def get_active_recommendation_tool(ctx: RunContext[CoachDeps]) -> Any:
