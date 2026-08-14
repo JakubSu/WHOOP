@@ -20,7 +20,7 @@ This stack provisions the single-instance AWS deployment:
 ## Apply Flow
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
-2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, secret values, and GitHub repository/environment if they differ from the defaults.
+2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, secret values (including the Logfire write token), and GitHub repository/environment if they differ from the defaults.
 3. Run `terraform init`.
 4. Run `terraform plan`.
 5. Run `terraform apply`.
@@ -48,7 +48,7 @@ Set these GitHub `production` environment variables:
 - `AWS_REGION` (`us-east-1` by default)
 - `AWS_ROLE_TO_ASSUME` (the `github_actions_role_arn` Terraform output)
 - `CADDY_ACME_EMAIL`
-- Optional runtime values: `OPENAI_MODEL` and `SSM_PARAMETER_PREFIX`
+- Optional runtime values: `OPENAI_MODEL`, `POSTGRES_DB`, `POSTGRES_USER`, and `SSM_PARAMETER_PREFIX`
 
 The EC2 host does not fetch source code or build images. It receives the checked-out Compose configuration and image digests from the workflow, pulls those images from ECR, runs migrations, and starts Docker Compose. ECR lifecycle policies retain only the three newest immutable releases per service.
 

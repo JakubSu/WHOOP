@@ -79,17 +79,17 @@ function ExerciseFields({ exercise, onChange }: Pick<ExerciseCardProps, 'exercis
       {isTimed ? (
         <>
           <Field label="Seconds">
-            <Input aria-label={`${exercise.exerciseName} seconds`} className="h-8 w-16 px-2 text-[13px] sm:w-20" min="0" type="number" value={exercise.time} onChange={(event) => update({ time: numberValue(event.target.value) })} />
+            <Input aria-label={`${exercise.exerciseName} seconds`} className="h-8 w-16 px-2 text-base sm:w-20 sm:text-[13px]" min="0" type="number" value={exercise.time} onChange={(event) => update({ time: numberValue(event.target.value) })} />
           </Field>
           <Field label={exercise.weight_unit || 'lb'}>
-            <Input aria-label={`${exercise.exerciseName} weight`} className="h-8 w-14 px-1.5 text-[13px] sm:w-20" min="0" step="1" type="number" value={wholeNumberWeight(exercise.weight ?? '') ?? ''} onChange={(event) => update({ weight: wholeNumberWeight(event.target.value) })} />
+            <Input aria-label={`${exercise.exerciseName} weight`} className="h-8 w-14 px-1.5 text-base sm:w-20 sm:text-[13px]" min="0" step="1" type="number" value={wholeNumberWeight(exercise.weight ?? '') ?? ''} onChange={(event) => update({ weight: wholeNumberWeight(event.target.value) })} />
           </Field>
         </>
       ) : (
         <>
-          <Field label="Sets"><Input aria-label={`${exercise.exerciseName} sets`} className="h-8 w-10 px-1.5 text-[13px] sm:w-14" min="0" type="number" value={exercise.sets} onChange={(event) => update({ sets: numberValue(event.target.value) })} /></Field>
-          <Field label="Reps"><Input aria-label={`${exercise.exerciseName} reps`} className="h-8 w-10 px-1.5 text-[13px] sm:w-14" min="0" type="number" value={exercise.reps} onChange={(event) => update({ reps: numberValue(event.target.value) })} /></Field>
-          <Field label={exercise.weight_unit || 'lb'}><Input aria-label={`${exercise.exerciseName} weight`} className="h-8 w-14 px-1.5 text-[13px] sm:w-20" inputMode="numeric" min="0" step="1" type="number" value={wholeNumberWeight(exercise.weight ?? '') ?? ''} onChange={(event) => update({ weight: wholeNumberWeight(event.target.value) })} /></Field>
+          <Field label="Sets"><Input aria-label={`${exercise.exerciseName} sets`} className="h-8 w-10 px-1.5 text-base sm:w-14 sm:text-[13px]" min="0" type="number" value={exercise.sets} onChange={(event) => update({ sets: numberValue(event.target.value) })} /></Field>
+          <Field label="Reps"><Input aria-label={`${exercise.exerciseName} reps`} className="h-8 w-10 px-1.5 text-base sm:w-14 sm:text-[13px]" min="0" type="number" value={exercise.reps} onChange={(event) => update({ reps: numberValue(event.target.value) })} /></Field>
+          <Field label={exercise.weight_unit || 'lb'}><Input aria-label={`${exercise.exerciseName} weight`} className="h-8 w-14 px-1.5 text-base sm:w-20 sm:text-[13px]" inputMode="numeric" min="0" step="1" type="number" value={wholeNumberWeight(exercise.weight ?? '') ?? ''} onChange={(event) => update({ weight: wholeNumberWeight(event.target.value) })} /></Field>
         </>
       )}
     </div>
