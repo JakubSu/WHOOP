@@ -97,11 +97,14 @@ def _workout_list_queryset(
 
 
 def get_workout_landing(user_id: str, today_value: str | date) -> WorkoutLanding | None:
+    """Select from every scheduled workout for the user.
+
+    Training plans are a legacy grouping and must not affect the workout shown
+    on the landing screen.
+    """
     today = _coerce_date(today_value)
     workouts = list(
-        Workout.objects.filter(user_id=user_id, plan__isnull=False).order_by(
-            "date", "name"
-        )
+        Workout.objects.filter(user_id=user_id).order_by("date", "name")
     )
     if not workouts:
         return None

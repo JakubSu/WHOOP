@@ -101,6 +101,19 @@ class WorkoutServiceTests(TestCase):
         self.assertTrue(landing.is_today)
         self.assertTrue(landing.has_workout_today)
 
+    def test_select_workout_landing_includes_unplanned_workout_today(self) -> None:
+        todays_workout = services.create_workout(
+            {"name": "Outdoor Upper Body", "date": "2026-06-10"},
+            user_id=self.user_id,
+        )
+
+        landing = services.get_workout_landing(self.user_id, "2026-06-10")
+
+        assert landing is not None
+        self.assertEqual(landing.workout.id, todays_workout.id)
+        self.assertTrue(landing.is_today)
+        self.assertTrue(landing.has_workout_today)
+
     def test_select_workout_landing_uses_closest_upcoming_when_today_missing(
         self,
     ) -> None:

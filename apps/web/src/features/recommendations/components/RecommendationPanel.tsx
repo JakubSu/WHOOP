@@ -20,7 +20,7 @@ type Props = {
   rejectingId: string | null;
 };
 export function RecommendationPanel(props: Props) {
-  const operations = props.recommendation.operations.filter((operation) =>
+  const operations = props.recommendation.operations.filter(isExerciseOperation).filter((operation) =>
     props.addsOnly
       ? operation.operation_type === "add_exercise" &&
         operation.payload.position === 1
@@ -49,8 +49,11 @@ export function RecommendationPanel(props: Props) {
     </>
   );
 }
+function isExerciseOperation(operation: RecommendationOperation): operation is Extract<RecommendationOperation, { operation_type: "add_exercise" | "update_exercise" | "remove_exercise" }> {
+  return operation.operation_type === "add_exercise" || operation.operation_type === "update_exercise" || operation.operation_type === "remove_exercise";
+}
 function placement(
-  operation: RecommendationOperation,
+  operation: Extract<RecommendationOperation, { operation_type: "add_exercise" | "update_exercise" | "remove_exercise" }>,
   exercises: WorkoutExerciseDisplay[],
   source: boolean | undefined,
 ) {
@@ -65,7 +68,7 @@ function placement(
   return source ? -99 : index;
 }
 function target(
-  operation: RecommendationOperation,
+  operation: Extract<RecommendationOperation, { operation_type: "add_exercise" | "update_exercise" | "remove_exercise" }>,
   exercises: WorkoutExerciseDisplay[],
 ) {
   return operation.operation_type === "add_exercise"

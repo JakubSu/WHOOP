@@ -7,8 +7,10 @@ import {
 import { type Prescription, type RecommendationOperation } from "../types";
 import { updateChangeEntries } from "../services/operationChanges";
 
+type ExerciseRecommendationOperation = Extract<RecommendationOperation, { operation_type: "add_exercise" | "update_exercise" | "remove_exercise" }>;
+
 type Props = {
-  operation: RecommendationOperation;
+  operation: ExerciseRecommendationOperation;
   exercise: WorkoutExerciseDisplay | undefined;
   exerciseLibrary: Exercise[];
   onSave: (operation: RecommendationOperation) => void;
@@ -29,7 +31,7 @@ const labels: Record<string, string> = {
 };
 
 export function RecommendationOperationCard(props: Props) {
-  const [draft, setDraft] = useState<RecommendationOperation | null>(null);
+  const [draft, setDraft] = useState<ExerciseRecommendationOperation | null>(null);
   const operation = draft ?? props.operation;
   const editing = Boolean(draft);
   const busy = props.isSaving || props.isAccepting || props.isRejecting;
@@ -137,7 +139,7 @@ function Proposal({
   >;
   library: Exercise[];
   editing: boolean;
-  onChange: (operation: RecommendationOperation) => void;
+  onChange: (operation: ExerciseRecommendationOperation) => void;
 }) {
   const prescription = operation.payload.prescription;
   const update = (changes: Partial<Prescription>) =>
@@ -215,7 +217,7 @@ function Update({
   >;
   exercise: WorkoutExerciseDisplay | undefined;
   editing: boolean;
-  onChange: (operation: RecommendationOperation) => void;
+  onChange: (operation: ExerciseRecommendationOperation) => void;
 }) {
   const changes = operation.payload.changes ?? {};
   return (
@@ -315,7 +317,7 @@ function PrescriptionView({
     </>
   );
 }
-function tagFor(type: RecommendationOperation["operation_type"]) {
+function tagFor(type: Props["operation"]["operation_type"]) {
   return type === "add_exercise"
     ? "+ ADD"
     : type === "remove_exercise"

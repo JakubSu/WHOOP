@@ -1,70 +1,43 @@
-export type Prescription =
-  {
-    type?: "reps" | "time";
-    sets: number;
-    reps?: number;
-    seconds?: number;
-    weight?: string | null;
-    weight_unit?: string;
-    note?: string;
-  }
+import { type CoachRecommendationReference } from '../coach/types'
+
+export type Prescription = {
+  type?: 'reps' | 'time'
+  sets: number
+  reps?: number
+  seconds?: number
+  weight?: string | null
+  weight_unit?: string
+  note?: string
+}
+
+type OperationBase = {
+  id: string
+  status: 'pending' | 'accepted' | 'rejected' | 'stale'
+  display_text: string
+  reason: string
+}
 
 export type RecommendationOperation =
-  | {
-    id: string;
-    status: 'pending';
-    operation_type: 'add_exercise';
-    display_text: string;
-    reason: string;
-    payload: {
-      exercise_id: string;
-      prescription: Prescription;
-      position: number
-    }
-  }
-  | {
-    id: string;
-    status: 'pending';
-    operation_type: 'update_exercise';
-    display_text: string;
-    reason: string;
-    payload: {
-      workout_exercise_id: string;
-      changes: Partial<Prescription>;
-      position?: number
-    }
-  }
-  | {
-    id: string;
-    status: 'pending';
-    operation_type: 'remove_exercise';
-    display_text: string;
-    reason: string;
-    payload: { workout_exercise_id: string }
-  }
+  | (OperationBase & { operation_type: 'add_workout'; payload: { temporary_id: string; name: string; date: string; expected_time: number } })
+  | (OperationBase & { operation_type: 'update_workout'; payload: { workout_id: string; changes: Partial<{ name: string; date: string; expected_time: number }> } })
+  | (OperationBase & { operation_type: 'remove_workout'; payload: { workout_id: string } })
+  | (OperationBase & { operation_type: 'add_exercise'; payload: { workout: { kind: 'existing'; workout_id: string } | { kind: 'new'; temporary_id: string }; exercise_id: string; prescription: Prescription; position: number } })
+  | (OperationBase & { operation_type: 'update_exercise'; payload: { workout_exercise_id: string; target_workout_id?: string; changes?: Partial<Prescription>; position?: number } })
+  | (OperationBase & { operation_type: 'remove_exercise'; payload: { workout_exercise_id: string } })
+
+export type RecommendationGroup = {
+  id: string
+  title: string
+  target:
+    | { kind: 'existing'; workout_id: string }
+    | { kind: 'new'; temporary_id: string; draft: { name: string; date: string; expected_time: number } }
+  operation_ids: string[]
+}
 
 export type Recommendation = {
-  id: string;
-  status: CoachRecommendationReference['status'];
-  summary: string;
-  reason: string;
-  coach_card_snapshot: CoachCardSnapshot;
+  id: string
+  status: CoachRecommendationReference['status']
+  summary: string
+  groups: RecommendationGroup[]
   operations: RecommendationOperation[]
-  workouts: Array<{
-    id: string
-    title: string
-    workout: { id: string; name: string; date: string; expected_time: number; exercise_count: number }
-    exercises: Array<{
-      id: string
-      exercise: { id: string; name: string; muscle_group: string; prescription_type: string }
-      sets: number
-      reps: number
-      time: number
-      sort_order: number
-      weight: string | null
-      weight_unit: string
-      note: string
-    }>
-  }>
 }
-import { type CoachCardSnapshot, type CoachRecommendationReference } from '../coach/types'

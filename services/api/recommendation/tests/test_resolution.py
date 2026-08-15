@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from coach.models import CoachConversation
 from recommendation.contracts import RecommendationDraft
-from recommendation.services import accept_recommendation, create_recommendation
+from recommendation.services import accept_recommendation, create_recommendation, reject_operation
 from training.models import Exercise, Workout, WorkoutExercise
 
 
@@ -103,3 +103,45 @@ class RecommendationResolutionTests(TestCase):
 
         workout_exercise.refresh_from_db()
         self.assertEqual(workout_exercise.workout_id, target.id)
+
+    def test_rejecting_new_workout_rejects_its_child_exercise_operations(self) -> None:
+        recommendation = create_recommendation(
+            user=self.user,
+            conversation=self.conversation,
+            draft=RecommendationDraft.model_validate(
+                {
+                    "summary": "Add intervals",
+                    "operations": [
+                        {
+                            "operation_type": "add_workout",
+                            "reason": "Schedule an interval session.",
+                            "payload": {
+                                "temporary_id": "workout_1",
+                                "name": "Intervals",
+                                "date": "2026-08-12",
+                            },
+                        },
+                        {
+                            "operation_type": "add_exercise",
+                            "reason": "Build aerobic capacity.",
+                            "payload": {
+                                "workout": {"kind": "new", "temporary_id": "workout_1"},
+                                "exercise_id": str(self.exercise.id),
+                                "prescription": {"type": "time", "sets": 2, "seconds": 60},
+                                "position": 0,
+                            },
+                        },
+                    ],
+                }
+            ),
+        )
+        parent = recommendation.operations.get(operation_type="add_workout")
+
+        reject_operation(
+            user=self.user,
+            recommendation_id=str(recommendation.id),
+            operation_id=str(parent.id),
+        )
+
+        self.assertFalse(recommendation.operations.filter(status="pending").exists())
+        self.assertEqual(Workout.objects.filter(name="Intervals").count(), 0)

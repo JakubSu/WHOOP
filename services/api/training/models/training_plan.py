@@ -9,6 +9,8 @@ if TYPE_CHECKING:
 
 
 class TrainingPlan(models.Model):
+    """Obsolete legacy grouping retained only for backwards-compatible data."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.CharField(max_length=200, blank=True, default="")
     name = models.CharField(max_length=200)

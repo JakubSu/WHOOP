@@ -17,12 +17,10 @@ from training.models import Exercise, Workout, WorkoutExercise
 
 
 def get_recommendation(user: Any, recommendation_id: str) -> Recommendation | None:
-    """Returns one active, user-owned recommendation with its operations."""
+    """Returns one user-owned recommendation and its operation ledger."""
 
     return (
-        Recommendation.objects.filter(
-            pk=recommendation_id, user=user, status=Recommendation.Status.ACTIVE
-        )
+        Recommendation.objects.filter(pk=recommendation_id, user=user)
         .prefetch_related("operations")
         .first()
     )
@@ -66,9 +64,12 @@ def reject_operation(
     operation = _operation(user, recommendation_id, operation_id)
     if operation.status != RecommendationOperation.Status.PENDING:
         raise RecommendationConflict("Operation is no longer pending.")
-    operation.status = RecommendationOperation.Status.REJECTED
-    operation.resolved_at = timezone.now()
-    operation.save(update_fields=["status", "resolved_at", "updated_at"])
+    now = timezone.now()
+    for bundled_operation in _operation_bundle(operation):
+        if bundled_operation.status == RecommendationOperation.Status.PENDING:
+            bundled_operation.status = RecommendationOperation.Status.REJECTED
+            bundled_operation.resolved_at = now
+            bundled_operation.save(update_fields=["status", "resolved_at", "updated_at"])
     _complete_if_resolved(operation.recommendation)
     refresh_coach_card_snapshot(operation.recommendation)
     return operation.recommendation
@@ -226,12 +227,16 @@ def _apply_operation(
     payload = operation.payload
     operation_type = operation.operation_type
     if operation_type == "add_workout":
-        temporary_workouts[str(payload["temporary_id"])] = Workout.objects.create(
+        workout = Workout.objects.create(
             user_id=str(user.id),
             name=payload["name"],
             date=payload["date"],
             expected_time=payload.get("expected_time", 0),
         )
+        temporary_workouts[str(payload["temporary_id"])] = workout
+        payload["created_workout_id"] = str(workout.id)
+        operation.payload = payload
+        operation.save(update_fields=["payload", "updated_at"])
         return
     if operation_type == "add_exercise":
         workout_reference = payload["workout"]

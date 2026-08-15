@@ -1,104 +1,483 @@
-import { useState } from 'react'
-import { ChevronDown, LoaderCircle } from 'lucide-react'
-import { RecommendationOperationCard } from '../../recommendations/components/RecommendationOperationCard'
-import { useRecommendation } from '../../recommendations/hooks/useWorkoutRecommendation'
-import { type Recommendation } from '../../recommendations/types'
-import { type CoachRecommendationReference } from '../types'
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, LoaderCircle } from "lucide-react";
+import {
+  getWorkout,
+  listWorkoutExercises,
+} from "../../training/api/trainingApi";
+import {
+  type Exercise,
+  type WorkoutExerciseDisplay,
+} from "../../training/types";
+import { buildExerciseDisplays } from "../../training/services/formatters";
+import { RecommendationOperationCard } from "../../recommendations/components/RecommendationOperationCard";
+import { useRecommendation } from "../../recommendations/hooks/useWorkoutRecommendation";
+import {
+  type Recommendation,
+  type RecommendationGroup,
+  type RecommendationOperation,
+} from "../../recommendations/types";
+import {
+  buildDraftExercises,
+  groupTargetKey,
+} from "../../recommendations/services/workoutCard";
+import { type CoachRecommendationReference } from "../types";
 
-type Props = {
-  recommendation: CoachRecommendationReference
-}
+type Props = { recommendation: CoachRecommendationReference };
 
 export function CoachRecommendationCard({ recommendation }: Props) {
-  if (!recommendation.actionable) {
-    return <HistoricalRecommendationCard recommendation={recommendation} />
-  }
-  return <ActiveRecommendationCard recommendation={recommendation} />
+  return (
+    <RecommendationCardDetail
+      recommendationId={recommendation.id}
+      fallback={recommendation}
+    />
+  );
 }
 
-function ActiveRecommendationCard({ recommendation }: Props) {
-  const [expanded, setExpanded] = useState(false)
-  const [confirmAcceptAll, setConfirmAcceptAll] = useState(false)
-  const detail = useRecommendation(recommendation.id, undefined, expanded)
-  const snapshot = detail.recommendation?.coach_card_snapshot ?? recommendation.coach_card_snapshot
-  const workoutGroups = snapshot?.workout_groups ?? []
-  const run = async (action: () => Promise<unknown>) => { await action() }
-  const pendingCount = workoutGroups.reduce((total, group) => total + group.summary.pending, 0)
+function RecommendationCardDetail({
+  recommendationId,
+  fallback,
+}: {
+  recommendationId: string;
+  fallback: CoachRecommendationReference;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [confirmAcceptAll, setConfirmAcceptAll] = useState(false);
+  const detail = useRecommendation(recommendationId, undefined, true);
+  const recommendation = detail.recommendation;
 
-  if (detail.recommendation && detail.recommendation.status !== 'active') {
-    return <HistoricalRecommendationCard recommendation={{
-      ...recommendation,
-      status: detail.recommendation.status,
-      actionable: false,
-      coach_card_snapshot: detail.recommendation.coach_card_snapshot,
-    }} />
-  }
+  if (!recommendation && !fallback.actionable)
+    return <HistoricalRecommendationCard recommendation={fallback} />;
+  if (!recommendation) return <LoadingCard />;
+  const pending = recommendation.operations.filter(
+    (operation) => operation.status === "pending",
+  ).length;
+  const readOnly = pending === 0;
 
   return (
-    <section className="mt-3 overflow-hidden rounded-lg border border-primary/30 bg-background" aria-label="Active coach recommendation">
-      <div className="flex items-center justify-between gap-3 px-3 py-3">
-        <button className="min-w-0 flex-1 text-left" type="button" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
+    <section
+      className="mt-3 overflow-hidden rounded-lg border border-primary/30 bg-background"
+      aria-label="Coach recommendation"
+    >
+      <button
+        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+      >
+        <span>
           <strong className="block text-sm">Training recommendation</strong>
-          <span className="text-xs text-muted-foreground">{pendingCount} pending change{pendingCount === 1 ? '' : 's'} across {workoutGroups.length} workout{workoutGroups.length === 1 ? '' : 's'}</span>
-        </button>
-        <ChevronDown className={expanded ? 'rotate-180 transition-transform' : 'transition-transform'} size={18} />
-      </div>
-      {expanded ? <div className="grid gap-3 border-t border-border p-3">
-        <div className="flex flex-wrap gap-2">
-          {confirmAcceptAll ? <>
-            <button className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground" type="button" disabled={detail.isBulkAccepting} onClick={() => void run(async () => { const result = await detail.acceptAll(); setConfirmAcceptAll(false); return result })}>Confirm accept all</button>
-            <button className="rounded border px-2 py-1 text-xs" type="button" onClick={() => setConfirmAcceptAll(false)}>Cancel</button>
-          </> : <>
-            <button className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground" type="button" onClick={() => setConfirmAcceptAll(true)}>Accept all</button>
-            <button className="rounded border px-2 py-1 text-xs" type="button" disabled={detail.isBulkRejecting} onClick={() => void run(detail.rejectAll)}>Reject all</button>
-          </>}
+          <span className="text-xs text-muted-foreground">
+            {readOnly
+              ? "Applied workout changes"
+              : `${pending} pending change${pending === 1 ? "" : "s"}`}
+          </span>
+        </span>
+        <ChevronDown
+          className={
+            expanded
+              ? "rotate-180 transition-transform"
+              : "transition-transform"
+          }
+          size={18}
+        />
+      </button>
+      {expanded ? (
+        <div className="grid gap-3 border-t border-border p-3">
+          {recommendation.groups.map((group) => (
+            <WorkoutRecommendationCard
+              key={group.id}
+              group={group}
+              recommendation={recommendation}
+              detail={detail}
+              readOnly={readOnly}
+            />
+          ))}
+          {!readOnly ? (
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+              {confirmAcceptAll ? (
+                <>
+                  <button
+                    className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
+                    type="button"
+                    disabled={detail.isBulkAccepting}
+                    onClick={() =>
+                      void detail
+                        .acceptAll()
+                        .then(() => setConfirmAcceptAll(false))
+                    }
+                  >
+                    Confirm accept all
+                  </button>
+                  <button
+                    className="rounded border px-2 py-1 text-xs"
+                    type="button"
+                    onClick={() => setConfirmAcceptAll(false)}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
+                    type="button"
+                    onClick={() => setConfirmAcceptAll(true)}
+                  >
+                    Accept all
+                  </button>
+                  <button
+                    className="rounded border px-2 py-1 text-xs"
+                    type="button"
+                    disabled={detail.isBulkRejecting}
+                    onClick={() => void detail.rejectAll()}
+                  >
+                    Reject all
+                  </button>
+                </>
+              )}
+            </div>
+          ) : null}
+          {detail.error ? (
+            <p className="text-xs text-destructive">
+              Could not update this recommendation. Try again.
+            </p>
+          ) : null}
         </div>
-        {workoutGroups.map((group) => <details key={group.id} className="rounded-md border bg-card p-3">
-          <summary className="cursor-pointer text-sm font-medium">{group.title} <span className="font-normal text-muted-foreground">· {group.summary.pending} pending</span></summary>
-          <ReadOnlyWorkout workout={detail.recommendation?.workouts.find((item) => item.id === group.id)} />
-          <ActionableOperations operationIds={group.operation_ids} detail={detail} />
-        </details>)}
-        {detail.error ? <p className="text-xs text-destructive">Could not update this recommendation. Try again.</p> : null}
-      </div> : null}
+      ) : null}
     </section>
-  )
+  );
 }
 
-function ReadOnlyWorkout({ workout }: { workout: Recommendation['workouts'][number] | undefined }) {
-  if (!workout) return null
-  return <div className="mt-3 rounded border border-border/70 p-2 text-xs">
-    <p className="font-medium">{workout.workout.name} · {workout.workout.date}</p>
-    <ul className="mt-2 grid gap-1 text-muted-foreground">
-      {workout.exercises.map((exercise) => <li key={exercise.id}>{exercise.exercise.name} · {exercise.sets} × {exercise.reps}</li>)}
-    </ul>
-  </div>
-}
-
-function HistoricalRecommendationCard({ recommendation }: Props) {
-  const workoutGroups = recommendation.coach_card_snapshot?.workout_groups ?? []
-
-  return <section className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-3" aria-label="Historical coach recommendation">
-    <strong className="block text-sm">Training recommendation</strong>
-    <p className="mt-1 text-xs text-muted-foreground">{statusLabel(recommendation.status)}</p>
-    <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-      {workoutGroups.map((group) => <div key={group.id}>{group.title} · {outcomeLabel(group.summary)}</div>)}
-    </div>
-  </section>
-}
-
-function ActionableOperations({ operationIds, detail }: {
-  operationIds: string[]
-  detail: ReturnType<typeof useRecommendation>
+function WorkoutRecommendationCard({
+  group,
+  recommendation,
+  detail,
+  readOnly,
+}: {
+  group: RecommendationGroup;
+  recommendation: Recommendation;
+  detail: ReturnType<typeof useRecommendation>;
+  readOnly: boolean;
 }) {
-  if (detail.isLoading) return <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><LoaderCircle className="size-3 animate-spin" /> Loading workout…</p>
-  const operations = detail.recommendation?.operations.filter((operation) => operationIds.includes(operation.id)) ?? []
-  return <div className="mt-3 grid gap-2">{operations.map((operation) => <RecommendationOperationCard key={operation.id} operation={operation} exercise={undefined} exerciseLibrary={detail.exerciseLibrary} onSave={detail.saveOperation} onAccept={() => void detail.acceptOperation(operation.id)} onReject={() => void detail.rejectOperation(operation.id)} isSaving={detail.savingOperationId === operation.id} isAccepting={detail.acceptingOperationId === operation.id} isRejecting={detail.rejectingOperationId === operation.id} />)}</div>
+  const [expanded, setExpanded] = useState(false);
+  const operations = recommendation.operations.filter((operation) =>
+    group.operation_ids.includes(operation.id),
+  );
+  const workoutOperation = operations.find((operation) =>
+    operation.operation_type.endsWith("_workout"),
+  );
+  const hidden =
+    (workoutOperation?.operation_type === "remove_workout" &&
+      workoutOperation.status === "accepted") ||
+    (group.target.kind === "new" && workoutOperation?.status === "rejected");
+  if (hidden) return null;
+  return (
+    <details
+      className="rounded-md border bg-card"
+      open={expanded}
+      onToggle={(event) =>
+        setExpanded((event.currentTarget as HTMLDetailsElement).open)
+      }
+    >
+      <summary className="cursor-pointer px-3 py-3 text-sm font-medium">
+        {group.title}
+        <span className="ml-2 font-normal text-muted-foreground">
+          {operations.filter((operation) => operation.status === "pending")
+            .length
+            ? "Pending changes"
+            : "Workout"}
+        </span>
+      </summary>
+      {workoutOperation?.operation_type === "update_workout" &&
+      workoutOperation.status === "pending" ? (
+        <div className="border-t border-border px-3 py-2">
+          <WorkoutChange operation={workoutOperation} detail={detail} />
+        </div>
+      ) : null}
+      {workoutOperation?.operation_type === "remove_workout" &&
+      workoutOperation.status === "pending" ? (
+        <div className="border-t border-border px-3 py-2">
+          <WholeWorkoutAction
+            label="Delete workout"
+            operation={workoutOperation}
+            detail={detail}
+          />
+        </div>
+      ) : null}
+      {workoutOperation?.operation_type === "add_workout" &&
+      workoutOperation.status === "pending" ? (
+        <div className="border-t border-border px-3 py-2">
+          <WholeWorkoutAction
+            label="Add workout"
+            operation={workoutOperation}
+            detail={detail}
+          />
+        </div>
+      ) : null}
+      <div className="grid gap-3 border-t border-border p-3">
+        <WorkoutRecommendationBody
+          group={group}
+          operations={operations}
+          detail={detail}
+          readOnly={readOnly}
+        />
+      </div>
+    </details>
+  );
 }
 
-function outcomeLabel(summary: { accepted: number; rejected: number; stale: number }) {
-  return [`${summary.accepted} accepted`, `${summary.rejected} rejected`, summary.stale ? `${summary.stale} no longer available` : ''].filter(Boolean).join(' · ')
+function WorkoutRecommendationBody({
+  group,
+  operations,
+  detail,
+  readOnly,
+}: {
+  group: RecommendationGroup;
+  operations: RecommendationOperation[];
+  detail: ReturnType<typeof useRecommendation>;
+  readOnly: boolean;
+}) {
+  const workoutOperation = operations.find(
+    (operation) =>
+      operation.operation_type === "add_workout" ||
+      operation.operation_type === "update_workout" ||
+      operation.operation_type === "remove_workout",
+  );
+  const isNewWholeWorkout = workoutOperation?.operation_type === "add_workout";
+  const workout = useWorkoutCardData(group, operations, detail.exerciseLibrary);
+  if (workout.isLoading)
+    return (
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        <LoaderCircle className="size-3 animate-spin" /> Loading workout…
+      </p>
+    );
+  if (!workout.data) return null;
+  return (
+    <>
+      <div className="text-xs text-muted-foreground">
+        {workout.data.date} · {workout.data.expected_time ?? 0} min
+      </div>
+      <ul className="grid gap-2">
+        {workout.data.exercises.map((exercise) => (
+          <ExerciseRecommendationRow
+            key={exercise.id}
+            exercise={exercise}
+            operations={operations}
+            detail={detail}
+            readOnly={readOnly || Boolean(isNewWholeWorkout)}
+          />
+        ))}
+      </ul>
+      {isNewWholeWorkout
+        ? null
+        : operations
+            .filter(
+              (
+                operation,
+              ): operation is Extract<
+                RecommendationOperation,
+                { operation_type: "add_exercise" }
+              > =>
+                operation.operation_type === "add_exercise" &&
+                operation.status === "pending",
+            )
+            .map((operation) => (
+              <RecommendationOperationCard
+                key={operation.id}
+                operation={operation}
+                exercise={undefined}
+                exerciseLibrary={detail.exerciseLibrary}
+                onSave={detail.saveOperation}
+                onAccept={() => void detail.acceptOperation(operation.id)}
+                onReject={() => void detail.rejectOperation(operation.id)}
+                isSaving={detail.savingOperationId === operation.id}
+                isAccepting={detail.acceptingOperationId === operation.id}
+                isRejecting={detail.rejectingOperationId === operation.id}
+              />
+            ))}
+    </>
+  );
 }
 
-function statusLabel(status: CoachRecommendationReference['status']) {
-  return status === 'superseded' ? 'Replaced by a newer recommendation' : status === 'completed' ? 'Resolved' : 'No longer available'
+function ExerciseRecommendationRow({
+  exercise,
+  operations,
+  detail,
+  readOnly,
+}: {
+  exercise: WorkoutExerciseDisplay;
+  operations: RecommendationOperation[];
+  detail: ReturnType<typeof useRecommendation>;
+  readOnly: boolean;
+}) {
+  const operation = operations.find(
+    (
+      item,
+    ): item is Extract<
+      RecommendationOperation,
+      { operation_type: "update_exercise" | "remove_exercise" }
+    > =>
+      (item.operation_type === "update_exercise" ||
+        item.operation_type === "remove_exercise") &&
+      item.payload.workout_exercise_id === exercise.id &&
+      item.status === "pending",
+  );
+  return (
+    <li className="rounded border border-border/70 p-2 text-xs">
+      <p className="font-medium">{exercise.exerciseName}</p>
+      <p className="text-muted-foreground">{exercise.prescription}</p>
+      {operation && !readOnly ? (
+        <RecommendationOperationCard
+          operation={operation}
+          exercise={exercise}
+          exerciseLibrary={detail.exerciseLibrary}
+          onSave={detail.saveOperation}
+          onAccept={() => void detail.acceptOperation(operation.id)}
+          onReject={() => void detail.rejectOperation(operation.id)}
+          isSaving={detail.savingOperationId === operation.id}
+          isAccepting={detail.acceptingOperationId === operation.id}
+          isRejecting={detail.rejectingOperationId === operation.id}
+        />
+      ) : null}
+    </li>
+  );
+}
+
+function WorkoutChange({
+  operation,
+  detail,
+}: {
+  operation: Extract<
+    RecommendationOperation,
+    { operation_type: "update_workout" }
+  >;
+  detail: ReturnType<typeof useRecommendation>;
+}) {
+  return (
+    <div className="rounded border border-primary/30 p-2 text-xs">
+      <p className="font-medium">Update workout</p>
+      <p className="mt-1 text-muted-foreground">
+        {Object.entries(operation.payload.changes)
+          .map(([field, value]) => `${field}: ${value}`)
+          .join(" · ")}
+      </p>
+      <ActionButtons operation={operation} detail={detail} />
+    </div>
+  );
+}
+
+function WholeWorkoutAction({
+  label,
+  operation,
+  detail,
+}: {
+  label: string;
+  operation: Extract<
+    RecommendationOperation,
+    { operation_type: "add_workout" | "remove_workout" }
+  >;
+  detail: ReturnType<typeof useRecommendation>;
+}) {
+  return (
+    <div className="rounded border border-primary/30 bg-primary/5 p-2 text-xs">
+      <p className="font-medium">{label}</p>
+      <p className="mt-1 text-muted-foreground">{operation.reason}</p>
+      <ActionButtons operation={operation} detail={detail} />
+    </div>
+  );
+}
+
+function ActionButtons({
+  operation,
+  detail,
+}: {
+  operation: RecommendationOperation;
+  detail: ReturnType<typeof useRecommendation>;
+}) {
+  const busy =
+    detail.acceptingOperationId === operation.id ||
+    detail.rejectingOperationId === operation.id;
+  return (
+    <div className="mt-2 flex gap-2">
+      <button
+        className="rounded bg-primary px-2 py-1 text-primary-foreground"
+        type="button"
+        disabled={busy}
+        onClick={() => void detail.acceptOperation(operation.id)}
+      >
+        Accept
+      </button>
+      <button
+        className="rounded border px-2 py-1"
+        type="button"
+        disabled={busy}
+        onClick={() => void detail.rejectOperation(operation.id)}
+      >
+        Reject
+      </button>
+    </div>
+  );
+}
+
+function useWorkoutCardData(
+  group: RecommendationGroup,
+  operations: RecommendationOperation[],
+  library: Exercise[],
+) {
+  const targetKey = groupTargetKey(group);
+  const workout = useQuery({
+    queryKey: ["workout", targetKey],
+    queryFn: () =>
+      getWorkout(
+        group.target.kind === "existing" ? group.target.workout_id : "",
+      ),
+    enabled: group.target.kind === "existing",
+  });
+  const exercises = useQuery({
+    queryKey: ["workout-exercises", targetKey],
+    queryFn: () =>
+      listWorkoutExercises(
+        group.target.kind === "existing" ? group.target.workout_id : "",
+      ),
+    enabled: group.target.kind === "existing",
+  });
+  if (group.target.kind === "new") {
+    return {
+      isLoading: false,
+      data: {
+        ...group.target.draft,
+        exercises: buildDraftExercises(operations, library),
+      },
+    };
+  }
+  return {
+    isLoading: workout.isLoading || exercises.isLoading,
+    data: workout.data
+      ? {
+          ...workout.data,
+          exercises: buildExerciseDisplays(exercises.data ?? []),
+        }
+      : null,
+  };
+}
+
+function LoadingCard() {
+  return (
+    <section className="mt-3 rounded-lg border border-primary/30 bg-background px-3 py-3 text-xs text-muted-foreground">
+      <LoaderCircle className="mr-2 inline size-3 animate-spin" /> Loading
+      recommendation…
+    </section>
+  );
+}
+
+function HistoricalRecommendationCard(_props: Props) {
+  return (
+    <section className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-3">
+      <strong className="block text-sm">Training recommendation</strong>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Resolved workout changes
+      </p>
+    </section>
+  );
 }

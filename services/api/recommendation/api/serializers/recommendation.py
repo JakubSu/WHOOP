@@ -3,8 +3,6 @@ from typing import Any, cast
 from rest_framework import serializers
 
 from recommendation.models import Recommendation, RecommendationOperation
-from training.api.serializers.workout import WorkoutSerializer
-from training.api.serializers.workout_exercise import WorkoutExercisePageSerializer
 from training.models import Workout, WorkoutExercise
 
 
@@ -62,7 +60,7 @@ class CoachRecommendationCardSerializer(serializers.Serializer):
 
 
 class RecommendationSerializer(serializers.Serializer):
-    """Serializes the full actionable recommendation response."""
+    """Serializes recommendation metadata; workouts remain owned by Training."""
 
     id = serializers.UUIDField(
         read_only=True, help_text="Unique identifier for the recommendation."
@@ -73,89 +71,113 @@ class RecommendationSerializer(serializers.Serializer):
     summary = serializers.CharField(
         read_only=True, help_text="Short summary of the recommendation."
     )
-    coach_card_snapshot = serializers.JSONField(read_only=True)
+    groups = serializers.SerializerMethodField()
     operations = serializers.SerializerMethodField()
-    workouts = serializers.SerializerMethodField()
 
-    def get_workouts(self, recommendation: Recommendation) -> list[dict[str, Any]]:
-        """Returns current read-only workouts represented by pending changes."""
+    def get_groups(self, recommendation: Recommendation) -> list[dict[str, Any]]:
+        """Maps operations to Workout API targets or an unpersisted workout draft."""
 
-        pending = list(
-            recommendation.operations.filter(
-                status=RecommendationOperation.Status.PENDING
-            ).order_by("created_at")
-        )
-        exercise_ids = [
-            operation.payload["workout_exercise_id"]
-            for operation in pending
-            if operation.payload.get("workout_exercise_id")
-        ]
+        operations = list(recommendation.operations.order_by("created_at"))
         exercise_workouts = {
             str(exercise.id): str(exercise.workout_id)
-            for exercise in WorkoutExercise.objects.filter(pk__in=exercise_ids)
+            for exercise in WorkoutExercise.objects.filter(
+                pk__in=[
+                    operation.payload["workout_exercise_id"]
+                    for operation in operations
+                    if operation.payload.get("workout_exercise_id")
+                ]
+            )
         }
         workout_ids = {
             workout_id
-            for operation in pending
+            for operation in operations
             if (workout_id := _operation_workout_id(operation)) is not None
         } | set(exercise_workouts.values())
-        workouts = {
-            str(workout.id): workout
-            for workout in Workout.objects.filter(pk__in=workout_ids).prefetch_related(
-                "workout_exercises__exercise"
-            )
+        workout_names = {
+            str(workout.id): workout.name
+            for workout in Workout.objects.filter(pk__in=workout_ids)
         }
-        result: list[dict[str, Any]] = []
-        for group in recommendation.coach_card_snapshot.get("workout_groups", []):
-            workout = workouts.get(str(group["id"]))
-            if workout is None:
+        groups: dict[str, dict[str, Any]] = {}
+        for operation in operations:
+            payload = operation.payload
+            temporary_id = _new_workout_reference_from_operation(operation)
+            if operation.operation_type == RecommendationOperation.OperationType.ADD_WORKOUT:
+                temporary_id = str(payload["temporary_id"])
+            workout_id = _operation_workout_id(operation)
+            source_workout_id = exercise_workouts.get(
+                str(payload.get("workout_exercise_id"))
+            )
+            if workout_id is None:
+                workout_id = source_workout_id
+            group_workout_ids = (
+                [temporary_id]
+                if temporary_id
+                else list(dict.fromkeys(filter(None, [source_workout_id, workout_id])))
+            )
+            if not group_workout_ids:
                 continue
-            exercises = sorted(
-                workout.workout_exercises.all(), key=lambda item: item.sort_order
-            )
-            result.append(
-                {
-                    "id": str(workout.id),
-                    "title": group["title"],
-                    "workout": WorkoutSerializer(workout).data,
-                    "exercises": WorkoutExercisePageSerializer(
-                        exercises, many=True
-                    ).data,
-                }
-            )
-        return result
+            if temporary_id:
+                add_workout = next(
+                    (
+                        item
+                        for item in operations
+                        if item.operation_type == RecommendationOperation.OperationType.ADD_WORKOUT
+                        and str(item.payload["temporary_id"]) == temporary_id
+                    ),
+                    None,
+                )
+                if add_workout is None:
+                    continue
+                created_workout_id = add_workout.payload.get("created_workout_id")
+                target: dict[str, Any] = (
+                    {"kind": "existing", "workout_id": str(created_workout_id)}
+                    if created_workout_id
+                    else {
+                        "kind": "new",
+                        "temporary_id": temporary_id,
+                        "draft": {
+                            "name": add_workout.payload["name"],
+                            "date": str(add_workout.payload["date"]),
+                            "expected_time": add_workout.payload.get("expected_time", 0),
+                        },
+                    }
+                )
+                title = add_workout.payload["name"]
+                group = groups.setdefault(
+                    temporary_id,
+                    {
+                        "id": temporary_id,
+                        "title": title,
+                        "target": target,
+                        "operation_ids": [],
+                    },
+                )
+                group["operation_ids"].append(str(operation.id))
+                continue
+            for group_workout_id in group_workout_ids:
+                target = {"kind": "existing", "workout_id": str(group_workout_id)}
+                title = workout_names.get(str(group_workout_id), "Workout")
+                group = groups.setdefault(
+                    str(group_workout_id),
+                    {
+                        "id": str(group_workout_id),
+                        "title": title,
+                        "target": target,
+                        "operation_ids": [],
+                    },
+                )
+                group["operation_ids"].append(str(operation.id))
+        return list(groups.values())
 
     def get_operations(self, recommendation: Recommendation) -> list[dict[str, Any]]:
-        """Returns only pending changes for the active, actionable card."""
+        """Returns the ledger so the client can hide resolved overlays."""
 
-        operations = list(
-            recommendation.operations.filter(
-                status=RecommendationOperation.Status.PENDING
-            ).order_by("created_at")
-        )
+        operations = list(recommendation.operations.order_by("created_at"))
         serialized_operations = cast(
             list[dict[str, Any]],
             RecommendationOperationSerializer(operations, many=True).data,
         )
-        children_by_temp: dict[str, list[dict[str, Any]]] = {}
-        result: list[dict[str, Any]] = []
-        for operation in serialized_operations:
-            temporary_workout_id = _new_workout_reference(operation)
-            if temporary_workout_id:
-                children_by_temp.setdefault(str(temporary_workout_id), []).append(
-                    operation
-                )
-            else:
-                result.append(operation)
-        for operation in result:
-            if (
-                operation["operation_type"]
-                == RecommendationOperation.OperationType.ADD_WORKOUT
-            ):
-                operation["exercise_operations"] = children_by_temp.pop(
-                    str(operation["payload"]["temporary_id"]), []
-                )
-        return result
+        return serialized_operations
 
 
 def _operation_workout_id(operation: RecommendationOperation) -> str | None:
@@ -170,13 +192,12 @@ def _operation_workout_id(operation: RecommendationOperation) -> str | None:
     return None
 
 
-def _new_workout_reference(operation: dict[str, Any]) -> str | None:
-    if (
-        operation["operation_type"]
-        != RecommendationOperation.OperationType.ADD_EXERCISE
-    ):
+def _new_workout_reference_from_operation(
+    operation: RecommendationOperation,
+) -> str | None:
+    if operation.operation_type != RecommendationOperation.OperationType.ADD_EXERCISE:
         return None
-    workout = operation["payload"].get("workout")
+    workout = operation.payload.get("workout")
     if workout and workout["kind"] == "new":
         return workout["temporary_id"]
     return None

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listExercises } from '../../training/api/trainingApi'
 import { approveRecommendation, approveRecommendationOperation, getRecommendation, rejectRecommendation, rejectRecommendationOperation, saveRecommendationOperation } from '../api/recommendationApi'
 import { type Recommendation, type RecommendationOperation } from '../types'
+import { existingWorkoutIds } from '../services/workoutCard'
 
 /** Loads and mutates a recommendation explicitly identified by the coach flow. */
 export function useRecommendation(
@@ -23,10 +24,17 @@ export function useRecommendation(
   })
   const storeRecommendation = (nextRecommendation: Recommendation) => {
     client.setQueryData(key, nextRecommendation)
+    const affectedWorkoutIds = existingWorkoutIds(nextRecommendation.groups)
     return Promise.all([
-    client.invalidateQueries({ queryKey: ['workout', workoutId] }),
-    client.invalidateQueries({ queryKey: ['workout-exercises', workoutId] }),
-    client.invalidateQueries({ queryKey: ['workouts'] }),
+      ...affectedWorkoutIds.flatMap((id) => [
+        client.invalidateQueries({ queryKey: ['workout', id] }),
+        client.invalidateQueries({ queryKey: ['workout-exercises', id] }),
+      ]),
+      ...(workoutId ? [
+        client.invalidateQueries({ queryKey: ['workout', workoutId] }),
+        client.invalidateQueries({ queryKey: ['workout-exercises', workoutId] }),
+      ] : []),
+      client.invalidateQueries({ queryKey: ['workouts'] }),
     ])
   }
   const save = useMutation({
