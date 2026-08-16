@@ -199,7 +199,7 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
         with patch("ai.implementations.scenario.sleep") as pause:
             events = async_to_sync(_collect_events)(self.runner, request)
 
-        self.assertEqual(pause.call_args_list, [call(0.75), call(0.75), call(0.75)])
+        self.assertEqual(pause.call_args_list, [call(0.75), call(0.75)])
 
         transitions: dict[str, list[str]] = {}
         for event in events:

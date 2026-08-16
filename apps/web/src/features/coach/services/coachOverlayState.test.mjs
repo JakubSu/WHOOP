@@ -144,3 +144,37 @@ test('completed stream updates only the prior messages supplied by Coach', () =>
   assert.equal(state.messages[0].recommendation.status, 'superseded')
   assert.equal(state.messages[1].content, 'New recommendation')
 })
+
+test('completed stream replaces a resolved UI action in its original message', () => {
+  const originalMessage = {
+    id: 'assistant-0',
+    role: 'assistant',
+    content: 'Choose an exercise',
+    created_at: '2026-08-04T17:00:00Z',
+    activities: [],
+    recommendation: null,
+    ui_actions: [{ id: 'action-0', type: 'exercise_resolution', status: 'pending' }],
+  }
+  const state = stateModule.applyCoachStreamEvent(
+    { ...base, messages: [originalMessage] },
+    {
+      event: 'completed',
+      data: {
+        ...envelope,
+        sequence: 1,
+        message: {
+          id: 'assistant-1', role: 'assistant', content: 'Added.',
+          created_at: '2026-08-04T18:00:00Z', activities: [], recommendation: null,
+          ui_actions: [],
+        },
+        recommendation_transitions: [],
+        updated_messages: [{
+          ...originalMessage,
+          ui_actions: [{ ...originalMessage.ui_actions[0], status: 'resolved' }],
+        }],
+      },
+    },
+  )
+
+  assert.equal(state.messages[0].ui_actions[0].status, 'resolved')
+})

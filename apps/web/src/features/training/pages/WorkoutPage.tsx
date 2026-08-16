@@ -78,7 +78,7 @@ export function WorkoutPage() {
           isCreating={editor.isCreatingExercise}
           muscleGroupFilter={editor.muscleGroupFilter}
           open={editor.isAddOpen}
-          onAdd={editor.addExercise}
+          intent={{ kind: 'workout', onSelect: editor.addExercise }}
           onCreate={editor.createExercise}
           onOpenChange={editor.setIsAddOpen}
           onMuscleGroupFilterChange={editor.setMuscleGroupFilter}

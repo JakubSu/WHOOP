@@ -16,10 +16,7 @@ from recommendation.contracts import (
     UpdateWorkoutOperation,
 )
 from recommendation.models import Recommendation, RecommendationOperation
-from recommendation.services.errors import (
-    RecommendationConflict,
-    RecommendationValidationError,
-)
+from recommendation.services.errors import RecommendationValidationError
 from recommendation.services.presentation import refresh_coach_card_snapshot
 from training.models import Exercise, Workout, WorkoutExercise
 
@@ -36,7 +33,6 @@ def create_recommendation(
     # IDs so retries are idempotent and failed runs can be expired.
     run_id: UUID | None = None,
     tool_call_id: str | None = None,
-    replaces_recommendation_id: str | UUID | None = None,
 ) -> Recommendation:
     """Creates a complete next proposal and atomically supersedes the active one."""
 
@@ -75,15 +71,6 @@ def create_recommendation(
         )
         .first()
     )
-    if replaces_recommendation_id is not None:
-        if active is None or str(active.id) != str(replaces_recommendation_id):
-            raise RecommendationConflict(
-                "The active recommendation changed. Load it again before replacing it."
-            )
-    elif active is not None:
-        raise RecommendationConflict(
-            "Load the active recommendation before replacing it."
-        )
     if active is not None:
         from django.utils import timezone
 
@@ -130,7 +117,7 @@ def create_recommendation(
             recommendation=recommendation,
             operation_type=item.operation_type,
             reason=item.reason,
-            payload=item.payload.model_dump(mode="json"),
+            payload=item.payload.model_dump(mode="json", exclude_unset=True),
         )
     refresh_coach_card_snapshot(recommendation)
     if active is not None:

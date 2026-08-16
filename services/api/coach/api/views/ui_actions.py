@@ -71,6 +71,10 @@ class UiActionResolveStreamAPIView(APIView):
         )
         request._full_data = {"content": content}  # type: ignore[attr-defined]
         request._ui_action_visible_content = f"{visible_verb} {exercise.name}."  # type: ignore[attr-defined]
+        # The continuation stream must replace the original assistant message in
+        # the live chat. Otherwise its in-memory UI action remains "pending"
+        # even though this transaction has resolved it.
+        request._updated_message_ids = (action.message_id,)  # type: ignore[attr-defined]
         return MessageStreamAPIView().post(request, conversation_id)
 
 

@@ -249,7 +249,12 @@ class MessageStreamAPIView(APIView):
                         )
                         payload, transitions, updated_messages = await sync_to_async(
                             _completed_message_payload, thread_sensitive=True
-                        )(message)
+                        )(
+                            message,
+                            updated_message_ids=getattr(
+                                request, "_updated_message_ids", ()
+                            ),
+                        )
                         yield event(
                             "completed",
                             {
@@ -409,7 +414,9 @@ async def _with_sse_heartbeats(
                 await close_result
 
 
-def _completed_message_payload(message: Any) -> tuple[dict[str, Any], Any, list[Any]]:
+def _completed_message_payload(
+    message: Any, *, updated_message_ids: Iterable[Any] = ()
+) -> tuple[dict[str, Any], Any, list[Any]]:
     """Builds DB-backed completed-event fields outside the async event loop."""
 
     return (
@@ -418,7 +425,10 @@ def _completed_message_payload(message: Any) -> tuple[dict[str, Any], Any, list[
         cast(
             list[Any],
             CoachMessageSerializer(
-                updated_messages_for_message(message), many=True
+                updated_messages_for_message(
+                    message, additional_message_ids=updated_message_ids
+                ),
+                many=True,
             ).data,
         ),
     )

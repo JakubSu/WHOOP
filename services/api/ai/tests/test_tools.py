@@ -96,10 +96,27 @@ class CoachToolTests(TestCase):
     def test_create_recommendation_rejects_another_users_target(self) -> None:
         """The write tool cannot propose an operation against another user's workout."""
 
-        with self.assertRaises(ToolValidationError):
+        with self.assertRaises(ToolValidationError) as error:
             create_recommendation(
                 self.context(), draft=self.draft(self.other_workout.id)
             )
+        self.assertEqual(str(error.exception), "Workout was not found.")
+
+    def test_create_recommendation_replaces_an_active_proposal_automatically(
+        self,
+    ) -> None:
+        """The model never needs to copy an active recommendation identifier."""
+
+        original = create_recommendation(
+            self.context(tool_call_id="original"), draft=self.draft(self.workout.id)
+        )
+
+        replacement = create_recommendation(
+            self.context(tool_call_id="new-call"), draft=self.draft(self.workout.id)
+        )
+        original_recommendation = Recommendation.objects.get(pk=original.recommendation_id)
+        self.assertEqual(original_recommendation.status, Recommendation.Status.SUPERSEDED)
+        self.assertEqual(original_recommendation.replaced_by_id, replacement.recommendation_id)
 
     def test_create_recommendation_replaces_the_complete_active_proposal(self) -> None:
         """The write tool stales prior pending work but preserves a proposal ledger."""
@@ -131,7 +148,6 @@ class CoachToolTests(TestCase):
                 tool_call_id="replacement",
             ),
             draft=replacement,
-            replaces_recommendation_id=str(original.recommendation_id),
         )
 
         original_recommendation = Recommendation.objects.get(

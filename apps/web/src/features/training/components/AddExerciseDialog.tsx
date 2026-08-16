@@ -1,9 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import { getErrorMessage } from '@/shared/api/errors'
 import { Alert, Button, Dialog, DialogContent, DialogTitle, Input, Label } from '@/shared/components/ui'
 import { type ExerciseInput } from '../api/trainingApi'
 import { type Exercise } from '../types'
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUPS, type MuscleGroup } from '../constants/muscleGroups'
+
+export type ExercisePickerIntent =
+  | { kind: 'workout'; onSelect: (exercise: Exercise, values: ExerciseValues) => void }
+  | { kind: 'coach'; onSelect: (exercise: Exercise) => void; onCreate: (exercise: Exercise) => void }
 
 type AddExerciseDialogProps = {
   exercises: Exercise[]
@@ -13,8 +18,12 @@ type AddExerciseDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onMuscleGroupFilterChange: (muscleGroup: MuscleGroup | undefined) => void
-  onAdd: (exercise: Exercise, values: ExerciseValues) => void
+  intent: ExercisePickerIntent
   onCreate: (input: ExerciseInput) => Promise<Exercise>
+  initialDefinition?: Partial<ExerciseInput>
+  initialStep?: 'search' | 'create'
+  initialQuery?: string
+  allowCreateFromSearch?: boolean
 }
 
 export type ExerciseValues = {
@@ -35,14 +44,18 @@ export function AddExerciseDialog({
   open,
   onOpenChange,
   onMuscleGroupFilterChange,
-  onAdd,
+  intent,
   onCreate,
+  initialDefinition,
+  initialStep = 'search',
+  initialQuery = '',
+  allowCreateFromSearch = true,
 }: AddExerciseDialogProps) {
-  const [step, setStep] = useState<DialogStep>('search')
+  const [step, setStep] = useState<DialogStep>(initialStep)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Exercise | null>(null)
   const [values, setValues] = useState<ExerciseValues | null>(null)
-  const [definition, setDefinition] = useState<ExerciseInput>(emptyDefinition())
+  const [definition, setDefinition] = useState<ExerciseInput>(() => definitionFrom(initialDefinition))
   const [createError, setCreateError] = useState<string | null>(null)
   const normalizedQuery = query.trim().toLowerCase()
   const matchingExercises = useMemo(
@@ -52,17 +65,32 @@ export function AddExerciseDialog({
   const isTimed = selected?.prescription_type === 'timed'
   const isCreatingTimedExercise = definition.prescription_type === 'timed'
 
+  useEffect(() => {
+    if (!open) return
+    setStep(initialStep)
+    setQuery(initialStep === 'create' ? initialDefinition?.name ?? '' : initialQuery)
+    setSelected(null)
+    setValues(null)
+    setDefinition(definitionFrom(initialDefinition))
+    setCreateError(null)
+  }, [initialStep, open])
+
   function close() {
     setStep('search')
     setQuery('')
     setSelected(null)
     setValues(null)
-    setDefinition(emptyDefinition())
+    setDefinition(definitionFrom(initialDefinition))
     setCreateError(null)
     onOpenChange(false)
   }
 
   function selectExercise(exercise: Exercise) {
+    if (intent.kind === 'coach') {
+      intent.onSelect(exercise)
+      close()
+      return
+    }
     setSelected(exercise)
     setValues({
       sets: exercise.prescription_type === 'strength' ? exercise.default_sets : 0,
@@ -75,7 +103,7 @@ export function AddExerciseDialog({
   }
 
   function openCreate() {
-    setDefinition(emptyDefinition(query.trim()))
+    setDefinition(definitionFrom({ ...initialDefinition, name: query.trim() }))
     setCreateError(null)
     setStep('create')
   }
@@ -98,7 +126,12 @@ export function AddExerciseDialog({
         default_weight: definition.default_weight,
         default_time: isCreatingTimedExercise ? definition.default_time : 0,
       })
-      selectExercise(exercise)
+      if (intent.kind === 'coach') {
+        intent.onCreate(exercise)
+        close()
+      } else {
+        selectExercise(exercise)
+      }
     } catch (error) {
       setCreateError(getErrorMessage(error))
     }
@@ -107,16 +140,19 @@ export function AddExerciseDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => nextOpen ? onOpenChange(true) : close()}>
       <DialogContent aria-describedby={undefined}>
-        <DialogTitle className="text-lg font-bold">{step === 'create' ? 'Create exercise' : 'Add exercise'}</DialogTitle>
+        <DialogTitle className="text-lg font-bold">{step === 'create' ? 'Create exercise' : intent.kind === 'coach' ? 'Choose exercise' : 'Add exercise'}</DialogTitle>
 
         {step === 'search' ? (
           <div className="mt-4">
             <Label htmlFor="exercise-search">Search exercise library</Label>
-            <Input className="mt-2" id="exercise-search" autoFocus placeholder="Search exercises" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <div className="relative mt-2">
+              <Input className="pr-11" id="exercise-search" autoFocus placeholder="Search exercises" value={query} onChange={(event) => setQuery(event.target.value)} />
+              {query ? <Button aria-label="Clear search" className="absolute right-0 top-0 text-muted-foreground" size="icon" type="button" variant="ghost" onClick={() => setQuery('')}><X aria-hidden="true" size={18} /></Button> : null}
+            </div>
             <div className="mt-3"><Label htmlFor="exercise-muscle-group-filter">Muscle group</Label><select id="exercise-muscle-group-filter" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm" value={muscleGroupFilter ?? ''} onChange={(event) => onMuscleGroupFilterChange(event.target.value === '' ? undefined : event.target.value as MuscleGroup)}><option value="">All muscle groups</option>{MUSCLE_GROUPS.map((muscleGroup) => <option key={muscleGroup} value={muscleGroup}>{MUSCLE_GROUP_LABELS[muscleGroup]}</option>)}</select></div>
             <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
               {isLoading ? <p className="p-2 text-sm text-muted-foreground">Loading exercises…</p> : null}
-              {!isLoading && normalizedQuery && matchingExercises.length === 0 ? (
+              {!isLoading && allowCreateFromSearch && normalizedQuery && matchingExercises.length === 0 ? (
                 <div className="space-y-3 p-2 text-sm text-muted-foreground">
                   <p>No matching exercises.</p>
                   <Button className="w-full" type="button" onClick={openCreate}>Create “{query.trim()}”</Button>
@@ -139,7 +175,7 @@ export function AddExerciseDialog({
         ) : null}
 
         {step === 'prescription' && selected && values ? (
-          <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); onAdd(selected, values); close() }}>
+          <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); intent.kind === 'workout' && intent.onSelect(selected, values); close() }}>
             <div className="flex items-center justify-between"><p className="font-semibold">{selected.name}</p><Button size="sm" type="button" variant="ghost" onClick={() => { setSelected(null); setValues(null); setStep('search') }}>Change</Button></div>
             {isTimed ? <div className="grid grid-cols-2 gap-3"><NumberField label="Seconds" value={values.time} onChange={(time) => setValues({ ...values, time })} /><div><Label htmlFor="new-exercise-weight">Weight</Label><Input id="new-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={values.weight ?? ''} onChange={(event) => setValues({ ...values, weight: event.target.value || null })} /></div><UnitField id="new-exercise-unit" value={values.weight_unit} onChange={(weight_unit) => setValues({ ...values, weight_unit })} /></div> : <div className="grid grid-cols-2 gap-3"><NumberField label="Sets" value={values.sets} onChange={(sets) => setValues({ ...values, sets })} /><NumberField label="Reps" value={values.reps} onChange={(reps) => setValues({ ...values, reps })} /><div><Label htmlFor="new-exercise-weight">Weight</Label><Input id="new-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={values.weight ?? ''} onChange={(event) => setValues({ ...values, weight: event.target.value || null })} /></div><UnitField id="new-exercise-unit" value={values.weight_unit} onChange={(weight_unit) => setValues({ ...values, weight_unit })} /></div>}
             <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={close}>Cancel</Button><Button type="submit">Add exercise</Button></div>
@@ -150,9 +186,9 @@ export function AddExerciseDialog({
   )
 }
 
-function emptyDefinition(name = ''): ExerciseInput {
+function definitionFrom(initialDefinition?: Partial<ExerciseInput>): ExerciseInput {
   return {
-    name,
+    name: '',
     prescription_type: 'strength',
     default_sets: 0,
     default_reps: 0,
@@ -161,6 +197,7 @@ function emptyDefinition(name = ''): ExerciseInput {
     muscle_group: 'other',
     default_time: 0,
     notes: '',
+    ...initialDefinition,
   }
 }
 

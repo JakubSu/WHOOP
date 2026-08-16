@@ -23,14 +23,31 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<T> {
-  return requestWithAuth<T>(path, options, false)
+  const response = await apiFetch(path, options)
+
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
 }
 
-async function requestWithAuth<T>(
+export async function apiFetch(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<Response> {
+  return fetchWithAuth(path, options, false)
+}
+
+async function fetchWithAuth(
   path: string,
   options: ApiRequestOptions,
   hasRetried: boolean,
-): Promise<T> {
+): Promise<Response> {
   const { baseUrl = API_BASE_URL, ...fetchOptions } = options
   const response = await fetch(`${baseUrl}${path}`, {
     ...fetchOptions,
@@ -42,21 +59,13 @@ async function requestWithAuth<T>(
     const nextAccessToken = await refreshAccessToken()
 
     if (nextAccessToken) {
-      return requestWithAuth<T>(path, options, true)
+      return fetchWithAuth(path, options, true)
     }
 
     authHandlers?.onAuthFailure()
   }
 
-  if (!response.ok) {
-    throw await toApiError(response)
-  }
-
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  return (await response.json()) as T
+  return response
 }
 
 function buildHeaders(options: ApiRequestOptions) {

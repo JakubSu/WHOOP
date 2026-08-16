@@ -404,6 +404,13 @@ class CoachConversationApiTests(TestCase):
         )
         body = async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response)).decode()
         self.assertIn("event: completed", body)
+        completed = _parse_events(body)[-1]["data"]
+        original_message = next(
+            item
+            for item in completed["updated_messages"]
+            if item["id"] == str(message.id)
+        )
+        self.assertEqual(original_message["ui_actions"][0]["status"], "resolved")
         action.refresh_from_db()
         self.assertEqual(action.status, UiAction.Status.RESOLVED)
         self.assertEqual(action.resolution["exercise_id"], str(exercise.id))

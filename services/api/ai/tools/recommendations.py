@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
+import logging
+
 from ai.tools.context import CoachToolContext
 from ai.tools.contracts import ActiveRecommendation, CreatedRecommendation
 from ai.tools.errors import ToolValidationError
 from recommendation import services as recommendation_services
 from recommendation.contracts import RecommendationDraft
 
+logger = logging.getLogger(__name__)
+
 
 def create_recommendation(
     context: CoachToolContext,
     *,
     draft: RecommendationDraft,
-    replaces_recommendation_id: str | None = None,
 ) -> CreatedRecommendation:
-    """Creates a validated recommendation ledger and returns only its identifier."""
+    """Creates a validated proposal, atomically replacing any active proposal."""
 
     try:
         recommendation = recommendation_services.create_recommendation(
@@ -24,15 +27,32 @@ def create_recommendation(
             draft=draft,
             run_id=context.run_id,
             tool_call_id=context.tool_call_id,
-            replaces_recommendation_id=replaces_recommendation_id,
         )
     except (
         recommendation_services.RecommendationConflict,
         recommendation_services.RecommendationValidationError,
     ) as exc:
-        raise ToolValidationError(
-            "Recommendation request could not be applied."
-        ) from exc
+        logger.warning(
+            "create_recommendation_rejected run_id=%s tool_call_id=%s "
+            "conversation_id=%s supersedes_active=true operation_count=%s "
+            "error_type=%s reason=%s",
+            context.run_id,
+            context.tool_call_id,
+            context.conversation.id,
+            len(draft.operations),
+            type(exc).__name__,
+            exc,
+            extra={
+                "run_id": str(context.run_id),
+                "tool_call_id": context.tool_call_id,
+                "conversation_id": str(context.conversation.id),
+                "supersedes_active": True,
+                "operation_count": len(draft.operations),
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            },
+        )
+        raise ToolValidationError(str(exc)) from exc
     return CreatedRecommendation(recommendation_id=recommendation.id)
 
 
@@ -47,6 +67,20 @@ def get_active_recommendation(
             conversation=context.conversation,
         )
     except recommendation_services.RecommendationValidationError as exc:
-        raise ToolValidationError(
-            "Recommendation request could not be applied."
-        ) from exc
+        logger.warning(
+            "get_active_recommendation_rejected run_id=%s tool_call_id=%s "
+            "conversation_id=%s error_type=%s reason=%s",
+            context.run_id,
+            context.tool_call_id,
+            context.conversation.id,
+            type(exc).__name__,
+            exc,
+            extra={
+                "run_id": str(context.run_id),
+                "tool_call_id": context.tool_call_id,
+                "conversation_id": str(context.conversation.id),
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            },
+        )
+        raise ToolValidationError(str(exc)) from exc

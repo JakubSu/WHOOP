@@ -1,6 +1,5 @@
-import { useAuthStore } from '../../auth/store/authStore'
 import { API_BASE_URL } from '../../../shared/config/env'
-import { apiRequest } from '../../../shared/api/apiClient'
+import { apiFetch, apiRequest } from '../../../shared/api/apiClient'
 import {
   type CoachConversation,
   type CoachConversationPage,
@@ -61,20 +60,14 @@ export async function streamCoachMessage({
 }
 
 async function streamCoachRequest(path: string, body: object, onEvent: (event: CoachStreamEvent) => void) {
-  const token = useAuthStore.getState().accessToken
-  const response = await fetch(
-    `${API_BASE_URL}${path}`,
-    {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        Accept: 'text/event-stream',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+  const response = await apiFetch(path, {
+    method: 'POST',
+    headers: {
+      Accept: 'text/event-stream',
     },
-  )
+    body: JSON.stringify(body),
+    baseUrl: API_BASE_URL,
+  })
 
   if (!response.ok || !response.body) {
     throw new Error(`Coach request failed with status ${response.status}`)
@@ -99,11 +92,9 @@ async function streamCoachRequest(path: string, body: object, onEvent: (event: C
 }
 
 function coachRequest<T>(path: string, init: RequestInit = {}) {
-  const token = useAuthStore.getState().accessToken
   return apiRequest<T>(path, {
     ...init,
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...init.headers,
     },

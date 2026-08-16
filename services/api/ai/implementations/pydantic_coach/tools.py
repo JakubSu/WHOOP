@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Any
 from uuid import UUID
@@ -27,6 +28,8 @@ from recommendation.contracts import RecommendationDraft
 from training.models import Exercise
 
 from .contracts import CoachDeps
+
+logger = logging.getLogger(__name__)
 
 _ACTIVITY_BY_TOOL: dict[str, tuple[ActivityKind, str]] = {
     "search_workouts": ("workout_data", "Looking up your workouts…"),
@@ -74,8 +77,24 @@ async def _call(ctx: RunContext[CoachDeps], function: Any, **kwargs: Any) -> Any
             "message": "That item is not available in this account.",
         }
     except ToolValidationError as exc:
+        logger.warning(
+            "coach_tool_validation_failed tool=%s run_id=%s conversation_id=%s "
+            "tool_call_id=%s reason=%s",
+            function.__name__,
+            ctx.deps.run_id,
+            ctx.deps.conversation.id,
+            getattr(ctx, "tool_call_id", "unknown-tool-call"),
+            exc,
+            extra={
+                "tool_name": function.__name__,
+                "run_id": str(ctx.deps.run_id),
+                "conversation_id": str(ctx.deps.conversation.id),
+                "tool_call_id": str(getattr(ctx, "tool_call_id", "unknown-tool-call")),
+                "error": str(exc),
+            },
+        )
         raise ModelRetry(
-            "The requested recommendation was not valid. Check the available data and try again."
+            f"The requested operation could not be applied: {exc}"
         ) from exc
     except Exception:
         raise
@@ -151,14 +170,12 @@ def register_tools(agent: Agent[CoachDeps, str]) -> None:
     async def create_recommendation_tool(
         ctx: RunContext[CoachDeps],
         draft: RecommendationDraft,
-        replaces_recommendation_id: str | None = None,
     ) -> Any:
-        """Create a reversible recommendation proposal; never apply a workout change."""
+        """Create a workout/exercise proposal; the server replaces any active proposal."""
         result = await _call(
             ctx,
             create_recommendation,
             draft=draft,
-            replaces_recommendation_id=replaces_recommendation_id,
         )
         if getattr(result, "recommendation_id", None) is not None:
             ctx.deps.state.recommendation_id = result.recommendation_id

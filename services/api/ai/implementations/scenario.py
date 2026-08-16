@@ -278,7 +278,6 @@ class ScenarioCoachRunner:
             return self._result(
                 "Setup needed: add an exercise, then run /test propose-new-workout again."
             )
-        active = self._active_recommendation(scenario, events)
         exercise = exercises[0]
         temporary_workout_id = "workout_1"
         draft = RecommendationDraft.model_validate(
@@ -317,7 +316,6 @@ class ScenarioCoachRunner:
             scenario,
             events,
             draft=draft,
-            replaces=active.recommendation_id if active else None,
         )
         return self._result(
             "Created a new-workout recommendation.", created.recommendation_id
@@ -346,7 +344,6 @@ class ScenarioCoachRunner:
             label="Loading workout details",
             call=lambda context: get_workout(context, workout_id=workouts[0].id),
         )
-        active = self._active_recommendation(scenario, events)
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Adjust {workout.name}",
@@ -366,7 +363,6 @@ class ScenarioCoachRunner:
             scenario,
             events,
             draft=draft,
-            replaces=active.recommendation_id if active else None,
         )
         return self._result(
             f"Created an update recommendation for {workout.name}.",
@@ -431,9 +427,7 @@ class ScenarioCoachRunner:
                 ],
             }
         )
-        created = self._create(
-            scenario, events, draft=draft, replaces=active.recommendation_id
-        )
+        created = self._create(scenario, events, draft=draft)
         return self._result(
             "Replaced the active recommendation.", created.recommendation_id
         )
@@ -461,7 +455,6 @@ class ScenarioCoachRunner:
             label="Loading workout details",
             call=lambda context: get_workout(context, workout_id=workouts[0].id),
         )
-        active = self._active_recommendation(scenario, events)
         draft = RecommendationDraft.model_validate(
             {
                 "summary": f"Retry test for {workout.name}",
@@ -481,7 +474,6 @@ class ScenarioCoachRunner:
             scenario,
             events,
             draft=draft,
-            replaces=active.recommendation_id if active else None,
             step="create-first",
             tool_call_id="create",
         )
@@ -489,7 +481,6 @@ class ScenarioCoachRunner:
             scenario,
             events,
             draft=draft,
-            replaces=active.recommendation_id if active else None,
             step="create-retry",
             tool_call_id="create",
         )
@@ -550,7 +541,6 @@ class ScenarioCoachRunner:
         events: ActivitySink | None,
         *,
         draft: RecommendationDraft,
-        replaces: uuid.UUID | None = None,
         step: str = "create",
         tool_call_id: str | None = None,
     ) -> Any:
@@ -564,7 +554,6 @@ class ScenarioCoachRunner:
             call=lambda context: create_recommendation(
                 context,
                 draft=draft,
-                replaces_recommendation_id=str(replaces) if replaces else None,
             ),
         )
 

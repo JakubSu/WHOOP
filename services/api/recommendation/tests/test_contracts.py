@@ -10,6 +10,7 @@ from recommendation.contracts import (
     RecommendationDraft,
     RepetitionPrescription,
     TimedPrescription,
+    WorkoutChanges,
 )
 
 
@@ -97,3 +98,11 @@ class RecommendationContractTests(SimpleTestCase):
                     "operations": [],
                 }
             )
+
+    def test_workout_changes_reject_explicit_null_but_allows_omitted_fields(self) -> None:
+        changes = WorkoutChanges.model_validate({"expected_time": 50})
+        self.assertEqual(changes.expected_time, 50)
+        self.assertEqual(changes.model_dump(), {"expected_time": 50})
+
+        with self.assertRaises(ValidationError):
+            WorkoutChanges.model_validate({"name": None, "expected_time": 50})

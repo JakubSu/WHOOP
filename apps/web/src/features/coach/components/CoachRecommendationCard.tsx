@@ -43,16 +43,20 @@ function RecommendationCardDetail({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmAcceptAll, setConfirmAcceptAll] = useState(false);
-  const detail = useRecommendation(recommendationId, undefined, true);
+  const detail = useRecommendation(recommendationId, undefined, fallback.actionable);
   const recommendation = detail.recommendation;
 
-  if (!recommendation && !fallback.actionable)
+  if (!fallback.actionable)
     return <HistoricalRecommendationCard recommendation={fallback} />;
   if (!recommendation) return <LoadingCard />;
   const pending = recommendation.operations.filter(
     (operation) => operation.status === "pending",
   ).length;
-  const readOnly = pending === 0;
+  // Never trust a retained card alone: a recommendation can become historical
+  // between rendering the chat and loading its detail.
+  const actionable =
+    recommendation.status === "active" && pending > 0;
+  const readOnly = !actionable;
 
   return (
     <section
@@ -192,7 +196,11 @@ function WorkoutRecommendationCard({
       {workoutOperation?.operation_type === "update_workout" &&
       workoutOperation.status === "pending" ? (
         <div className="border-t border-border px-3 py-2">
-          <WorkoutChange operation={workoutOperation} detail={detail} />
+          <WorkoutChange
+            operation={workoutOperation}
+            detail={detail}
+            readOnly={readOnly}
+          />
         </div>
       ) : null}
       {workoutOperation?.operation_type === "remove_workout" &&
@@ -202,6 +210,7 @@ function WorkoutRecommendationCard({
             label="Delete workout"
             operation={workoutOperation}
             detail={detail}
+            readOnly={readOnly}
           />
         </div>
       ) : null}
@@ -212,6 +221,7 @@ function WorkoutRecommendationCard({
             label="Add workout"
             operation={workoutOperation}
             detail={detail}
+            readOnly={readOnly}
           />
         </div>
       ) : null}
@@ -347,12 +357,14 @@ function ExerciseRecommendationRow({
 function WorkoutChange({
   operation,
   detail,
+  readOnly,
 }: {
   operation: Extract<
     RecommendationOperation,
     { operation_type: "update_workout" }
   >;
   detail: ReturnType<typeof useRecommendation>;
+  readOnly: boolean;
 }) {
   return (
     <div className="rounded border border-primary/30 p-2 text-xs">
@@ -362,7 +374,7 @@ function WorkoutChange({
           .map(([field, value]) => `${field}: ${value}`)
           .join(" · ")}
       </p>
-      <ActionButtons operation={operation} detail={detail} />
+      <ActionButtons operation={operation} detail={detail} readOnly={readOnly} />
     </div>
   );
 }
@@ -371,6 +383,7 @@ function WholeWorkoutAction({
   label,
   operation,
   detail,
+  readOnly,
 }: {
   label: string;
   operation: Extract<
@@ -378,12 +391,13 @@ function WholeWorkoutAction({
     { operation_type: "add_workout" | "remove_workout" }
   >;
   detail: ReturnType<typeof useRecommendation>;
+  readOnly: boolean;
 }) {
   return (
     <div className="rounded border border-primary/30 bg-primary/5 p-2 text-xs">
       <p className="font-medium">{label}</p>
       <p className="mt-1 text-muted-foreground">{operation.reason}</p>
-      <ActionButtons operation={operation} detail={detail} />
+      <ActionButtons operation={operation} detail={detail} readOnly={readOnly} />
     </div>
   );
 }
@@ -391,13 +405,16 @@ function WholeWorkoutAction({
 function ActionButtons({
   operation,
   detail,
+  readOnly,
 }: {
   operation: RecommendationOperation;
   detail: ReturnType<typeof useRecommendation>;
+  readOnly: boolean;
 }) {
   const busy =
     detail.acceptingOperationId === operation.id ||
     detail.rejectingOperationId === operation.id;
+  if (readOnly || operation.status !== "pending") return null;
   return (
     <div className="mt-2 flex gap-2">
       <button

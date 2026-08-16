@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import Any, Final
 
 from ai.runner import ActivityKind
@@ -37,19 +38,28 @@ def recommendation_transitions_for_message(message: Any) -> list[dict[str, Any]]
     ]
 
 
-def updated_messages_for_message(message: Any) -> list[Any]:
-    """Returns only prior chat messages whose recommendation changed this turn."""
+def updated_messages_for_message(
+    message: Any, *, additional_message_ids: Iterable[Any] = ()
+) -> list[Any]:
+    """Returns prior chat messages changed by this turn or its trusted input."""
 
+    from coach.models import CoachMessage
     from recommendation.models import Recommendation
 
     attached = getattr(message, "coach_card_recommendations", None)
     if attached is None:
         attached = list(message.recommendations.all())
-    if not attached:
-        return []
-    return [
-        item.coach_message
+    changed_message_ids = {
+        item.coach_message_id
         for item in Recommendation.objects.select_related("coach_message").filter(
             replaced_by=attached[0], coach_message__isnull=False
         )
-    ]
+    } if attached else set()
+    changed_message_ids.update(additional_message_ids)
+    if not changed_message_ids:
+        return []
+    return list(
+        CoachMessage.objects.filter(pk__in=changed_message_ids)
+        .prefetch_related("ui_actions")
+        .order_by("created_at", "id")
+    )

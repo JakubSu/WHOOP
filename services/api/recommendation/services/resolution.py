@@ -79,9 +79,7 @@ def reject_operation(
 def reject_recommendation(*, user: Any, recommendation_id: str) -> Recommendation:
     """Rejects every pending operation in a user-owned recommendation."""
 
-    recommendation = get_recommendation(user, recommendation_id)
-    if not recommendation:
-        raise RecommendationNotFound("Recommendation was not found.")
+    recommendation = _active_recommendation(user, recommendation_id)
     RecommendationOperation.objects.filter(
         recommendation=recommendation, status=RecommendationOperation.Status.PENDING
     ).update(status=RecommendationOperation.Status.REJECTED, resolved_at=timezone.now())
@@ -109,9 +107,7 @@ def accept_operation(
 def accept_recommendation(*, user: Any, recommendation_id: str) -> Recommendation:
     """Atomically applies every pending operation in a user-owned recommendation."""
 
-    recommendation = get_recommendation(user, recommendation_id)
-    if not recommendation:
-        raise RecommendationNotFound("Recommendation was not found.")
+    recommendation = _active_recommendation(user, recommendation_id)
     pending = list(
         recommendation.operations.filter(status=RecommendationOperation.Status.PENDING)
         .annotate(
@@ -144,6 +140,23 @@ def _operation(
         )
     except RecommendationOperation.DoesNotExist as exc:
         raise RecommendationNotFound("Recommendation operation was not found.") from exc
+
+
+def _active_recommendation(user: Any, recommendation_id: str) -> Recommendation:
+    """Locks an actionable recommendation, rejecting historical ledger entries."""
+
+    try:
+        return Recommendation.objects.select_for_update().prefetch_related(
+            "operations"
+        ).get(
+            pk=recommendation_id,
+            user=user,
+            status=Recommendation.Status.ACTIVE,
+        )
+    except Recommendation.DoesNotExist as exc:
+        if Recommendation.objects.filter(pk=recommendation_id, user=user).exists():
+            raise RecommendationConflict("Recommendation is no longer active.") from exc
+        raise RecommendationNotFound("Recommendation was not found.") from exc
 
 
 def _complete_if_resolved(recommendation: Recommendation) -> None:

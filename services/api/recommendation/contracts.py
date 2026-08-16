@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic.experimental.missing_sentinel import MISSING
 
 
 class RecommendationModel(BaseModel):
@@ -66,9 +67,9 @@ class ExerciseChanges(RecommendationModel):
 
 
 class WorkoutChanges(RecommendationModel):
-    name: str | None = None
-    date: Date | None = None
-    expected_time: int | None = Field(default=None, ge=0)
+    name: str | MISSING = MISSING
+    date: Date | MISSING = MISSING
+    expected_time: int | MISSING = Field(default=MISSING, ge=0)
 
     @model_validator(mode="after")
     def require_change(self):
