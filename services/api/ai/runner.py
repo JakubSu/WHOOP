@@ -112,6 +112,8 @@ class CoachRunner(Protocol):
 
     def stream(self, request: CoachRunRequest) -> AsyncIterable[CoachRunnerEvent]: ...
 
+    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None: ...
+
 
 class CoachRunnerUnavailable(RuntimeError):
     """Raised when the Coach API is called without a configured runner."""
@@ -130,6 +132,9 @@ class UnavailableCoachRunner:
 
         raise CoachRunnerUnavailable("The coach agent is not configured.")
         yield TextDelta(delta="")  # pragma: no cover - makes this an async generator
+
+    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
+        raise CoachRunnerUnavailable("The coach agent is not configured.")
 
 
 def create_unavailable_runner() -> CoachRunner:

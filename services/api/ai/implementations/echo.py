@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from collections.abc import AsyncIterator
 
 from django.conf import settings
@@ -40,6 +41,9 @@ class EchoCoachRunner:
         yield ThinkingChanged(active=False)
         yield TextDelta(delta=request.content)
         yield RunCompleted(CoachRunResult(content=request.content, ai_message_batch=[]))
+
+    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
+        """Development runner does not persist AI memory."""
 
 
 def create_echo_runner() -> CoachRunner:

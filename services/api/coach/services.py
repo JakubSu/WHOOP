@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch, Q, Subquery
 from django.utils import timezone
@@ -141,15 +142,17 @@ def load_ai_message_batches(
 ) -> list[list[dict[str, Any]]]:
     """Loads completed assistant batches for reconstruction of private model history."""
 
-    return list(
+    rows = list(
         CoachMessage.objects.filter(
             conversation=conversation,
             role=CoachMessage.Role.ASSISTANT,
             ai_message_batch__isnull=False,
         )
-        .order_by("created_at", "id")
+        .order_by("-created_at", "-id")[: int(settings.COACH_CONTEXT_RECENT_TURNS)]
         .values_list("ai_message_batch", flat=True)
     )
+    rows.reverse()
+    return rows
 
 
 @transaction.atomic

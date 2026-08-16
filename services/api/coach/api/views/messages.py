@@ -118,7 +118,8 @@ class MessageCollectionAPIView(APIView):
         content = cast(dict[str, Any], serializer.validated_data)["content"]
         run_request = _run_request(request, conversation, content)
         try:
-            result = async_to_sync(get_coach_runner().run)(run_request)
+            runner = get_coach_runner()
+            result = async_to_sync(runner.run)(run_request)
         except CoachRunnerUnavailable as exc:
             raise CoachUnavailable() from exc
         except Exception as exc:
@@ -134,6 +135,14 @@ class MessageCollectionAPIView(APIView):
             user_content=run_request.visible_content or content,
             result=result,
         )
+        try:
+            async_to_sync(runner.maintain_memory)(
+                conversation_id=conversation.id, user_id=request.user.id
+            )
+        except Exception:  # noqa: BLE001 - memory cannot invalidate a saved turn
+            logger.exception(
+                "coach_memory_maintenance_failed conversation_id=%s", conversation.id
+            )
         return Response(
             CoachMessageSerializer(message).data, status=status.HTTP_201_CREATED
         )
@@ -192,7 +201,8 @@ class MessageStreamAPIView(APIView):
             yield event("thinking_started", {"label": "Thinking…"})
             thinking_active = True
             try:
-                runner_events = get_coach_runner().stream(run_request)
+                runner = get_coach_runner()
+                runner_events = runner.stream(run_request)
                 async for runner_event in runner_events:
                     if isinstance(runner_event, ThinkingChanged):
                         if runner_event.active and not thinking_active:
@@ -247,6 +257,15 @@ class MessageStreamAPIView(APIView):
                             result=result,
                             activities=terminal_activities,
                         )
+                        try:
+                            await runner.maintain_memory(
+                                conversation_id=conversation.id, user_id=request.user.id
+                            )
+                        except Exception:  # noqa: BLE001 - memory cannot invalidate a saved turn
+                            logger.exception(
+                                "coach_memory_maintenance_failed conversation_id=%s",
+                                conversation.id,
+                            )
                         payload, transitions, updated_messages = await sync_to_async(
                             _completed_message_payload, thread_sensitive=True
                         )(

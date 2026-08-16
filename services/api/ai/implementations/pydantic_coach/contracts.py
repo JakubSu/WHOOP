@@ -11,13 +11,17 @@ from typing import Any
 from ai.runner import CoachActivity
 from coach.contracts.ui_actions import UiActionDraft
 
+from .memory import ConversationMemory
+
 
 @dataclass(frozen=True)
 class CoachRuntimeLimits:
     """Validated per-run limits loaded from trusted Django settings."""
 
-    history_max_batches: int
-    history_max_tokens: int
+    recent_turns: int
+    raw_history_tokens: int
+    summary_input_tokens: int
+    summary_output_tokens: int
     request_limit: int
     tool_calls_limit: int
     input_tokens_limit: int
@@ -28,8 +32,10 @@ class CoachRuntimeLimits:
 
     def __post_init__(self) -> None:
         for name in (
-            "history_max_batches",
-            "history_max_tokens",
+            "recent_turns",
+            "raw_history_tokens",
+            "summary_input_tokens",
+            "summary_output_tokens",
             "request_limit",
             "tool_calls_limit",
             "input_tokens_limit",
@@ -87,3 +93,4 @@ class CoachDeps:
     run_id: uuid.UUID
     limits: CoachRuntimeLimits
     state: CoachRunState
+    memory: ConversationMemory = field(default_factory=ConversationMemory)
