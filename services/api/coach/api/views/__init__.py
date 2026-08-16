@@ -7,6 +7,10 @@ from coach.api.views.messages import (
     MessageCollectionAPIView,
     MessageStreamAPIView,
 )
+from coach.api.views.ui_actions import (
+    UiActionDismissAPIView,
+    UiActionResolveStreamAPIView,
+)
 
 __all__ = [
     "ConversationCollectionAPIView",
@@ -14,4 +18,6 @@ __all__ = [
     "EventStreamRenderer",
     "MessageCollectionAPIView",
     "MessageStreamAPIView",
+    "UiActionDismissAPIView",
+    "UiActionResolveStreamAPIView",
 ]

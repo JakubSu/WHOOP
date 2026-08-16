@@ -21,11 +21,12 @@ from ai.runner import (
 )
 from ai.tests.fakes import runner
 from coach.api.views.messages import _with_sse_heartbeats
-from coach.models import CoachConversation, CoachMessage
+from coach.contracts.ui_actions import ExerciseResolutionUiActionDraft
+from coach.models import CoachConversation, CoachMessage, UiAction
 from recommendation.contracts import RecommendationDraft
 from recommendation.models import Recommendation, RecommendationOperation
 from recommendation.services import create_recommendation
-from training.models import Workout
+from training.models import Exercise, Workout
 
 
 async def _collect_stream(response: StreamingHttpResponse) -> bytes:
@@ -339,6 +340,126 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(events[-1]["data"]["code"], "timeout")
         self.assertTrue(events[-1]["data"]["retryable"])
         self.assertFalse(conversation.messages.exists())
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_completed_turn_persists_and_serializes_ui_actions(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+        runner.events = [
+            RunCompleted(
+                CoachRunResult(
+                    content="Choose an exercise.",
+                    ai_message_batch=[],
+                    ui_actions=[
+                        ExerciseResolutionUiActionDraft.model_validate(
+                            {
+                                "type": "exercise_resolution",
+                                "payload": {
+                                    "requested_name": "Landmine press",
+                                    "draft_exercise": {
+                                        "name": "Landmine press",
+                                        "prescription_type": "strength",
+                                        "muscle_group": "shoulders",
+                                    },
+                                },
+                            }
+                        )
+                    ],
+                )
+            )
+        ]
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages/stream",
+            {"content": "Add a landmine press."},
+            format="json",
+            HTTP_ACCEPT="text/event-stream",
+        )
+        events = _parse_events(
+            async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response)).decode()
+        )
+        action = events[-1]["data"]["message"]["ui_actions"][0]
+        self.assertEqual(action["type"], "exercise_resolution")
+        self.assertEqual(action["status"], "pending")
+        self.assertTrue(UiAction.objects.filter(id=action["id"]).exists())
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_resolving_ui_action_starts_a_trusted_continuation(self) -> None:
+        from training.models import Exercise
+
+        conversation = CoachConversation.objects.create(user=self.user)
+        message = CoachMessage.objects.create(
+            conversation=conversation, role="assistant", content="Choose one."
+        )
+        action = UiAction.objects.create(
+            message=message,
+            type="exercise_resolution",
+            payload={"requested_name": "Landmine press", "draft_exercise": {}},
+        )
+        exercise = Exercise.objects.create(user_id=str(self.user.id), name="Landmine press")
+        runner.events = [RunCompleted(CoachRunResult(content="Added.", ai_message_batch=[]))]
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/ui-actions/{action.id}/resolve/stream",
+            {"exercise_id": str(exercise.id)},
+            format="json",
+            HTTP_ACCEPT="text/event-stream",
+        )
+        body = async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response)).decode()
+        self.assertIn("event: completed", body)
+        action.refresh_from_db()
+        self.assertEqual(action.status, UiAction.Status.RESOLVED)
+        self.assertEqual(action.resolution["exercise_id"], str(exercise.id))
+        self.assertIn(str(exercise.id), runner.requests[-1].content)
+        self.assertEqual(
+            CoachMessage.objects.filter(
+                conversation=conversation, role=CoachMessage.Role.USER
+            )
+            .latest("created_at")
+            .content,
+            "Selected Landmine press.",
+        )
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_created_exercise_resolution_is_visible_as_created(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+        message = CoachMessage.objects.create(
+            conversation=conversation, role="assistant", content="Choose one."
+        )
+        action = UiAction.objects.create(
+            message=message,
+            type="exercise_resolution",
+            payload={"requested_name": "Landmine press", "draft_exercise": {}},
+        )
+        exercise = Exercise.objects.create(user_id=str(self.user.id), name="Landmine press")
+        runner.events = [RunCompleted(CoachRunResult(content="Added.", ai_message_batch=[]))]
+
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/ui-actions/{action.id}/resolve/stream",
+            {"exercise_id": str(exercise.id), "method": "created"},
+            format="json",
+            HTTP_ACCEPT="text/event-stream",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        async_to_sync(_collect_stream)(cast(StreamingHttpResponse, response))
+        self.assertEqual(
+            CoachMessage.objects.filter(
+                conversation=conversation, role=CoachMessage.Role.USER
+            )
+            .latest("created_at")
+            .content,
+            "Created Landmine press.",
+        )
+
+    def test_user_can_dismiss_only_their_pending_ui_action(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+        message = CoachMessage.objects.create(conversation=conversation, role="assistant", content="Choose.")
+        action = UiAction.objects.create(message=message, type="exercise_resolution", payload={})
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/ui-actions/{action.id}/dismiss"
+        )
+        self.assertEqual(response.status_code, 200)
+        action.refresh_from_db()
+        self.assertEqual(action.status, UiAction.Status.DISMISSED)
+        self.assertEqual(response.json()["ui_actions"][0]["status"], "dismissed")
 
     @override_settings(
         COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner",

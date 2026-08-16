@@ -67,8 +67,30 @@ export type CoachMessage = {
   created_at: string
   activities: CoachActivity[]
   recommendation: CoachRecommendationReference | null
+  ui_actions: CoachUiAction[]
   /** @deprecated Message payloads no longer populate this field. */
   operations?: CoachOperation[]
+}
+
+export type CoachUiAction = {
+  id: string
+  type: 'exercise_resolution'
+  status: 'pending' | 'resolved' | 'dismissed'
+  payload: {
+    requested_name: string
+    draft_exercise: {
+      name: string
+      prescription_type: 'strength' | 'timed'
+      muscle_group: string
+      default_sets?: number
+      default_reps?: number
+      default_time?: number
+      default_weight?: string | null
+      default_weight_unit?: string
+      notes?: string
+    }
+  }
+  resolution: { method: 'created' | 'selected'; exercise_id: string } | null
 }
 
 export type CoachConversation = {

@@ -16,6 +16,9 @@ export function CoachMessageList({
   onScroll,
   onLoadOlder,
   onJumpToLatest,
+  isBusy,
+  onResolveUiAction,
+  onDismissUiAction,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>;
   messages: CoachMessage[];
@@ -28,6 +31,9 @@ export function CoachMessageList({
   onScroll: () => void;
   onLoadOlder: () => void;
   onJumpToLatest: () => void;
+  isBusy: boolean;
+  onResolveUiAction: (actionId: string, exercise: import('@/features/training/types').Exercise, method: 'created' | 'selected') => void;
+  onDismissUiAction: (actionId: string) => void;
 }) {
   return (
     <div className="relative min-h-0 flex-1">
@@ -64,6 +70,9 @@ export function CoachMessageList({
               key={message.id}
               message={message}
               thinking={message.id === activeMessageId && thinking}
+              isBusy={isBusy}
+              onResolveUiAction={onResolveUiAction}
+              onDismissUiAction={onDismissUiAction}
             />
           ))}
           {error ? (

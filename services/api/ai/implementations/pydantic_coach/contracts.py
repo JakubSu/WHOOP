@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any
 
 from ai.runner import CoachActivity
+from coach.contracts.ui_actions import UiActionDraft
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,7 @@ class CoachRunState:
     activity_sink: Callable[[CoachActivity], None]
     activities: dict[str, CoachActivity] = field(default_factory=dict)
     recommendation_id: uuid.UUID | None = None
+    ui_actions: list[UiActionDraft] = field(default_factory=list)
 
     def publish(self, activity: CoachActivity) -> None:
         self.activities[activity.id] = activity
@@ -70,6 +72,10 @@ class CoachRunState:
                 self.activities[terminal.id] = terminal
                 failed.append(terminal)
         return failed
+
+    def request_ui_action(self, action: UiActionDraft) -> None:
+        """Records validated UI metadata for persistence after a successful run."""
+        self.ui_actions.append(action)
 
 
 @dataclass(frozen=True)

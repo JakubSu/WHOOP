@@ -11,6 +11,10 @@ from coach.api.serializers.messages import (
     MessageCreateSerializer,
     MessagePageSerializer,
 )
+from coach.api.serializers.ui_actions import (
+    UiActionResolveSerializer,
+    UiActionSerializer,
+)
 
 __all__ = [
     "CoachActivitySerializer",
@@ -22,4 +26,6 @@ __all__ = [
     "CursorQuerySerializer",
     "MessageCreateSerializer",
     "MessagePageSerializer",
+    "UiActionResolveSerializer",
+    "UiActionSerializer",
 ]

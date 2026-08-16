@@ -3,13 +3,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { type CoachMessage } from "../types";
 import { CoachRecommendationCard } from "./CoachRecommendationCard";
+import { CoachUiActionCard } from "./CoachUiActionCard";
 
 export function CoachMessageBubble({
   message,
   thinking,
+  isBusy,
+  onResolveUiAction,
+  onDismissUiAction,
 }: {
   message: CoachMessage;
   thinking: boolean;
+  isBusy: boolean;
+  onResolveUiAction: (actionId: string, exercise: import('@/features/training/types').Exercise, method: 'created' | 'selected') => void;
+  onDismissUiAction: (actionId: string) => void;
 }) {
   return (
     <article
@@ -45,6 +52,7 @@ export function CoachMessageBubble({
       {message.recommendation ? (
         <CoachRecommendationCard recommendation={message.recommendation} />
       ) : null}
+      {message.ui_actions.map((action) => <CoachUiActionCard key={action.id} action={action} disabled={isBusy} onResolve={(exercise, method) => onResolveUiAction(action.id, exercise, method)} onDismiss={() => onDismissUiAction(action.id)} />)}
     </article>
   );
 }

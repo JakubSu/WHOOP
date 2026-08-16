@@ -23,6 +23,7 @@ export function applyCoachStreamEvent(
       created_at: new Date().toISOString(),
       activities: [],
       recommendation: null,
+      ui_actions: [],
       operations: [],
     }
     return {

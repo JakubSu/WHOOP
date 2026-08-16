@@ -6,7 +6,11 @@ from django.test import TestCase
 
 from coach.models import CoachConversation
 from recommendation.contracts import RecommendationDraft
-from recommendation.services import accept_recommendation, create_recommendation, reject_operation
+from recommendation.services import (
+    accept_recommendation,
+    create_recommendation,
+    reject_operation,
+)
 from training.models import Exercise, Workout, WorkoutExercise
 
 

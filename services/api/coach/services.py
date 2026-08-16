@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from ai.runner import CoachActivity, CoachRunResult
-from coach.models import CoachConversation, CoachMessage
+from coach.models import CoachConversation, CoachMessage, UiAction
 
 CONVERSATION_PAGE_SIZE = 20
 MESSAGE_PAGE_SIZE = 30
@@ -121,7 +121,7 @@ def list_messages(
 
     conversation = get_conversation(user=user, conversation_id=conversation_id)
     queryset = CoachMessage.objects.filter(conversation=conversation).prefetch_related(
-        _recommendation_card_prefetch()
+        _recommendation_card_prefetch(), "ui_actions"
     )
     if cursor:
         cursor_time, cursor_id = _decode_cursor(cursor)
@@ -179,6 +179,16 @@ def save_completed_turn(
         ai_message_batch=result.ai_message_batch,
         activity_log=[item.as_dict() for item in (activities or result.activities)],
     )
+    UiAction.objects.bulk_create(
+        [
+            UiAction(
+                message=assistant_message,
+                type=action.type,
+                payload=action.payload.model_dump(mode="json"),
+            )
+            for action in result.ui_actions
+        ]
+    )
     if result.recommendation_id is not None:
         from recommendation.services import attach_recommendation_to_coach_message
 
@@ -191,7 +201,7 @@ def save_completed_turn(
     conversation.save(update_fields=["updated_at"])
     return (
         CoachMessage.objects.filter(pk=assistant_message.pk)
-        .prefetch_related(_recommendation_card_prefetch())
+        .prefetch_related(_recommendation_card_prefetch(), "ui_actions")
         .get()
     )
 

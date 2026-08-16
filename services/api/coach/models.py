@@ -53,6 +53,8 @@ class CoachMessage(models.Model):
     conversation_id: uuid.UUID
     # Reverse relation declared by Recommendation.coach_message.
     recommendations: models.Manager["Recommendation"]
+    # Reverse relation declared by UiAction.message.
+    ui_actions: models.Manager["UiAction"]
 
     class Meta:
         ordering: ClassVar[list[str]] = ["created_at", "id"]
@@ -65,3 +67,28 @@ class CoachMessage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.role} message for {self.conversation_id}"
+
+
+class UiAction(models.Model):
+    """A durable, user-facing action requested by an assistant message."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        RESOLVED = "resolved", "Resolved"
+        DISMISSED = "dismissed", "Dismissed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    message = models.ForeignKey(
+        CoachMessage, on_delete=models.CASCADE, related_name="ui_actions"
+    )
+    type = models.CharField(max_length=64)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    payload = models.JSONField(default=dict)
+    resolution = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["message", "status"], name="coach_uiaction_msg_status_idx")
+        ]

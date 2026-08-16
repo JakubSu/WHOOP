@@ -14,6 +14,7 @@ from ai.tools import (
     CoachToolContext,
     create_recommendation,
     get_active_recommendation,
+    get_exercise,
     get_whoop_summary,
     get_workout,
     search_exercises,
@@ -21,6 +22,7 @@ from ai.tools import (
 )
 from ai.tools.contracts import ExerciseSummary
 from ai.tools.errors import ToolNotFoundError, ToolValidationError
+from coach.contracts.ui_actions import UiActionDraft
 from recommendation.contracts import RecommendationDraft
 from training.models import Exercise
 
@@ -31,6 +33,7 @@ _ACTIVITY_BY_TOOL: dict[str, tuple[ActivityKind, str]] = {
     "get_workout": ("workout_data", "Looking up that workout…"),
     "get_whoop_summary": ("recovery_data", "Fetching your recovery data…"),
     "search_exercises": ("training_data", "Searching your exercise library…"),
+    "get_exercise": ("training_data", "Checking the selected exercise…"),
     "get_active_recommendation": (
         "recommendation",
         "Checking your active recommendation…",
@@ -123,6 +126,21 @@ def register_tools(agent: Agent[CoachDeps, str]) -> None:
             muscle_groups=muscle_groups,
             limit=limit,
         )
+
+    @agent.tool(name="get_exercise")
+    async def get_exercise_tool(
+        ctx: RunContext[CoachDeps], exercise_id: UUID
+    ) -> ExerciseSummary | dict[str, Any]:
+        """Get one exact exercise from the authenticated user's library."""
+        return await _call(ctx, get_exercise, exercise_id=exercise_id)
+
+    @agent.tool(name="request_ui_action")
+    async def request_ui_action_tool(
+        ctx: RunContext[CoachDeps], action: UiActionDraft
+    ) -> dict[str, bool]:
+        """Request a validated UI choice without changing persistent data."""
+        ctx.deps.state.request_ui_action(action)
+        return {"accepted": True}
 
     @agent.tool(name="get_active_recommendation")
     async def get_active_recommendation_tool(ctx: RunContext[CoachDeps]) -> Any:

@@ -131,7 +131,7 @@ class MessageCollectionAPIView(APIView):
             conversation=conversation,
             user_message_id=uuid.uuid4(),
             assistant_message_id=uuid.uuid4(),
-            user_content=content,
+            user_content=run_request.visible_content or content,
             result=result,
         )
         return Response(
@@ -243,7 +243,7 @@ class MessageStreamAPIView(APIView):
                             conversation=conversation,
                             user_message_id=user_message_id,
                             assistant_message_id=assistant_message_id,
-                            user_content=content,
+                            user_content=run_request.visible_content or content,
                             result=result,
                             activities=terminal_activities,
                         )
@@ -319,6 +319,7 @@ def _run_request(request: Request, conversation: Any, content: str) -> CoachRunR
         user_id=request.user.id,
         content=content,
         ai_message_batches=services.load_ai_message_batches(conversation),
+        visible_content=getattr(request, "_ui_action_visible_content", None),
     )
 
 
@@ -352,6 +353,7 @@ def _sanitize_result(result: CoachRunResult) -> CoachRunResult:
             if item.status in {"completed", "failed"}
         ],
         recommendation_id=result.recommendation_id,
+        ui_actions=result.ui_actions,
     )
 
 

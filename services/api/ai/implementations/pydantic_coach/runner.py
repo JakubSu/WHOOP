@@ -252,6 +252,7 @@ class PydanticCoachRunner:
                 ai_message_batch=ai_message_batch,
                 activities=terminal_activities,
                 recommendation_id=state.recommendation_id,
+                ui_actions=state.ui_actions,
             )
         )
 

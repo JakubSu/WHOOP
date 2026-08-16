@@ -10,6 +10,8 @@ from typing import Any, Literal, Protocol
 from django.conf import settings
 from django.utils.module_loading import import_string
 
+from coach.contracts.ui_actions import UiActionDraft
+
 ActivityKind = Literal[
     "recovery_data", "training_data", "workout_data", "recommendation", "other"
 ]
@@ -45,6 +47,7 @@ class CoachRunRequest:
     user_id: uuid.UUID
     content: str
     ai_message_batches: list[list[dict[str, Any]]]
+    visible_content: str | None = None
 
 
 @dataclass(frozen=True)
@@ -55,6 +58,7 @@ class CoachRunResult:
     ai_message_batch: list[dict[str, Any]]
     activities: list[CoachActivity] = field(default_factory=list)
     recommendation_id: uuid.UUID | None = None
+    ui_actions: list[UiActionDraft] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

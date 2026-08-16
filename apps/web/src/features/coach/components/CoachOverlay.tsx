@@ -76,6 +76,9 @@ export function CoachOverlay() {
           onScroll={autoScroll.onScroll}
           onLoadOlder={() => void chat.loadOlderMessages()}
           onJumpToLatest={() => autoScroll.scrollToLatest()}
+          isBusy={isBusy}
+          onResolveUiAction={(actionId, exercise, method) => void chat.resolveUiAction(actionId, exercise.id, method)}
+          onDismissUiAction={(actionId) => void chat.dismissUiAction(actionId)}
         />
         <CoachComposer
           value={chat.input}

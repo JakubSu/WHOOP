@@ -6,12 +6,21 @@ import {
   type CoachConversationPage,
   type CoachMessagePage,
   type CoachStreamEvent,
+  type CoachMessage,
 } from '../types'
 
 export function createCoachConversation() {
   return coachRequest<CoachConversation>('/coach/conversations', {
     method: 'POST',
   })
+}
+
+export function dismissCoachUiAction(conversationId: string, actionId: string) {
+  return coachRequest<CoachMessage>(`/coach/conversations/${conversationId}/ui-actions/${actionId}/dismiss`, { method: 'POST' })
+}
+
+export function resolveCoachUiAction({ conversationId, actionId, exerciseId, method, onEvent }: { conversationId: string; actionId: string; exerciseId: string; method: 'created' | 'selected'; onEvent: (event: CoachStreamEvent) => void }) {
+  return streamCoachRequest(`/coach/conversations/${conversationId}/ui-actions/${actionId}/resolve/stream`, { exercise_id: exerciseId, method }, onEvent)
 }
 
 export function listCoachConversations(cursor?: string) {
@@ -48,9 +57,13 @@ export async function streamCoachMessage({
   content: string
   onEvent: (event: CoachStreamEvent) => void
 }) {
+  return streamCoachRequest(`/coach/conversations/${conversationId}/messages/stream`, { content }, onEvent)
+}
+
+async function streamCoachRequest(path: string, body: object, onEvent: (event: CoachStreamEvent) => void) {
   const token = useAuthStore.getState().accessToken
   const response = await fetch(
-    `${API_BASE_URL}/coach/conversations/${conversationId}/messages/stream`,
+    `${API_BASE_URL}${path}`,
     {
       method: 'POST',
       credentials: 'include',
@@ -59,7 +72,7 @@ export async function streamCoachMessage({
         Accept: 'text/event-stream',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(body),
     },
   )
 

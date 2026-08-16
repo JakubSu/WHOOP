@@ -2,6 +2,7 @@ from typing import Any, cast
 
 from rest_framework import serializers
 
+from coach.api.serializers.ui_actions import UiActionSerializer
 from coach.models import CoachMessage
 from recommendation.models import Recommendation
 
@@ -35,6 +36,7 @@ class CoachMessageSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     activities = serializers.SerializerMethodField()
     recommendation = serializers.SerializerMethodField()
+    ui_actions = serializers.SerializerMethodField()
 
     def get_activities(self, message: CoachMessage) -> list[dict[str, Any]]:
         """Exposes activity logs only for assistant messages."""
@@ -63,6 +65,14 @@ class CoachMessageSerializer(serializers.Serializer):
             cast(dict[str, Any], CoachRecommendationCardSerializer(attached[0]).data)
             if attached
             else None
+        )
+
+    def get_ui_actions(self, message: CoachMessage) -> list[dict[str, Any]]:
+        if message.role != CoachMessage.Role.ASSISTANT:
+            return []
+        return cast(
+            list[dict[str, Any]],
+            UiActionSerializer(message.ui_actions.all(), many=True).data,
         )
 
 
