@@ -3,6 +3,7 @@ import { Button, Spinner } from '../../../shared/components/ui'
 import { WorkoutListItemButton } from './WorkoutListItemButton'
 import { formatDate } from '../services/formatters'
 import { useWeekPage } from '../hooks/useWeekPage'
+import { useCoachPageContext } from '../../coach/context/CoachOverlayContext'
 
 type WeekPlanListProps = {
   date?: string | null
@@ -10,10 +11,11 @@ type WeekPlanListProps = {
 }
 
 export function WeekPlanList({ date, compact = false }: WeekPlanListProps) {
-  const { rangeTitle, weekDays, moveToPreviousWeek, moveToNextWeek, isLoading, error } = useWeekPage(date)
+  const { visibleWeekStartDate, rangeTitle, weekDays, moveToPreviousWeek, moveToNextWeek, isLoading, error } = useWeekPage(date)
 
   return (
     <section className={compact ? 'grid min-h-0 grid-rows-[auto_1fr]' : ''}>
+      {!compact ? <WeekCoachContext weekStartDate={visibleWeekStartDate} /> : null}
       <header className={compact ? 'mb-3' : 'mb-6 border-b border-border pb-5'}>
         {!compact ? <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Week</p> : null}
         <div className={compact ? 'grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-1' : 'mt-2 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2'}>
@@ -50,4 +52,9 @@ export function WeekPlanList({ date, compact = false }: WeekPlanListProps) {
       </div>
     </section>
   )
+}
+
+function WeekCoachContext({ weekStartDate }: { weekStartDate: string }) {
+  useCoachPageContext({ kind: 'week', week_start_date: weekStartDate })
+  return null
 }

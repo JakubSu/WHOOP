@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react'
 import { createCoachConversation, dismissCoachUiAction, getCoachMessages, listCoachConversations, resolveCoachUiAction, streamCoachMessage } from '../api/coachApi'
 import { applyCoachStreamEvent, type CoachChatState } from '../services/coachOverlayState'
 import { type CoachConversationSummary, type CoachMessage, type CoachStreamEvent } from '../types'
+import { type CoachViewContext } from '../services/coachContext'
 
 const EMPTY_CHAT: CoachChatState = { messages: [], activeMessageId: null, thinking: false }
 
-export function useCoachChat({ onSend, onBeforeLoadOlder }: { onSend: () => void; onBeforeLoadOlder: () => void }) {
+export function useCoachChat({ currentContext, onSend, onBeforeLoadOlder }: { currentContext: CoachViewContext | null; onSend: () => void; onBeforeLoadOlder: () => void }) {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<CoachConversationSummary[]>([])
   const [chat, setChat] = useState<CoachChatState>(EMPTY_CHAT)
@@ -64,9 +65,9 @@ export function useCoachChat({ onSend, onBeforeLoadOlder }: { onSend: () => void
         setConversationId(activeConversationId)
         setConversations((items) => [{ id: conversation.id, title: conversation.title, last_message_preview: null, updated_at: conversation.updated_at }, ...items])
       }
-      await streamCoachMessage({ conversationId: activeConversationId, content, onEvent: applyStreamEvent })
+      await streamCoachMessage({ conversationId: activeConversationId, content, viewContext: currentContext, onEvent: applyStreamEvent })
     } catch (reason) { setError(errorMessage(reason)) } finally { setIsStreaming(false) }
-  }, [conversationId, input, isLoading, isStreaming, onSend])
+  }, [conversationId, currentContext, input, isLoading, isStreaming, onSend])
 
   const applyStreamEvent = useCallback((event: CoachStreamEvent) => {
     if (event.event === 'error') setError(event.data.message)

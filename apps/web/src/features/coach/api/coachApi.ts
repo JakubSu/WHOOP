@@ -7,6 +7,7 @@ import {
   type CoachStreamEvent,
   type CoachMessage,
 } from '../types'
+import { type CoachViewContext } from '../services/coachContext'
 
 export function createCoachConversation() {
   return coachRequest<CoachConversation>('/coach/conversations', {
@@ -50,13 +51,19 @@ export function deleteCoachConversation(conversationId: string) {
 export async function streamCoachMessage({
   conversationId,
   content,
+  viewContext,
   onEvent,
 }: {
   conversationId: string
   content: string
+  viewContext: CoachViewContext | null
   onEvent: (event: CoachStreamEvent) => void
 }) {
-  return streamCoachRequest(`/coach/conversations/${conversationId}/messages/stream`, { content }, onEvent)
+  return streamCoachRequest(
+    `/coach/conversations/${conversationId}/messages/stream`,
+    viewContext ? { content, view_context: viewContext } : { content },
+    onEvent,
+  )
 }
 
 async function streamCoachRequest(path: string, body: object, onEvent: (event: CoachStreamEvent) => void) {

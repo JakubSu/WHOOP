@@ -66,6 +66,7 @@ export function useWeekPage(anchorDate?: string | null) {
   }
 
   return {
+    visibleWeekStartDate,
     rangeTitle: formatWeekRange(visibleWeekStartDate),
     weekDays,
     moveToPreviousWeek: () => moveWeek(-1),

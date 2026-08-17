@@ -80,7 +80,7 @@ export type CoachUiAction = {
     requested_name: string
     draft_exercise: {
       name: string
-      prescription_type: 'strength' | 'timed'
+      prescription_type: 'strength' | 'timed_sets' | 'timed'
       muscle_group: string
       default_sets?: number
       default_reps?: number

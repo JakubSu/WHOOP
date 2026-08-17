@@ -291,7 +291,9 @@ function PrescriptionView({
 }) {
   return (
     <>
-      {(values.type === "time"
+      {(values.type === "duration"
+        ? (["seconds"] as const)
+        : values.type === "time"
         ? (["sets", "seconds"] as const)
         : (["sets", "reps", "weight"] as const)
       ).map((field) => (

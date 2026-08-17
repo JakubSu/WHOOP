@@ -41,14 +41,14 @@ export type WorkoutExercise = {
 export type ExerciseSummary = {
   id: string
   name: string
-  prescription_type: 'strength' | 'timed'
+  prescription_type: 'strength' | 'timed_sets' | 'timed'
   muscle_group: MuscleGroup
 }
 
 export type Exercise = {
   id: string
   name: string
-  prescription_type: 'strength' | 'timed'
+  prescription_type: 'strength' | 'timed_sets' | 'timed'
   default_sets: number
   default_reps: number
   default_weight: string | null

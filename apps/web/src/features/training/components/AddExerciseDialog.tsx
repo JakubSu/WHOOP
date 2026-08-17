@@ -62,8 +62,10 @@ export function AddExerciseDialog({
     () => exercises.filter((exercise) => exercise.name.toLowerCase().includes(normalizedQuery)),
     [exercises, normalizedQuery],
   )
-  const isTimed = selected?.prescription_type === 'timed'
-  const isCreatingTimedExercise = definition.prescription_type === 'timed'
+  const isDuration = selected?.prescription_type === 'timed'
+  const isTimedSets = selected?.prescription_type === 'timed_sets'
+  const isCreatingDurationExercise = definition.prescription_type === 'timed'
+  const isCreatingTimedSetsExercise = definition.prescription_type === 'timed_sets'
 
   useEffect(() => {
     if (!open) return
@@ -93,10 +95,10 @@ export function AddExerciseDialog({
     }
     setSelected(exercise)
     setValues({
-      sets: exercise.prescription_type === 'strength' ? exercise.default_sets : 0,
+      sets: exercise.prescription_type === 'timed' ? 0 : exercise.default_sets,
       reps: exercise.prescription_type === 'strength' ? exercise.default_reps : 0,
-      time: exercise.prescription_type === 'timed' ? exercise.default_time : 0,
-      weight: exercise.default_weight,
+      time: exercise.prescription_type === 'strength' ? 0 : exercise.default_time,
+      weight: exercise.prescription_type === 'timed' ? null : exercise.default_weight,
       weight_unit: exercise.default_weight_unit || 'lb',
     })
     setStep('prescription')
@@ -109,9 +111,11 @@ export function AddExerciseDialog({
   }
 
   function setPrescriptionType(prescriptionType: Exercise['prescription_type']) {
-    setDefinition((current) => prescriptionType === 'timed'
-      ? { ...current, prescription_type: prescriptionType, default_sets: 0, default_reps: 0 }
-      : { ...current, prescription_type: prescriptionType, default_time: 0 })
+    setDefinition((current) => {
+      if (prescriptionType === 'strength') return { ...current, prescription_type: prescriptionType, default_time: 0 }
+      if (prescriptionType === 'timed_sets') return { ...current, prescription_type: prescriptionType, default_reps: 0 }
+      return { ...current, prescription_type: prescriptionType, default_sets: 0, default_reps: 0, default_weight: null }
+    })
   }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
@@ -127,10 +131,10 @@ export function AddExerciseDialog({
       const exercise = await onCreate({
         ...definition,
         name: definition.name.trim(),
-        default_sets: isCreatingTimedExercise ? 0 : definition.default_sets,
-        default_reps: isCreatingTimedExercise ? 0 : definition.default_reps,
-        default_weight: definition.default_weight,
-        default_time: isCreatingTimedExercise ? definition.default_time : 0,
+        default_sets: isCreatingDurationExercise ? 0 : definition.default_sets,
+        default_reps: definition.prescription_type === 'strength' ? definition.default_reps : 0,
+        default_weight: isCreatingDurationExercise ? null : definition.default_weight,
+        default_time: definition.prescription_type === 'strength' ? 0 : definition.default_time,
       })
       if (intent.kind === 'coach') {
         intent.onCreate(exercise)
@@ -173,9 +177,9 @@ export function AddExerciseDialog({
           <form className="mt-4 space-y-4" onSubmit={handleCreate}>
             {createError ? <Alert>{createError}</Alert> : null}
             <div><Label htmlFor="created-exercise-name">Exercise name</Label><Input id="created-exercise-name" className="mt-1" autoFocus required value={definition.name} onChange={(event) => setDefinition({ ...definition, name: event.target.value })} /></div>
-            <div><Label htmlFor="created-exercise-type">Prescription type</Label><select id="created-exercise-type" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm" value={definition.prescription_type} onChange={(event) => setPrescriptionType(event.target.value as Exercise['prescription_type'])}><option value="strength">Strength</option><option value="timed">Timed</option></select></div>
+            <div><Label htmlFor="created-exercise-type">Prescription type</Label><select id="created-exercise-type" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm" value={definition.prescription_type} onChange={(event) => setPrescriptionType(event.target.value as Exercise['prescription_type'])}><option value="strength">Strength</option><option value="timed_sets">Timed sets</option><option value="timed">Duration</option></select></div>
             <div><Label htmlFor="created-exercise-muscle-group">Muscle group</Label><select id="created-exercise-muscle-group" className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm" required value={definition.muscle_group} onChange={(event) => setDefinition({ ...definition, muscle_group: event.target.value as MuscleGroup })}>{MUSCLE_GROUPS.map((muscleGroup) => <option key={muscleGroup} value={muscleGroup}>{MUSCLE_GROUP_LABELS[muscleGroup]}</option>)}</select></div>
-            {isCreatingTimedExercise ? <div className="grid grid-cols-2 gap-3"><NumberField label="Default seconds" value={definition.default_time} onChange={(default_time) => setDefinition({ ...definition, default_time })} /><div><Label htmlFor="created-exercise-weight">Default weight</Label><Input id="created-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={definition.default_weight ?? ''} onChange={(event) => setDefinition({ ...definition, default_weight: event.target.value || null })} /></div><UnitField id="created-exercise-unit" value={definition.default_weight_unit} onChange={(default_weight_unit) => setDefinition({ ...definition, default_weight_unit })} /></div> : <div className="grid grid-cols-2 gap-3"><NumberField label="Default sets" value={definition.default_sets} onChange={(default_sets) => setDefinition({ ...definition, default_sets })} /><NumberField label="Default reps" value={definition.default_reps} onChange={(default_reps) => setDefinition({ ...definition, default_reps })} /><div><Label htmlFor="created-exercise-weight">Default weight</Label><Input id="created-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={definition.default_weight ?? ''} onChange={(event) => setDefinition({ ...definition, default_weight: event.target.value || null })} /></div><UnitField id="created-exercise-unit" value={definition.default_weight_unit} onChange={(default_weight_unit) => setDefinition({ ...definition, default_weight_unit })} /></div>}
+            {isCreatingDurationExercise ? <div className="grid grid-cols-2 gap-3"><NumberField label="Default seconds" value={definition.default_time} onChange={(default_time) => setDefinition({ ...definition, default_time })} /></div> : isCreatingTimedSetsExercise ? <div className="grid grid-cols-2 gap-3"><NumberField label="Default sets" value={definition.default_sets} onChange={(default_sets) => setDefinition({ ...definition, default_sets })} /><NumberField label="Default seconds" value={definition.default_time} onChange={(default_time) => setDefinition({ ...definition, default_time })} /><div><Label htmlFor="created-exercise-weight">Default weight</Label><Input id="created-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={definition.default_weight ?? ''} onChange={(event) => setDefinition({ ...definition, default_weight: event.target.value || null })} /></div><UnitField id="created-exercise-unit" value={definition.default_weight_unit} onChange={(default_weight_unit) => setDefinition({ ...definition, default_weight_unit })} /></div> : <div className="grid grid-cols-2 gap-3"><NumberField label="Default sets" value={definition.default_sets} onChange={(default_sets) => setDefinition({ ...definition, default_sets })} /><NumberField label="Default reps" value={definition.default_reps} onChange={(default_reps) => setDefinition({ ...definition, default_reps })} /><div><Label htmlFor="created-exercise-weight">Default weight</Label><Input id="created-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={definition.default_weight ?? ''} onChange={(event) => setDefinition({ ...definition, default_weight: event.target.value || null })} /></div><UnitField id="created-exercise-unit" value={definition.default_weight_unit} onChange={(default_weight_unit) => setDefinition({ ...definition, default_weight_unit })} /></div>}
             <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" disabled={isCreating} onClick={() => setStep('search')}>Back</Button><Button type="submit" disabled={isCreating}>{isCreating ? 'Creating…' : 'Create exercise'}</Button></div>
           </form>
         ) : null}
@@ -183,7 +187,7 @@ export function AddExerciseDialog({
         {step === 'prescription' && selected && values ? (
           <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); intent.kind === 'workout' && intent.onSelect(selected, values); close() }}>
             <div className="flex items-center justify-between"><p className="font-semibold">{selected.name}</p><Button size="sm" type="button" variant="ghost" onClick={() => { setSelected(null); setValues(null); setStep('search') }}>Change</Button></div>
-            {isTimed ? <div className="grid grid-cols-2 gap-3"><NumberField label="Seconds" value={values.time} onChange={(time) => setValues({ ...values, time })} /><div><Label htmlFor="new-exercise-weight">Weight</Label><Input id="new-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={values.weight ?? ''} onChange={(event) => setValues({ ...values, weight: event.target.value || null })} /></div><UnitField id="new-exercise-unit" value={values.weight_unit} onChange={(weight_unit) => setValues({ ...values, weight_unit })} /></div> : <div className="grid grid-cols-2 gap-3"><NumberField label="Sets" value={values.sets} onChange={(sets) => setValues({ ...values, sets })} /><NumberField label="Reps" value={values.reps} onChange={(reps) => setValues({ ...values, reps })} /><div><Label htmlFor="new-exercise-weight">Weight</Label><Input id="new-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={values.weight ?? ''} onChange={(event) => setValues({ ...values, weight: event.target.value || null })} /></div><UnitField id="new-exercise-unit" value={values.weight_unit} onChange={(weight_unit) => setValues({ ...values, weight_unit })} /></div>}
+            {isDuration ? <div className="grid grid-cols-2 gap-3"><NumberField label="Seconds" value={values.time} onChange={(time) => setValues({ ...values, time })} /></div> : isTimedSets ? <div className="grid grid-cols-2 gap-3"><NumberField label="Sets" value={values.sets} onChange={(sets) => setValues({ ...values, sets })} /><NumberField label="Seconds" value={values.time} onChange={(time) => setValues({ ...values, time })} /><div><Label htmlFor="new-exercise-weight">Weight</Label><Input id="new-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={values.weight ?? ''} onChange={(event) => setValues({ ...values, weight: event.target.value || null })} /></div><UnitField id="new-exercise-unit" value={values.weight_unit} onChange={(weight_unit) => setValues({ ...values, weight_unit })} /></div> : <div className="grid grid-cols-2 gap-3"><NumberField label="Sets" value={values.sets} onChange={(sets) => setValues({ ...values, sets })} /><NumberField label="Reps" value={values.reps} onChange={(reps) => setValues({ ...values, reps })} /><div><Label htmlFor="new-exercise-weight">Weight</Label><Input id="new-exercise-weight" className="mt-1" min="0" step="0.01" type="number" value={values.weight ?? ''} onChange={(event) => setValues({ ...values, weight: event.target.value || null })} /></div><UnitField id="new-exercise-unit" value={values.weight_unit} onChange={(weight_unit) => setValues({ ...values, weight_unit })} /></div>}
             <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={close}>Cancel</Button><Button type="submit">Add exercise</Button></div>
           </form>
         ) : null}

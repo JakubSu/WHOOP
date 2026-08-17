@@ -18,12 +18,26 @@ export function CoachOverlay() {
   const sheet = useCoachBottomSheet(true)
   const startFollowingRef = useRef<() => void>(() => {})
   const prepareForPrependRef = useRef<() => void>(() => {})
-  const chat = useCoachChat({ onSend: () => startFollowingRef.current(), onBeforeLoadOlder: () => prepareForPrependRef.current() })
+  const hasLoadedDesktopConversationRef = useRef(false)
+  const chat = useCoachChat({ currentContext, onSend: () => startFollowingRef.current(), onBeforeLoadOlder: () => prepareForPrependRef.current() })
   const autoScroll = useCoachAutoScroll({ isOpen: sheet.isOpen || desktop.mode !== 'collapsed', messageCount: chat.messages.length, isStreaming: chat.isStreaming, streamVersion: chat.streamVersion })
   startFollowingRef.current = autoScroll.startFollowing
   prepareForPrependRef.current = autoScroll.prepareForPrepend
   const label = labelForCoachContext(currentContext)
   const isBusy = chat.isLoading || chat.isStreaming
+
+  useEffect(() => {
+    if (
+      !isDesktop ||
+      desktop.mode === 'collapsed' ||
+      hasLoadedDesktopConversationRef.current ||
+      chat.conversationId ||
+      chat.messages.length > 0
+    ) return
+
+    hasLoadedDesktopConversationRef.current = true
+    void chat.loadLatestConversation()
+  }, [chat.conversationId, chat.loadLatestConversation, chat.messages.length, desktop.mode, isDesktop])
 
   const openCoach = useCallback(() => {
     sheet.open()

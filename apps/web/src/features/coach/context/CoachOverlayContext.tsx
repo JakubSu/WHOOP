@@ -11,19 +11,19 @@ import {
 import {
   areCoachContextsEqual,
   coachContextKey,
-  type CoachPageContext,
+  type CoachViewContext,
 } from '../services/coachContext'
 
 type CoachOverlayContextValue = {
-  currentContext: CoachPageContext | null
-  setCurrentContext: Dispatch<SetStateAction<CoachPageContext | null>>
+  currentContext: CoachViewContext | null
+  setCurrentContext: Dispatch<SetStateAction<CoachViewContext | null>>
 }
 
 const CoachOverlayContext = createContext<CoachOverlayContextValue | null>(null)
 
 export function CoachOverlayProvider({ children }: { children: ReactNode }) {
   const [currentContext, setCurrentContext] =
-    useState<CoachPageContext | null>(null)
+    useState<CoachViewContext | null>(null)
   const value = useMemo(
     () => ({
       currentContext,
@@ -48,16 +48,19 @@ export function useCoachOverlayContext() {
   return value
 }
 
-export function useCoachPageContext(context: CoachPageContext | null) {
+export function useCoachPageContext(context: CoachViewContext | null) {
   const { setCurrentContext } = useCoachOverlayContext()
   const key = context ? coachContextKey(context) : 'none'
+  const stableContext = useMemo(() => context, [key])
 
   useEffect(() => {
-    setCurrentContext(context)
+    setCurrentContext((latest) =>
+      areCoachContextsEqual(latest, stableContext) ? latest : stableContext,
+    )
     return () => {
       setCurrentContext((latest) =>
-        areCoachContextsEqual(latest, context) ? null : latest,
+        areCoachContextsEqual(latest, stableContext) ? null : latest,
       )
     }
-  }, [context, key, setCurrentContext])
+  }, [key, setCurrentContext, stableContext])
 }

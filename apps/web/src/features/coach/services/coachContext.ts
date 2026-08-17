@@ -1,22 +1,18 @@
 import { matchPath } from 'react-router-dom'
 
-export type CoachPageType =
-  | 'today_workout'
-  | 'workout'
-  | 'recovery'
+export type CoachViewContext =
+  | { kind: 'workout'; workout_id: string }
+  | { kind: 'week'; week_start_date: string }
 
-export type CoachPageContext = {
-  page_type: CoachPageType
-  context_id: string
-}
-
-export function coachContextKey(context: CoachPageContext) {
-  return `${context.page_type}:${context.context_id}`
+export function coachContextKey(context: CoachViewContext) {
+  return context.kind === 'workout'
+    ? `workout:${context.workout_id}`
+    : `week:${context.week_start_date}`
 }
 
 export function areCoachContextsEqual(
-  first: CoachPageContext | null,
-  second: CoachPageContext | null,
+  first: CoachViewContext | null,
+  second: CoachViewContext | null,
 ) {
   if (!first || !second) {
     return first === second
@@ -25,28 +21,21 @@ export function areCoachContextsEqual(
   return coachContextKey(first) === coachContextKey(second)
 }
 
-export function labelForCoachContext(context: CoachPageContext | null) {
+export function labelForCoachContext(context: CoachViewContext | null) {
   if (!context) {
     return 'Coach'
   }
 
-  if (context.page_type === 'today_workout') {
-    return 'Today'
-  }
-  if (context.page_type === 'recovery') {
-    return 'Recovery'
-  }
-
-  return 'Workout'
+  return context.kind === 'week' ? 'Week' : 'Workout'
 }
 
-export function getCoachPageContextForRoute(pathname: string): CoachPageContext | null {
+export function getCoachPageContextForRoute(pathname: string): CoachViewContext | null {
   const workoutMatch = matchPath('/workouts/:workoutId', pathname)
   const workoutId = workoutMatch?.params.workoutId
   if (workoutId) {
     return {
-      page_type: 'workout',
-      context_id: workoutId,
+      kind: 'workout',
+      workout_id: workoutId,
     }
   }
 

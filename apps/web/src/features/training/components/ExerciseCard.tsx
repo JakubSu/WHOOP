@@ -21,7 +21,7 @@ export function ExerciseCard({
   onChange,
   onDelete,
 }: ExerciseCardProps) {
-  const isTimed = typeof exercise.exercise !== 'string' && exercise.exercise.prescription_type === 'timed'
+  const prescriptionType = typeof exercise.exercise === 'string' ? 'strength' : exercise.exercise.prescription_type
 
   return (
     <Card className="group relative flex items-center gap-3 rounded-lg border-border bg-card p-4 transition-colors hover:border-muted-foreground/40">
@@ -47,11 +47,15 @@ export function ExerciseCard({
           <ExerciseFields exercise={exercise} onChange={onChange} />
         ) : (
           <dl className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-            {isTimed ? <Metric icon={<Clock3 aria-hidden="true" />} label="Time" value={formatTime(exercise.time)} /> : <>
+            {prescriptionType === 'timed' ? <Metric icon={<Clock3 aria-hidden="true" />} label="Time" value={formatTime(exercise.time)} /> : prescriptionType === 'timed_sets' ? <>
+              <Metric icon={<Layers3 aria-hidden="true" />} label="Sets" value={displayNumber(exercise.sets)} />
+              <Metric icon={<Clock3 aria-hidden="true" />} label="Time" value={formatTime(exercise.time)} />
+              <Metric icon={<Dumbbell aria-hidden="true" />} label="Weight" value={formatWeight(exercise)} />
+            </> : <>
               <Metric icon={<Layers3 aria-hidden="true" />} label="Sets" value={displayNumber(exercise.sets)} />
               <Metric icon={<Repeat2 aria-hidden="true" />} label="Reps" value={displayNumber(exercise.reps)} />
+              <Metric icon={<Dumbbell aria-hidden="true" />} label="Weight" value={formatWeight(exercise)} />
             </>}
-            <Metric icon={<Dumbbell aria-hidden="true" />} label="Weight" value={formatWeight(exercise)} />
           </dl>
         )}
       </div>
@@ -75,16 +79,21 @@ export function ExerciseCard({
 }
 
 function ExerciseFields({ exercise, onChange }: Pick<ExerciseCardProps, 'exercise' | 'onChange'>) {
-  const isTimed = typeof exercise.exercise !== 'string' && exercise.exercise.prescription_type === 'timed'
+  const prescriptionType = typeof exercise.exercise === 'string' ? 'strength' : exercise.exercise.prescription_type
   const update = (values: Partial<WorkoutExerciseDisplay>) => onChange?.({ ...exercise, ...values })
 
   return (
     <div className="mt-2 flex flex-nowrap items-center gap-2">
-      {isTimed ? (
+      {prescriptionType === 'timed' ? (
         <>
           <Field label="Seconds">
             <Input aria-label={`${exercise.exerciseName} seconds`} className="h-8 w-16 px-2 text-base sm:w-20 sm:text-[13px]" min="0" type="number" value={exercise.time} onChange={(event) => update({ time: numberValue(event.target.value) })} />
           </Field>
+        </>
+      ) : prescriptionType === 'timed_sets' ? (
+        <>
+          <Field label="Sets"><Input aria-label={`${exercise.exerciseName} sets`} className="h-8 w-10 px-1.5 text-base sm:w-14 sm:text-[13px]" min="0" type="number" value={exercise.sets} onChange={(event) => update({ sets: numberValue(event.target.value) })} /></Field>
+          <Field label="Seconds"><Input aria-label={`${exercise.exerciseName} seconds`} className="h-8 w-16 px-2 text-base sm:w-20 sm:text-[13px]" min="0" type="number" value={exercise.time} onChange={(event) => update({ time: numberValue(event.target.value) })} /></Field>
           <Field label={exercise.weight_unit || 'lb'}>
             <Input aria-label={`${exercise.exerciseName} weight`} className="h-8 w-14 px-1.5 text-base sm:w-20 sm:text-[13px]" min="0" step="1" type="number" value={wholeNumberWeight(exercise.weight ?? '') ?? ''} onChange={(event) => update({ weight: wholeNumberWeight(event.target.value) })} />
           </Field>

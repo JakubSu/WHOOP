@@ -29,8 +29,8 @@ const coachContext = await import(
 test('coach context is only produced for workout routes', () => {
   assert.equal(coachContext.getCoachPageContextForRoute('/'), null)
   assert.deepEqual(coachContext.getCoachPageContextForRoute('/workouts/w-1'), {
-    page_type: 'workout',
-    context_id: 'w-1',
+    kind: 'workout',
+    workout_id: 'w-1',
   })
   assert.equal(coachContext.getCoachPageContextForRoute('/week'), null)
   assert.equal(coachContext.getCoachPageContextForRoute('/login'), null)
@@ -40,10 +40,10 @@ test('coach context is only produced for workout routes', () => {
 test('coach launcher labels the current context compactly', () => {
   assert.equal(
     coachContext.labelForCoachContext({
-      page_type: 'today_workout',
-      context_id: '',
+      kind: 'week',
+      week_start_date: '2026-08-10',
     }),
-    'Today',
+    'Week',
   )
   assert.equal(coachContext.labelForCoachContext(null), 'Coach')
 })

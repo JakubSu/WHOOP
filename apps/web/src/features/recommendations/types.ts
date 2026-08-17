@@ -1,8 +1,8 @@
 import { type CoachRecommendationReference } from '../coach/types'
 
 export type Prescription = {
-  type?: 'reps' | 'time'
-  sets: number
+  type?: 'reps' | 'time' | 'duration'
+  sets?: number
   reps?: number
   seconds?: number
   weight?: string | null

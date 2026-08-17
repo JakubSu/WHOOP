@@ -28,16 +28,16 @@ export function buildDraftExercises(
       return {
         id: operation.id,
         workout: '',
-        exercise: { id: operation.payload.exercise_id, name: exerciseName, muscle_group: exercise?.muscle_group ?? 'other', prescription_type: exercise?.prescription_type ?? (prescription.type === 'time' ? 'timed' : 'strength') },
+        exercise: { id: operation.payload.exercise_id, name: exerciseName, muscle_group: exercise?.muscle_group ?? 'other', prescription_type: exercise?.prescription_type ?? (prescription.type === 'time' ? 'timed_sets' : prescription.type === 'duration' ? 'timed' : 'strength') },
         exerciseName,
-        sets: prescription.sets,
+        sets: prescription.sets ?? 0,
         reps,
         time,
         sort_order: operation.payload.position,
         weight: prescription.weight ?? null,
         weight_unit: prescription.weight_unit ?? 'lb',
         note: prescription.note ?? '',
-        prescription: prescription.type === 'time' ? `${prescription.sets} × ${time}s` : `${prescription.sets} × ${reps}`,
+        prescription: prescription.type === 'time' ? `${prescription.sets} × ${time}s` : prescription.type === 'duration' ? `${time}s` : `${prescription.sets} × ${reps}`,
       }
     })
     .sort((left, right) => left.sort_order - right.sort_order)
