@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -34,7 +34,7 @@ class ContextSelection:
 def select_context(
     *,
     history: CoachConversationHistory,
-    base_messages: list[ModelMessage],
+    base_messages: Sequence[ModelMessage],
     token_limit: int,
     estimate: Callable[[list[ModelMessage]], int] | None = None,
 ) -> ContextSelection:

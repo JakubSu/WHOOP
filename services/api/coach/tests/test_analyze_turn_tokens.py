@@ -113,4 +113,5 @@ class AnalyzeTurnTokensTests(SimpleTestCase):
         )
 
         self.assertIsInstance(estimate, int)
+        assert estimate is not None
         self.assertGreater(estimate, 0)

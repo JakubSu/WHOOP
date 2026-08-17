@@ -33,6 +33,7 @@ class CoachViewContextTests(TestCase):
         )
 
         self.assertIsInstance(resolved, WorkoutViewContext)
+        assert isinstance(resolved, WorkoutViewContext)
         self.assertEqual(resolved.as_dict()["workout_id"], str(workout.id))
         with self.assertRaises(InvalidCoachViewContext):
             resolve_view_context(
@@ -45,5 +46,6 @@ class CoachViewContextTests(TestCase):
         )
 
         self.assertIsInstance(resolved, WeekViewContext)
+        assert isinstance(resolved, WeekViewContext)
         self.assertEqual(resolved.week_start_date, date(2026, 8, 10))
         self.assertIn("Tuesday is 2026-08-11", resolved.coach_instruction())

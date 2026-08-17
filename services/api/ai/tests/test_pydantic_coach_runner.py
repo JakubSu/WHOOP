@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from django.test import SimpleTestCase
 from pydantic_ai import UsageLimitExceeded
-from pydantic_ai.messages import ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelMessage, ModelRequest, TextPart, UserPromptPart
 
 from ai.implementations.pydantic_coach.history import select_context
 from ai.implementations.pydantic_coach.runner import _usage_limit_failure_code
@@ -19,7 +20,7 @@ class MessageEstimate:
 
     limit_per_message: int = 10
 
-    def __call__(self, messages: list[object]) -> int:
+    def __call__(self, messages: list[ModelMessage]) -> int:
         return len(messages) * self.limit_per_message
 
 
@@ -48,7 +49,9 @@ class ContextComposerTests(SimpleTestCase):
 
         self.assertEqual(selection.raw_turn_count, 1)
         self.assertEqual(selection.visible_turn_count, 0)
-        self.assertEqual(selection.messages[0].parts[0].content, "raw")
+        self.assertEqual(
+            cast(UserPromptPart, selection.messages[0].parts[0]).content, "raw"
+        )
 
     def test_falls_back_to_visible_text_for_an_oversized_raw_turn(self) -> None:
         raw = [
@@ -65,8 +68,12 @@ class ContextComposerTests(SimpleTestCase):
 
         self.assertEqual(selection.raw_turn_count, 0)
         self.assertEqual(selection.visible_turn_count, 1)
-        self.assertEqual(selection.messages[0].parts[0].content, "user")
-        self.assertEqual(selection.messages[1].parts[0].content, "visible")
+        self.assertEqual(
+            cast(UserPromptPart, selection.messages[0].parts[0]).content, "user"
+        )
+        self.assertEqual(
+            cast(TextPart, selection.messages[1].parts[0]).content, "visible"
+        )
 
     def test_stops_before_the_first_turn_whose_visible_form_does_not_fit(self) -> None:
         selection = self._select(
@@ -81,7 +88,9 @@ class ContextComposerTests(SimpleTestCase):
 
         self.assertEqual(selection.visible_turn_count, 1)
         self.assertEqual(selection.dropped_turn_count, 1)
-        self.assertEqual(selection.messages[0].parts[0].content, "new")
+        self.assertEqual(
+            cast(UserPromptPart, selection.messages[0].parts[0]).content, "new"
+        )
 
 
 class UsageLimitFailureCodeTests(SimpleTestCase):
