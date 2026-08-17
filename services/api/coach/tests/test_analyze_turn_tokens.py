@@ -2,6 +2,7 @@
 
 from django.test import SimpleTestCase
 
+from ai.runner import CoachHistoryTurn
 from coach.management.commands.analyze_turn_tokens import (
     _context_input_estimate,
     _current_run_input_tokens,
@@ -11,7 +12,6 @@ from coach.management.commands.analyze_turn_tokens import (
     _raw_batch_categories,
     _tool_activity,
 )
-from ai.runner import CoachHistoryTurn
 
 
 class AnalyzeTurnTokensTests(SimpleTestCase):

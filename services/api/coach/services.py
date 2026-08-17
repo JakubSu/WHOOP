@@ -144,7 +144,7 @@ def list_messages(
 
 
 def load_context_history(conversation: CoachConversation) -> CoachConversationHistory:
-    """Load four raw turns and older displayed user/assistant exchanges."""
+    """Load configured raw turns and older displayed user/assistant exchanges."""
 
     raw_rows = list(
         CoachMessage.objects.filter(

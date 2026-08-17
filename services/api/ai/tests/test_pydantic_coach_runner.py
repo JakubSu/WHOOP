@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from django.test import SimpleTestCase
+from pydantic_ai import UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 
 from ai.implementations.pydantic_coach.history import select_context
+from ai.implementations.pydantic_coach.runner import _usage_limit_failure_code
 from ai.runner import CoachConversationHistory, CoachHistoryTurn
 
 
@@ -80,3 +82,20 @@ class ContextComposerTests(SimpleTestCase):
         self.assertEqual(selection.visible_turn_count, 1)
         self.assertEqual(selection.dropped_turn_count, 1)
         self.assertEqual(selection.messages[0].parts[0].content, "new")
+
+
+class UsageLimitFailureCodeTests(SimpleTestCase):
+    def test_classifies_each_configured_usage_limit(self) -> None:
+        cases = {
+            "per_request_input_tokens_limit": "context_limit",
+            "input_tokens_limit": "input_token_limit",
+            "output_tokens_limit": "output_token_limit",
+            "tool_calls_limit": "tool_call_limit",
+            "request_limit": "request_limit",
+            "cost_limit": "cost_limit",
+        }
+
+        for limit_name, expected_code in cases.items():
+            with self.subTest(limit_name=limit_name):
+                error = UsageLimitExceeded(f"Exceeded the {limit_name} of 1")
+                self.assertEqual(_usage_limit_failure_code(error), expected_code)

@@ -289,7 +289,7 @@ class MessageStreamAPIView(APIView):
                             "error",
                             {
                                 "code": runner_event.code,
-                                "message": "I couldn't complete that request.",
+                                "message": _public_failure_message(runner_event.code),
                                 "retryable": runner_event.retryable,
                             },
                         )
@@ -356,6 +356,46 @@ def _visible_content(request: Request, content: str) -> str:
     """Returns presentation text without exposing continuation instructions."""
 
     return getattr(request, "_ui_action_visible_content", None) or content
+
+
+def _public_failure_message(code: str) -> str:
+    """Returns a safe, actionable explanation for a stable runner failure code."""
+
+    messages = {
+        "context_limit": (
+            "This message is too long for the coach to process. Start a new chat "
+            "or send a shorter message."
+        ),
+        "input_token_limit": (
+            "The coach reached its input limit for this response. Start a new chat "
+            "or send a shorter message."
+        ),
+        "output_token_limit": (
+            "The coach reached its response-length limit. Ask a narrower question "
+            "and try again."
+        ),
+        "request_limit": (
+            "The coach reached its step limit while working on that. Try a simpler "
+            "request."
+        ),
+        "tool_call_limit": (
+            "The coach needed too many data lookups to complete that. Try a narrower "
+            "request."
+        ),
+        "cost_limit": "The coach's processing budget was reached for this request.",
+        "usage_limit": "The coach reached a processing limit for this request.",
+        "timeout": "The coach took too long to respond. Please try again.",
+        "rate_limit": (
+            "The coach is busy right now. Please wait a moment and try again."
+        ),
+        "provider_access": (
+            "The coach service is not configured correctly. Please contact support."
+        ),
+        "provider_unavailable": (
+            "The coach service is temporarily unavailable. Please try again."
+        ),
+    }
+    return messages.get(code, "I couldn't complete that request. Please try again.")
 
 
 def _expire_failed_run(user: Any, run_id: uuid.UUID) -> None:

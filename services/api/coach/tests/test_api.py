@@ -190,6 +190,11 @@ class CoachConversationApiTests(TestCase):
         conversation = CoachConversation.objects.create(user=self.user)
         CoachMessage.objects.create(
             conversation=conversation,
+            role=CoachMessage.Role.USER,
+            content="Earlier request",
+        )
+        CoachMessage.objects.create(
+            conversation=conversation,
             role=CoachMessage.Role.ASSISTANT,
             content="Earlier",
             ai_message_batch=[{"batch": 1}],
@@ -221,12 +226,15 @@ class CoachConversationApiTests(TestCase):
             response.json()["activities"][0]["label"],
             "Fetching your recovery data…",
         )
-        self.assertEqual(conversation.messages.count(), 3)
+        self.assertEqual(conversation.messages.count(), 4)
         saved = conversation.messages.get(content="Reduce today’s volume.")
         self.assertEqual(saved.ai_message_batch, [{"batch": 2}])
 
-    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
-    def test_message_run_uses_four_raw_turns_and_older_visible_turns(self) -> None:
+    @override_settings(
+        COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner",
+        COACH_CONTEXT_RECENT_TURNS=3,
+    )
+    def test_message_run_uses_three_raw_turns_and_older_visible_turns(self) -> None:
         """Older displayed exchanges are separate from the newest private batches."""
 
         conversation = CoachConversation.objects.create(user=self.user)
@@ -260,7 +268,7 @@ class CoachConversationApiTests(TestCase):
         request = runner.requests[0]
         self.assertEqual(
             [turn.raw_batch for turn in request.history.turns if turn.raw_batch],
-            [[{"batch": 2}], [{"batch": 3}], [{"batch": 4}], [{"batch": 5}]],
+            [[{"batch": 3}], [{"batch": 4}], [{"batch": 5}]],
         )
         self.assertEqual(
             [
@@ -397,6 +405,30 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(events[-1]["data"]["code"], "timeout")
         self.assertTrue(events[-1]["data"]["retryable"])
         self.assertFalse(conversation.messages.exists())
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_stream_explains_a_context_limit_failure(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+        runner.events = [RunFailed(code="context_limit", retryable=False)]
+
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages/stream",
+            {"content": "Summarize my full training history."},
+            format="json",
+            HTTP_ACCEPT="text/event-stream",
+        )
+        body = async_to_sync(_collect_stream)(
+            cast(StreamingHttpResponse, response)
+        ).decode()
+        error = _parse_events(body)[-1]["data"]
+
+        self.assertEqual(error["code"], "context_limit")
+        self.assertEqual(
+            error["message"],
+            "This message is too long for the coach to process. Start a new chat "
+            "or send a shorter message.",
+        )
+        self.assertFalse(error["retryable"])
 
     @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
     def test_completed_turn_persists_and_serializes_ui_actions(self) -> None:

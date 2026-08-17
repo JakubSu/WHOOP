@@ -227,17 +227,19 @@ class PydanticCoachRunner:
                     state=state,
                     messages=events.all_messages(),
                 )
+            code = _usage_limit_failure_code(exc)
             logger.warning(
-                "coach_context_limit run_id=%s elapsed_ms=%s error=%s",
+                "coach_usage_limit run_id=%s elapsed_ms=%s code=%s error=%s",
                 request.run_id,
                 round((time.monotonic() - started_at) * 1000),
+                code,
                 str(exc),
             )
             for activity in state.fail_running():
                 yield ActivityChanged(activity)
             if thinking_active:
                 yield ThinkingChanged(active=False)
-            yield RunFailed(code="context_limit", retryable=False)
+            yield RunFailed(code=code, retryable=False)
             return
         except Exception as exc:  # noqa: BLE001 - normalized into the runner protocol
             logger.warning(
@@ -251,7 +253,10 @@ class PydanticCoachRunner:
                 yield ActivityChanged(activity)
             if thinking_active:
                 yield ThinkingChanged(active=False)
-            yield RunFailed(code="coach_run_failed", retryable=True)
+            yield RunFailed(
+                code=_provider_failure_code(exc),
+                retryable=_is_retryable_provider_error(exc),
+            )
             return
 
         logger.info(
@@ -302,6 +307,53 @@ def _activity_from_native_event(event: Any) -> CoachActivity | None:
         activity = activity_for_tool(part.tool_name or "", part.tool_call_id, status)
         return activity
     return None
+
+
+def _usage_limit_failure_code(error: UsageLimitExceeded) -> str:
+    """Maps Pydantic AI's limit names to stable, public Coach error codes."""
+
+    message = str(error).lower()
+    if "per_request_input_tokens_limit" in message:
+        return "context_limit"
+    if "input_tokens_limit" in message:
+        return "input_token_limit"
+    if "output_tokens_limit" in message:
+        return "output_token_limit"
+    if "tool_calls_limit" in message:
+        return "tool_call_limit"
+    if "request_limit" in message:
+        return "request_limit"
+    if "cost_limit" in message:
+        return "cost_limit"
+    return "usage_limit"
+
+
+def _provider_failure_code(error: Exception) -> str:
+    """Classifies provider errors without exposing provider response details."""
+
+    status_code = getattr(error, "status_code", None)
+    message = str(error).lower()
+    if status_code == 429 or "rate limit" in message:
+        return "rate_limit"
+    if (
+        status_code in {401, 403}
+        or "api key" in message
+        or "authentication" in message
+    ):
+        return "provider_access"
+    if status_code == 400 and ("context length" in message or "token" in message):
+        return "context_limit"
+    if status_code in {500, 502, 503, 504}:
+        return "provider_unavailable"
+    if "timeout" in message or "connection" in message:
+        return "provider_unavailable"
+    return "coach_run_failed"
+
+
+def _is_retryable_provider_error(error: Exception) -> bool:
+    """Returns whether repeating the same request may reasonably succeed."""
+
+    return _provider_failure_code(error) not in {"provider_access", "context_limit"}
 
 
 def create_pydantic_coach_runner() -> PydanticCoachRunner:
