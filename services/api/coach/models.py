@@ -16,6 +16,14 @@ class CoachConversation(models.Model):
         related_name="coach_conversations",
     )
     title = models.CharField(max_length=200, null=True, blank=True)
+    memory = models.JSONField(default=dict, blank=True)
+    memory_through_message = models.ForeignKey(
+        "CoachMessage",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

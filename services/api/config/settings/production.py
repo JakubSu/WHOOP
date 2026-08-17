@@ -45,8 +45,16 @@ WHOOP_TOKEN_ENCRYPTION_KEY = required_env("WHOOP_TOKEN_ENCRYPTION_KEY")
 
 # Operational controls may be tuned without changing an image.
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.6-luna")
-COACH_HISTORY_MAX_BATCHES = int(os.environ.get("COACH_HISTORY_MAX_BATCHES", "12"))
-COACH_HISTORY_MAX_TOKENS = int(os.environ.get("COACH_HISTORY_MAX_TOKENS", "20000"))
+COACH_CONTEXT_RECENT_TURNS = int(os.environ.get("COACH_CONTEXT_RECENT_TURNS", "4"))
+COACH_CONTEXT_RAW_HISTORY_TOKENS = int(
+    os.environ.get("COACH_CONTEXT_RAW_HISTORY_TOKENS", "6000")
+)
+COACH_SUMMARY_MAX_INPUT_TOKENS = int(
+    os.environ.get("COACH_SUMMARY_MAX_INPUT_TOKENS", "4000")
+)
+COACH_SUMMARY_MAX_OUTPUT_TOKENS = int(
+    os.environ.get("COACH_SUMMARY_MAX_OUTPUT_TOKENS", "500")
+)
 COACH_MAX_MODEL_REQUESTS = int(os.environ.get("COACH_MAX_MODEL_REQUESTS", "6"))
 COACH_MAX_TOOL_CALLS = int(os.environ.get("COACH_MAX_TOOL_CALLS", "12"))
 COACH_MAX_INPUT_TOKENS = int(os.environ.get("COACH_MAX_INPUT_TOKENS", "40000"))

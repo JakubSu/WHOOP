@@ -41,13 +41,6 @@ export function labelForCoachContext(context: CoachPageContext | null) {
 }
 
 export function getCoachPageContextForRoute(pathname: string): CoachPageContext | null {
-  if (pathname === '/training') {
-    return {
-      page_type: 'today_workout',
-      context_id: '',
-    }
-  }
-
   const workoutMatch = matchPath('/workouts/:workoutId', pathname)
   const workoutId = workoutMatch?.params.workoutId
   if (workoutId) {

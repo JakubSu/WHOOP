@@ -26,11 +26,8 @@ const coachContext = await import(
   `data:text/javascript,${encodeURIComponent(outputText)}`
 )
 
-test('coach context is only produced for coach-capable routes', () => {
-  assert.deepEqual(coachContext.getCoachPageContextForRoute('/training'), {
-    page_type: 'today_workout',
-    context_id: '',
-  })
+test('coach context is only produced for workout routes', () => {
+  assert.equal(coachContext.getCoachPageContextForRoute('/'), null)
   assert.deepEqual(coachContext.getCoachPageContextForRoute('/workouts/w-1'), {
     page_type: 'workout',
     context_id: 'w-1',

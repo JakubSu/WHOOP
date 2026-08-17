@@ -38,10 +38,12 @@ async def _collect_events(
     return [event async for event in runner.stream(request)]
 
 
-def _limits(*, history_max_batches: int = 12) -> CoachRuntimeLimits:
+def _limits(*, recent_turns: int = 4) -> CoachRuntimeLimits:
     return CoachRuntimeLimits(
-        history_max_batches=history_max_batches,
-        history_max_tokens=20_000,
+        recent_turns=recent_turns,
+        raw_history_tokens=6_000,
+        summary_input_tokens=4_000,
+        summary_output_tokens=500,
         request_limit=6,
         tool_calls_limit=12,
         input_tokens_limit=24_000,
@@ -67,16 +69,52 @@ class PydanticCoachRunnerTests(SimpleTestCase):
             [ModelRequest(parts=[UserPromptPart(content="second")])], mode="json"
         )
 
-        history = _restore_history([first, second], _limits(history_max_batches=1))
+        history = _restore_history([first, second], _limits(recent_turns=1))
 
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0].parts[0].content, "second")
 
+    def test_restore_history_logs_the_loaded_message_composition(self) -> None:
+        from pydantic_ai.messages import (
+            ModelMessagesTypeAdapter,
+            ModelRequest,
+            ModelResponse,
+            TextPart,
+            UserPromptPart,
+        )
+
+        batch = ModelMessagesTypeAdapter.dump_python(
+            [
+                ModelRequest(
+                    parts=[UserPromptPart(content="previous question")],
+                    instructions="coach instructions",
+                ),
+                ModelResponse(parts=[TextPart(content="previous answer")]),
+            ],
+            mode="json",
+        )
+
+        with self.assertLogs(
+            "ai.implementations.pydantic_coach.runner", level="INFO"
+        ) as logs:
+            _restore_history([batch], _limits())
+
+        self.assertIn("coach_history_loaded", logs.output[0])
+        self.assertIn("included_batches=1", logs.output[0])
+        self.assertIn("message_count=2", logs.output[0])
+        self.assertIn("raw_history_token_budget=6000", logs.output[0])
+        self.assertIn("'user-prompt': 1", logs.output[0])
+        self.assertIn("'text': 1", logs.output[0])
+        self.assertNotIn("previous question", logs.output[0])
+        self.assertNotIn("previous answer", logs.output[0])
+
     @override_settings(
         OPENAI_MODEL="gpt-5.6-luna",
         OPENAI_TIMEOUT=30,
-        COACH_HISTORY_MAX_BATCHES=12,
-        COACH_HISTORY_MAX_TOKENS=20_000,
+        COACH_CONTEXT_RECENT_TURNS=4,
+        COACH_CONTEXT_RAW_HISTORY_TOKENS=6_000,
+        COACH_SUMMARY_MAX_INPUT_TOKENS=4_000,
+        COACH_SUMMARY_MAX_OUTPUT_TOKENS=500,
         COACH_MAX_MODEL_REQUESTS=6,
         COACH_MAX_TOOL_CALLS=12,
         COACH_MAX_INPUT_TOKENS=24_000,

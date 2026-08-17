@@ -90,7 +90,7 @@ export function CoachMessageList({
           className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full shadow-md"
           size="sm"
           type="button"
-          onClick={onJumpToLatest}
+          onClick={() => onJumpToLatest()}
         >
           <ArrowDown size={16} aria-hidden="true" /> Latest
         </Button>
