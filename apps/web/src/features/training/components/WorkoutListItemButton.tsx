@@ -6,15 +6,16 @@ import { Card } from '../../../shared/components/ui'
 
 type WorkoutListItemButtonProps = {
   workout: WorkoutListItem
+  compact?: boolean
 }
 
-export function WorkoutListItemButton({ workout }: WorkoutListItemButtonProps) {
+export function WorkoutListItemButton({ workout, compact = false }: WorkoutListItemButtonProps) {
   const navigate = useNavigate()
 
   return (
     <Card className="overflow-hidden transition-colors hover:border-muted-foreground/40">
       <button
-        className="flex w-full items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className={compact ? 'flex w-full items-center gap-2 p-3 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring' : 'flex w-full items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'}
         type="button"
         onClick={() => navigate(`/workouts/${workout.id}`)}
       >
@@ -22,7 +23,7 @@ export function WorkoutListItemButton({ workout }: WorkoutListItemButtonProps) {
           <strong className="block truncate text-[15px] font-semibold tracking-tight text-foreground">
             {workout.name}
           </strong>
-          <span className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span className={compact ? 'mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground' : 'mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground'}>
             <span className="inline-flex items-center gap-1.5">
               <Dumbbell aria-hidden="true" size={14} className="text-primary/70" />
               {workout.exercise_count} {workout.exercise_count === 1 ? 'exercise' : 'exercises'}

@@ -1,4 +1,4 @@
-import { Dumbbell, GripVertical, Layers3, Repeat2, Trash2 } from 'lucide-react'
+import { Clock3, Dumbbell, GripVertical, Layers3, Repeat2, Trash2 } from 'lucide-react'
 import { Card, Button } from '@/shared/components/ui'
 import { type ButtonHTMLAttributes } from 'react'
 import { Input } from '@/shared/components/ui'
@@ -21,6 +21,8 @@ export function ExerciseCard({
   onChange,
   onDelete,
 }: ExerciseCardProps) {
+  const isTimed = typeof exercise.exercise !== 'string' && exercise.exercise.prescription_type === 'timed'
+
   return (
     <Card className="group relative flex items-center gap-3 rounded-lg border-border bg-card p-4 transition-colors hover:border-muted-foreground/40">
       {editable ? (
@@ -45,8 +47,10 @@ export function ExerciseCard({
           <ExerciseFields exercise={exercise} onChange={onChange} />
         ) : (
           <dl className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-            <Metric icon={<Layers3 aria-hidden="true" />} label="Sets" value={displayNumber(exercise.sets)} />
-            <Metric icon={<Repeat2 aria-hidden="true" />} label="Reps" value={displayNumber(exercise.reps)} />
+            {isTimed ? <Metric icon={<Clock3 aria-hidden="true" />} label="Time" value={formatTime(exercise.time)} /> : <>
+              <Metric icon={<Layers3 aria-hidden="true" />} label="Sets" value={displayNumber(exercise.sets)} />
+              <Metric icon={<Repeat2 aria-hidden="true" />} label="Reps" value={displayNumber(exercise.reps)} />
+            </>}
             <Metric icon={<Dumbbell aria-hidden="true" />} label="Weight" value={formatWeight(exercise)} />
           </dl>
         )}
@@ -124,6 +128,10 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
 
 function displayNumber(value: number) {
   return value > 0 ? String(value) : '—'
+}
+
+function formatTime(seconds: number) {
+  return seconds > 0 ? `${seconds} sec` : '—'
 }
 
 function formatWeight(exercise: WorkoutExerciseDisplay) {

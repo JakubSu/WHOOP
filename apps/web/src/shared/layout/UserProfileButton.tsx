@@ -44,7 +44,7 @@ export function UserProfileButton() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="User profile"><Avatar><AvatarFallback>{initialsFor(user?.display_name, user?.email)}</AvatarFallback></Avatar></Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button className="rounded-full border-0 p-0" variant="outline" size="icon" aria-label="User profile"><Avatar className="size-10 overflow-hidden rounded-full"><AvatarFallback>{initialsFor(user?.display_name, user?.email)}</AvatarFallback></Avatar></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
           <div className="px-2 py-2 text-sm"><strong className="block">{user?.display_name || 'User'}</strong><span className="block break-all text-muted-foreground">{user?.email}</span></div><Separator />
           {user?.whoop_user_id ? (
