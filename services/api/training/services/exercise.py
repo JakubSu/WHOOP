@@ -75,7 +75,15 @@ def _validate_exercise_defaults(payload: dict[str, Any]) -> None:
     prescription_type = payload.get(
         "prescription_type", Exercise.PrescriptionType.STRENGTH
     )
+    if prescription_type == Exercise.PrescriptionType.TIMED_SETS:
+        if payload.get("default_reps", 0) > 0:
+            raise ValueError("Timed-set exercises cannot use default reps.")
+        return
     if prescription_type == Exercise.PrescriptionType.TIMED:
+        if payload.get("default_sets", 0) > 0 or payload.get("default_reps", 0) > 0:
+            raise ValueError("Duration exercises can only use a default time.")
+        if payload.get("default_weight") is not None:
+            raise ValueError("Duration exercises cannot use a default weight.")
         return
     if payload.get("default_time", 0) > 0:
         raise ValueError("Strength exercises cannot use a default time.")

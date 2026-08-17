@@ -31,7 +31,7 @@ class WorkoutExerciseSerializer(serializers.ModelSerializer):
                 "help_text": "Programmed repetition count for the workout exercise."
             },
             "time": {
-                "help_text": "Programmed duration in seconds for timed exercises."
+                "help_text": "Programmed duration in seconds for timed-set and duration exercises."
             },
             "sort_order": {
                 "help_text": "Display order of the exercise inside the workout."
@@ -66,7 +66,7 @@ class WorkoutExerciseRequestSerializer(serializers.ModelSerializer):
                 "help_text": "Programmed repetition count for the workout exercise."
             },
             "time": {
-                "help_text": "Programmed duration in seconds for timed exercises."
+                "help_text": "Programmed duration in seconds for timed-set and duration exercises."
             },
             "sort_order": {
                 "help_text": "Display order of the exercise inside the workout."

@@ -1,229 +1,82 @@
-"""Tests for the Pydantic Coach adapter's private-history boundary."""
+"""Tests for the provider-counted Coach context composer."""
 
 from __future__ import annotations
 
-import uuid
-from decimal import Decimal
-from threading import enumerate as enumerate_threads
-from types import SimpleNamespace
-from unittest.mock import patch
+from dataclasses import dataclass
 
-from asgiref.sync import async_to_sync
-from django.test import SimpleTestCase, override_settings
-from pydantic_ai import Agent
-from pydantic_ai.messages import (
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
-    ToolCallPart,
-    ToolReturnPart,
-)
-from pydantic_ai.models.test import TestModel
+from django.test import SimpleTestCase
+from pydantic_ai.messages import ModelRequest, UserPromptPart
 
-from ai.implementations.pydantic_coach.contracts import (
-    CoachDeps,
-    CoachRuntimeLimits,
-)
-from ai.implementations.pydantic_coach.runner import (
-    PydanticCoachRunner,
-    _activity_from_native_event,
-    _restore_history,
-    create_pydantic_coach_runner,
-)
-from ai.runner import CoachRunRequest, RunCompleted, TextDelta, ThinkingChanged
+from ai.implementations.pydantic_coach.history import select_context
+from ai.runner import CoachConversationHistory, CoachHistoryTurn
 
 
-async def _collect_events(
-    runner: PydanticCoachRunner, request: CoachRunRequest
-) -> list[object]:
-    return [event async for event in runner.stream(request)]
+@dataclass
+class MessageEstimate:
+    """Deterministic stand-in for the provider token-count endpoint."""
+
+    limit_per_message: int = 10
+
+    def __call__(self, messages: list[object]) -> int:
+        return len(messages) * self.limit_per_message
 
 
-def _limits(*, recent_turns: int = 4) -> CoachRuntimeLimits:
-    return CoachRuntimeLimits(
-        recent_turns=recent_turns,
-        raw_history_tokens=6_000,
-        summary_input_tokens=4_000,
-        summary_output_tokens=500,
-        request_limit=6,
-        tool_calls_limit=12,
-        input_tokens_limit=24_000,
-        output_tokens_limit=1_200,
-        per_request_input_tokens_limit=20_000,
-        cost_limit_usd=Decimal("0.05"),
-        tool_timeout_seconds=10,
-    )
-
-
-class PydanticCoachRunnerTests(SimpleTestCase):
-    def test_restore_history_keeps_only_the_configured_recent_batches(self) -> None:
-        from pydantic_ai.messages import (
-            ModelMessagesTypeAdapter,
-            ModelRequest,
-            UserPromptPart,
+class ContextComposerTests(SimpleTestCase):
+    def _select(self, history: CoachConversationHistory, limit: int):
+        return select_context(
+            history=history,
+            base_messages=[ModelRequest(parts=[UserPromptPart(content="new request")])],
+            token_limit=limit,
+            estimate=MessageEstimate(),
         )
 
-        first = ModelMessagesTypeAdapter.dump_python(
-            [ModelRequest(parts=[UserPromptPart(content="first")])], mode="json"
-        )
-        second = ModelMessagesTypeAdapter.dump_python(
-            [ModelRequest(parts=[UserPromptPart(content="second")])], mode="json"
-        )
-
-        history = _restore_history([first, second], _limits(recent_turns=1))
-
-        self.assertEqual(len(history), 1)
-        self.assertEqual(history[0].parts[0].content, "second")
-
-    def test_restore_history_logs_the_loaded_message_composition(self) -> None:
-        from pydantic_ai.messages import (
-            ModelMessagesTypeAdapter,
-            ModelRequest,
-            ModelResponse,
-            TextPart,
-            UserPromptPart,
-        )
-
-        batch = ModelMessagesTypeAdapter.dump_python(
-            [
-                ModelRequest(
-                    parts=[UserPromptPart(content="previous question")],
-                    instructions="coach instructions",
-                ),
-                ModelResponse(parts=[TextPart(content="previous answer")]),
-            ],
-            mode="json",
-        )
-
-        with self.assertLogs(
-            "ai.implementations.pydantic_coach.runner", level="INFO"
-        ) as logs:
-            _restore_history([batch], _limits())
-
-        self.assertIn("coach_history_loaded", logs.output[0])
-        self.assertIn("included_batches=1", logs.output[0])
-        self.assertIn("message_count=2", logs.output[0])
-        self.assertIn("raw_history_token_budget=6000", logs.output[0])
-        self.assertIn("'user-prompt': 1", logs.output[0])
-        self.assertIn("'text': 1", logs.output[0])
-        self.assertNotIn("previous question", logs.output[0])
-        self.assertNotIn("previous answer", logs.output[0])
-
-    @override_settings(
-        OPENAI_MODEL="gpt-5.6-luna",
-        OPENAI_TIMEOUT=30,
-        COACH_CONTEXT_RECENT_TURNS=4,
-        COACH_CONTEXT_RAW_HISTORY_TOKENS=6_000,
-        COACH_SUMMARY_MAX_INPUT_TOKENS=4_000,
-        COACH_SUMMARY_MAX_OUTPUT_TOKENS=500,
-        COACH_MAX_MODEL_REQUESTS=6,
-        COACH_MAX_TOOL_CALLS=12,
-        COACH_MAX_INPUT_TOKENS=24_000,
-        COACH_MAX_OUTPUT_TOKENS=1_200,
-        COACH_MAX_INPUT_TOKENS_PER_REQUEST=20_000,
-        COACH_MAX_COST_USD="0.05",
-        COACH_TOOL_TIMEOUT_SECONDS=10,
-        COACH_LOGFIRE_ENABLED=False,
-    )
-    def test_factory_builds_the_sync_runner_without_resolving_a_live_model(
-        self,
-    ) -> None:
-        with patch(
-            "ai.implementations.pydantic_coach.runner.create_coach_agent"
-        ) as create_agent:
-            runner = create_pydantic_coach_runner()
-
-        self.assertIsInstance(runner, PydanticCoachRunner)
-        self.assertEqual(runner._model_name, "gpt-5.6-luna")
-        create_agent.assert_called_once_with(
-            model_name="gpt-5.6-luna", tool_timeout_seconds=10.0
-        )
-
-    def test_text_agent_output_maps_to_text_then_completed_event(self) -> None:
-        agent = Agent(
-            TestModel(custom_output_text="Keep the session easy."),
-            deps_type=CoachDeps,
-            output_type=str,
-        )
-        user = object()
-        conversation = object()
-        user_model = SimpleNamespace(objects=SimpleNamespace(get=lambda **kwargs: user))
-        conversations = SimpleNamespace(get=lambda **kwargs: conversation)
-        request = CoachRunRequest(
-            run_id=uuid.uuid4(),
-            conversation_id=uuid.uuid4(),
-            user_id=uuid.uuid4(),
-            content="What should I do today?",
-            ai_message_batches=[],
-        )
-        with (
-            patch(
-                "ai.implementations.pydantic_coach.runner.create_coach_agent",
-                return_value=agent,
-            ) as create_agent,
-            patch(
-                "ai.implementations.pydantic_coach.runner.get_user_model",
-                return_value=user_model,
+    def test_prefers_the_newest_raw_turn_when_it_fits(self) -> None:
+        raw = [
+            {
+                "kind": "request",
+                "parts": [{"part_kind": "user-prompt", "content": "raw"}],
+            }
+        ]
+        selection = self._select(
+            CoachConversationHistory(
+                turns=[CoachHistoryTurn("user", "visible", raw_batch=raw)]
             ),
-            patch(
-                "ai.implementations.pydantic_coach.runner.CoachConversation.objects",
-                conversations,
+            limit=20,
+        )
+
+        self.assertEqual(selection.raw_turn_count, 1)
+        self.assertEqual(selection.visible_turn_count, 0)
+        self.assertEqual(selection.messages[0].parts[0].content, "raw")
+
+    def test_falls_back_to_visible_text_for_an_oversized_raw_turn(self) -> None:
+        raw = [
+            {"kind": "request", "parts": [{"part_kind": "user-prompt", "content": "one"}]},
+            {"kind": "request", "parts": [{"part_kind": "user-prompt", "content": "two"}]},
+            {"kind": "request", "parts": [{"part_kind": "user-prompt", "content": "three"}]},
+        ]
+        selection = self._select(
+            CoachConversationHistory(
+                turns=[CoachHistoryTurn("user", "visible", raw_batch=raw)]
             ),
-        ):
-            runner = PydanticCoachRunner(
-                limits=_limits(), model_name="unused", timeout_seconds=5
-            )
-            events = async_to_sync(_collect_events)(runner, request)
-            repeated_events = async_to_sync(_collect_events)(runner, request)
-            thread_names_after = {thread.name for thread in enumerate_threads()}
-
-        create_agent.assert_called_once_with(
-            model_name="unused", tool_timeout_seconds=10
+            limit=30,
         )
 
-        self.assertEqual(
-            "".join(event.delta for event in events if isinstance(event, TextDelta)),
-            "Keep the session easy.",
-        )
-        self.assertNotIn("pydantic-coach-run", thread_names_after)
-        completed = events[-1]
-        self.assertIsInstance(completed, RunCompleted)
-        assert isinstance(completed, RunCompleted)
-        self.assertEqual(completed.result.content, "Keep the session easy.")
-        self.assertEqual(
-            "".join(
-                event.delta for event in repeated_events if isinstance(event, TextDelta)
+        self.assertEqual(selection.raw_turn_count, 0)
+        self.assertEqual(selection.visible_turn_count, 1)
+        self.assertEqual(selection.messages[0].parts[0].content, "user")
+        self.assertEqual(selection.messages[1].parts[0].content, "visible")
+
+    def test_stops_before_the_first_turn_whose_visible_form_does_not_fit(self) -> None:
+        selection = self._select(
+            CoachConversationHistory(
+                turns=[
+                    CoachHistoryTurn("old", "old reply"),
+                    CoachHistoryTurn("new", "new reply"),
+                ]
             ),
-            "Keep the session easy.",
-        )
-        self.assertEqual(
-            [
-                event
-                for event in events
-                if isinstance(event, ThinkingChanged) and not event.active
-            ],
-            [ThinkingChanged(active=False)],
+            limit=30,
         )
 
-    def test_native_function_tool_events_share_the_provider_call_id(self) -> None:
-        call_id = "call_opaque_provider_id"
-        started = _activity_from_native_event(
-            FunctionToolCallEvent(
-                ToolCallPart("search_workouts", tool_call_id=call_id)
-            )
-        )
-        completed = _activity_from_native_event(
-            FunctionToolResultEvent(
-                ToolReturnPart(
-                    "search_workouts", content="ok", tool_call_id=call_id
-                )
-            )
-        )
-
-        self.assertIsNotNone(started)
-        self.assertIsNotNone(completed)
-        assert started is not None
-        assert completed is not None
-        self.assertEqual(started.id, call_id)
-        self.assertEqual(completed.id, call_id)
-        self.assertEqual(started.status, "running")
-        self.assertEqual(completed.status, "completed")
+        self.assertEqual(selection.visible_turn_count, 1)
+        self.assertEqual(selection.dropped_turn_count, 1)
+        self.assertEqual(selection.messages[0].parts[0].content, "new")

@@ -14,7 +14,6 @@ WEB_IMAGE="${6:?Immutable web image is required.}"
 API_IMAGE="${7:?Immutable API image is required.}"
 COMPOSE_CONFIG_B64="${8:?Compose configuration is required.}"
 RELEASE_SHA="${9:?Release commit SHA is required.}"
-COACH_CONFIG_B64="${10:?Coach configuration is required.}"
 
 mkdir -p "$DEPLOY_LOG_DIR"
 touch "$DEPLOY_LOG"
@@ -90,8 +89,6 @@ for secret_name in SECRET_KEY OPENAI_API_KEY LOGFIRE_TOKEN WHOOP_CLIENT_ID WHOOP
   secret_value="${!secret_name}"
   printf "%s='%s'\n" "$secret_name" "${secret_value//\'/\'\\\'\'}" >>"$APP_DIR/.env"
 done
-printf '%s' "$COACH_CONFIG_B64" | base64 --decode >>"$APP_DIR/.env"
-printf '\n' >>"$APP_DIR/.env"
 chmod 600 "$APP_DIR/.env"
 
 cat >"$APP_DIR/release.env" <<EOF

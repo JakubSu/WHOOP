@@ -27,7 +27,8 @@ MUSCLE_GROUP_VALUES = (
 class Exercise(models.Model):
     class PrescriptionType(models.TextChoices):
         STRENGTH = "strength", "Strength"
-        TIMED = "timed", "Timed"
+        TIMED_SETS = "timed_sets", "Timed sets"
+        TIMED = "timed", "Duration"
 
     class MuscleGroup(models.TextChoices):
         CHEST = "chest", "Chest"

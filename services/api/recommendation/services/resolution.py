@@ -278,6 +278,13 @@ def _apply_operation(
             else {
                 "sets": prescription["sets"],
                 "time": prescription["seconds"],
+                "weight": prescription.get("weight"),
+                "weight_unit": prescription.get("weight_unit", "lb"),
+                "note": prescription.get("note", ""),
+            }
+            if prescription["type"] == "time"
+            else {
+                "time": prescription["seconds"],
                 "note": prescription.get("note", ""),
             }
         )

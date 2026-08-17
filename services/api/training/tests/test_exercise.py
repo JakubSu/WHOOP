@@ -42,20 +42,19 @@ class ExerciseServiceTests(TestCase):
 
     def test_update_exercise_defaults(self) -> None:
         exercise = services.create_exercise(
-            {"name": "Plank", "prescription_type": "timed"},
+            {"name": "Intervals", "prescription_type": "timed_sets"},
             user_id=self.user_id,
         )
         updated = services.update_exercise(
             exercise,
             {
                 "default_sets": 4,
-                "default_reps": 10,
                 "default_time": 2,
             },
             user_id=self.user_id,
         )
         self.assertEqual(updated.default_sets, 4)
-        self.assertEqual(updated.default_reps, 10)
+        self.assertEqual(updated.default_reps, 0)
         self.assertEqual(updated.default_time, 2)
 
     def test_update_strength_exercise_default_weight(self) -> None:
@@ -70,11 +69,11 @@ class ExerciseServiceTests(TestCase):
         self.assertEqual(str(updated.default_weight), "20.00")
         self.assertEqual(updated.default_weight_unit, "kg")
 
-    def test_timed_exercise_can_have_default_weight(self) -> None:
+    def test_timed_set_exercise_can_have_default_weight(self) -> None:
         exercise = services.create_exercise(
             {
                 "name": "Weighted Plank",
-                "prescription_type": "timed",
+                "prescription_type": "timed_sets",
                 "default_weight": "10.00",
                 "default_weight_unit": "kg",
             },

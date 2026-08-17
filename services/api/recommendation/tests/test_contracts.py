@@ -9,7 +9,7 @@ from recommendation.contracts import (
     NewWorkoutRef,
     RecommendationDraft,
     RepetitionPrescription,
-    TimedPrescription,
+    TimedSetsPrescription,
     WorkoutChanges,
 )
 
@@ -58,10 +58,10 @@ class RecommendationContractTests(SimpleTestCase):
         )
 
         self.assertIsInstance(payload.workout, NewWorkoutRef)
-        self.assertIsInstance(payload.prescription, TimedPrescription)
+        self.assertIsInstance(payload.prescription, TimedSetsPrescription)
         if isinstance(payload.workout, NewWorkoutRef):
             self.assertEqual(payload.workout.temporary_id, "workout_1")
-        if isinstance(payload.prescription, TimedPrescription):
+        if isinstance(payload.prescription, TimedSetsPrescription):
             self.assertEqual(payload.prescription.seconds, 60)
 
     def test_add_exercise_rejects_ambiguous_workout_and_prescription_data(self) -> None:

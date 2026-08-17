@@ -93,17 +93,6 @@ jobs:
       AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
       CADDY_ACME_EMAIL: ${{ vars.CADDY_ACME_EMAIL }}
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-luna' }}
-      COACH_HISTORY_MAX_BATCHES: ${{ vars.COACH_HISTORY_MAX_BATCHES || '12' }}
-      COACH_HISTORY_MAX_TOKENS: ${{ vars.COACH_HISTORY_MAX_TOKENS || '20000' }}
-      COACH_MAX_MODEL_REQUESTS: ${{ vars.COACH_MAX_MODEL_REQUESTS || '6' }}
-      COACH_MAX_TOOL_CALLS: ${{ vars.COACH_MAX_TOOL_CALLS || '12' }}
-      COACH_MAX_INPUT_TOKENS: ${{ vars.COACH_MAX_INPUT_TOKENS || '24000' }}
-      COACH_MAX_OUTPUT_TOKENS: ${{ vars.COACH_MAX_OUTPUT_TOKENS || '1200' }}
-      COACH_MAX_INPUT_TOKENS_PER_REQUEST: ${{ vars.COACH_MAX_INPUT_TOKENS_PER_REQUEST || '20000' }}
-      COACH_TOOL_TIMEOUT_SECONDS: ${{ vars.COACH_TOOL_TIMEOUT_SECONDS || '10' }}
-      COACH_STREAM_KEEPALIVE_SECONDS: ${{ vars.COACH_STREAM_KEEPALIVE_SECONDS || '15' }}
-      COACH_MAX_COST_USD: ${{ vars.COACH_MAX_COST_USD || '0.05' }}
-      COACH_LOGFIRE_ENABLED: ${{ vars.COACH_LOGFIRE_ENABLED || 'true' }}
       SSM_PARAMETER_PREFIX: ${{ vars.SSM_PARAMETER_PREFIX || '/whoop-ai-coach/prod' }}
       RELEASE_SHA: ${{ needs.resolve-release.outputs.sha }}
       ECR_WEB_REPOSITORY: whoop-ai-coach/web
@@ -234,24 +223,6 @@ jobs:
           import json
           import os
           import shlex
-          import base64
-
-          coach_config = "\n".join(
-              f"{key}={os.environ[key]}"
-              for key in (
-                  "COACH_HISTORY_MAX_BATCHES",
-                  "COACH_HISTORY_MAX_TOKENS",
-                  "COACH_MAX_MODEL_REQUESTS",
-                  "COACH_MAX_TOOL_CALLS",
-                  "COACH_MAX_INPUT_TOKENS",
-                  "COACH_MAX_OUTPUT_TOKENS",
-                  "COACH_MAX_INPUT_TOKENS_PER_REQUEST",
-                  "COACH_TOOL_TIMEOUT_SECONDS",
-                  "COACH_STREAM_KEEPALIVE_SECONDS",
-                  "COACH_MAX_COST_USD",
-                  "COACH_LOGFIRE_ENABLED",
-              )
-          )
 
           args = [
               os.environ["APP_DOMAIN"],
@@ -263,7 +234,6 @@ jobs:
               os.environ["API_IMAGE"],
               os.environ["COMPOSE_CONFIG_B64"],
               os.environ["RELEASE_SHA"],
-              base64.b64encode(coach_config.encode()).decode(),
           ]
           quoted_args = " ".join(shlex.quote(arg) for arg in args)
           command = (

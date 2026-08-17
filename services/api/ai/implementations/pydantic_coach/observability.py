@@ -59,3 +59,42 @@ def configure_observability_from_settings() -> None:
             settings.COACH_LOGFIRE_CAPTURE_MODEL_REQUEST_PARAMETERS
         ),
     )
+
+
+def record_token_usage(
+    *,
+    run_id: object,
+    context_input_tokens: int | None,
+    raw_turn_count: int,
+    visible_turn_count: int,
+    dropped_turn_count: int,
+    model_requests: list[dict[str, object]],
+    model_input_tokens: int,
+    model_output_tokens: int,
+    request_count: int,
+    tool_call_count: int,
+    cost_usd: object,
+) -> None:
+    """Send a content-free token-budget event to Logfire for each run."""
+
+    if not settings.COACH_LOGFIRE_ENABLED or not _configured:
+        return
+    try:
+        import logfire
+
+        logfire.info(
+            "coach_token_usage",
+            run_id=str(run_id),
+            context_provider_input_tokens=context_input_tokens,
+            context_raw_turn_count=raw_turn_count,
+            context_visible_turn_count=visible_turn_count,
+            context_dropped_turn_count=dropped_turn_count,
+            model_requests=model_requests,
+            input_provider_total_tokens=model_input_tokens,
+            output_provider_total_tokens=model_output_tokens,
+            request_count=request_count,
+            tool_call_count=tool_call_count,
+            cost_usd=str(cost_usd),
+        )
+    except Exception:
+        logger.exception("coach_token_usage_logfire_failed run_id=%s", run_id)

@@ -31,7 +31,6 @@ DATABASES = {
         "CONN_MAX_AGE": 60,
     }
 }
-OPENAI_TIMEOUT = 30.0
 COACH_RUNNER_FACTORY = "ai.implementations.pydantic_coach.create_pydantic_coach_runner"
 LOGFIRE_SERVICE_NAME = "whoop-coach"
 
@@ -43,30 +42,9 @@ WHOOP_CLIENT_ID = required_env("WHOOP_CLIENT_ID")
 WHOOP_CLIENT_SECRET = required_env("WHOOP_CLIENT_SECRET")
 WHOOP_TOKEN_ENCRYPTION_KEY = required_env("WHOOP_TOKEN_ENCRYPTION_KEY")
 
-# Operational controls may be tuned without changing an image.
+# The model may be selected at deployment time. Coach limits are defined once
+# in base.py, which this module imports above.
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.6-luna")
-COACH_CONTEXT_RECENT_TURNS = int(os.environ.get("COACH_CONTEXT_RECENT_TURNS", "4"))
-COACH_CONTEXT_RAW_HISTORY_TOKENS = int(
-    os.environ.get("COACH_CONTEXT_RAW_HISTORY_TOKENS", "6000")
-)
-COACH_SUMMARY_MAX_INPUT_TOKENS = int(
-    os.environ.get("COACH_SUMMARY_MAX_INPUT_TOKENS", "4000")
-)
-COACH_SUMMARY_MAX_OUTPUT_TOKENS = int(
-    os.environ.get("COACH_SUMMARY_MAX_OUTPUT_TOKENS", "500")
-)
-COACH_MAX_MODEL_REQUESTS = int(os.environ.get("COACH_MAX_MODEL_REQUESTS", "6"))
-COACH_MAX_TOOL_CALLS = int(os.environ.get("COACH_MAX_TOOL_CALLS", "12"))
-COACH_MAX_INPUT_TOKENS = int(os.environ.get("COACH_MAX_INPUT_TOKENS", "40000"))
-COACH_MAX_OUTPUT_TOKENS = int(os.environ.get("COACH_MAX_OUTPUT_TOKENS", "20000"))
-COACH_MAX_INPUT_TOKENS_PER_REQUEST = int(
-    os.environ.get("COACH_MAX_INPUT_TOKENS_PER_REQUEST", "20000")
-)
-COACH_TOOL_TIMEOUT_SECONDS = float(os.environ.get("COACH_TOOL_TIMEOUT_SECONDS", "10"))
-COACH_STREAM_KEEPALIVE_SECONDS = float(
-    os.environ.get("COACH_STREAM_KEEPALIVE_SECONDS", "15")
-)
-COACH_MAX_COST_USD = os.environ.get("COACH_MAX_COST_USD", "0.05")
 COACH_LOGFIRE_ENABLED = env_bool("COACH_LOGFIRE_ENABLED", True)
 COACH_LOGFIRE_CAPTURE_CONTENT = env_bool("COACH_LOGFIRE_CAPTURE_CONTENT", True)
 COACH_LOGFIRE_CAPTURE_BINARY_CONTENT = env_bool(

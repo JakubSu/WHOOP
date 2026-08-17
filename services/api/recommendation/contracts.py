@@ -38,15 +38,23 @@ class RepetitionPrescription(RecommendationModel):
     note: str = ""
 
 
-class TimedPrescription(RecommendationModel):
+class TimedSetsPrescription(RecommendationModel):
     type: Literal["time"]
     sets: int = Field(ge=1)
+    seconds: int = Field(ge=1)
+    weight: Decimal | None = Field(default=None, ge=0)
+    weight_unit: Literal["lb", "kg"] = "lb"
+    note: str = ""
+
+
+class DurationPrescription(RecommendationModel):
+    type: Literal["duration"]
     seconds: int = Field(ge=1)
     note: str = ""
 
 
 ExercisePrescription = Annotated[
-    RepetitionPrescription | TimedPrescription,
+    RepetitionPrescription | TimedSetsPrescription | DurationPrescription,
     Field(discriminator="type"),
 ]
 

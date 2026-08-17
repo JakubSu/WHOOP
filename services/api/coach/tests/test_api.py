@@ -215,7 +215,7 @@ class CoachConversationApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(runner.requests[0].ai_message_batches, [[{"batch": 1}]])
+        self.assertEqual(runner.requests[0].history.turns[-1].raw_batch, [{"batch": 1}])
         self.assertEqual(response.json()["content"], "Reduce today’s volume.")
         self.assertEqual(
             response.json()["activities"][0]["label"],
@@ -224,6 +224,63 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(conversation.messages.count(), 3)
         saved = conversation.messages.get(content="Reduce today’s volume.")
         self.assertEqual(saved.ai_message_batch, [{"batch": 2}])
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_message_run_uses_four_raw_turns_and_older_visible_turns(self) -> None:
+        """Older displayed exchanges are separate from the newest private batches."""
+
+        conversation = CoachConversation.objects.create(user=self.user)
+        for index in range(6):
+            user_message = CoachMessage.objects.create(
+                conversation=conversation,
+                role=CoachMessage.Role.USER,
+                content=f"User {index}",
+            )
+            assistant_message = CoachMessage.objects.create(
+                conversation=conversation,
+                role=CoachMessage.Role.ASSISTANT,
+                content=f"Coach {index}",
+                ai_message_batch=[{"batch": index}],
+            )
+            message_time = timezone.now() + timedelta(seconds=index * 2)
+            CoachMessage.objects.filter(pk=user_message.pk).update(
+                created_at=message_time
+            )
+            CoachMessage.objects.filter(pk=assistant_message.pk).update(
+                created_at=message_time + timedelta(seconds=1)
+            )
+
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages",
+            {"content": "New request"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        request = runner.requests[0]
+        self.assertEqual(
+            [turn.raw_batch for turn in request.history.turns if turn.raw_batch],
+            [[{"batch": 2}], [{"batch": 3}], [{"batch": 4}], [{"batch": 5}]],
+        )
+        self.assertEqual(
+            [
+                (turn.user_content, turn.assistant_content)
+                for turn in request.history.turns[:2]
+            ],
+            [("User 0", "Coach 0"), ("User 1", "Coach 1")],
+        )
+        self.assertEqual(
+            [
+                (turn.user_content, turn.assistant_content)
+                for turn in request.history.turns[2:]
+            ],
+            [
+                ("User 2", "Coach 2"),
+                ("User 3", "Coach 3"),
+                ("User 4", "Coach 4"),
+                ("User 5", "Coach 5"),
+            ],
+        )
 
     @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
     def test_stream_uses_owned_events_and_never_leaks_runner_labels(self) -> None:
@@ -379,6 +436,7 @@ class CoachConversationApiTests(TestCase):
         action = events[-1]["data"]["message"]["ui_actions"][0]
         self.assertEqual(action["type"], "exercise_resolution")
         self.assertEqual(action["status"], "pending")
+        self.assertEqual(action["payload"]["original_request"], "Add a landmine press.")
         self.assertTrue(UiAction.objects.filter(id=action["id"]).exists())
 
     @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
@@ -392,10 +450,36 @@ class CoachConversationApiTests(TestCase):
         action = UiAction.objects.create(
             message=message,
             type="exercise_resolution",
-            payload={"requested_name": "Landmine press", "draft_exercise": {}},
+            payload={
+                "requested_name": "Landmine press",
+                "draft_exercise": {},
+                "original_request": "Add a landmine press to my upper-body workout.",
+            },
         )
         exercise = Exercise.objects.create(user_id=str(self.user.id), name="Landmine press")
-        runner.events = [RunCompleted(CoachRunResult(content="Added.", ai_message_batch=[]))]
+        runner.events = [
+            RunCompleted(
+                CoachRunResult(
+                    content="Choose another exercise.",
+                    ai_message_batch=[],
+                    ui_actions=[
+                        ExerciseResolutionUiActionDraft.model_validate(
+                            {
+                                "type": "exercise_resolution",
+                                "payload": {
+                                    "requested_name": "Hip airplane",
+                                    "draft_exercise": {
+                                        "name": "Hip airplane",
+                                        "prescription_type": "timed",
+                                        "muscle_group": "glutes",
+                                    },
+                                },
+                            }
+                        )
+                    ],
+                )
+            )
+        ]
         response = self.client.post(
             f"/api/v1/coach/conversations/{conversation.id}/ui-actions/{action.id}/resolve/stream",
             {"exercise_id": str(exercise.id)},
@@ -415,6 +499,18 @@ class CoachConversationApiTests(TestCase):
         self.assertEqual(action.status, UiAction.Status.RESOLVED)
         self.assertEqual(action.resolution["exercise_id"], str(exercise.id))
         self.assertIn(str(exercise.id), runner.requests[-1].content)
+        self.assertIn(
+            "Add a landmine press to my upper-body workout.",
+            runner.requests[-1].content,
+        )
+        self.assertIn(
+            "There may be no existing recommendation", runner.requests[-1].content
+        )
+        next_action = UiAction.objects.exclude(id=action.id).get()
+        self.assertEqual(
+            next_action.payload["original_request"],
+            "Add a landmine press to my upper-body workout.",
+        )
         self.assertEqual(
             CoachMessage.objects.filter(
                 conversation=conversation, role=CoachMessage.Role.USER

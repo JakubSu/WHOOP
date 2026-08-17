@@ -13,8 +13,14 @@ from django.db.models import Exists, OuterRef, Prefetch, Q, Subquery
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from ai.runner import CoachActivity, CoachRunResult
+from ai.runner import (
+    CoachActivity,
+    CoachConversationHistory,
+    CoachHistoryTurn,
+    CoachRunResult,
+)
 from coach.models import CoachConversation, CoachMessage, UiAction
+from coach.view_context import CoachViewContext
 
 CONVERSATION_PAGE_SIZE = 20
 MESSAGE_PAGE_SIZE = 30
@@ -137,22 +143,41 @@ def list_messages(
     return Page(rows, next_cursor)
 
 
-def load_ai_message_batches(
-    conversation: CoachConversation,
-) -> list[list[dict[str, Any]]]:
-    """Loads completed assistant batches for reconstruction of private model history."""
+def load_context_history(conversation: CoachConversation) -> CoachConversationHistory:
+    """Load four raw turns and older displayed user/assistant exchanges."""
 
-    rows = list(
+    raw_rows = list(
         CoachMessage.objects.filter(
             conversation=conversation,
             role=CoachMessage.Role.ASSISTANT,
             ai_message_batch__isnull=False,
         )
         .order_by("-created_at", "-id")[: int(settings.COACH_CONTEXT_RECENT_TURNS)]
-        .values_list("ai_message_batch", flat=True)
+        .values_list("id", "ai_message_batch")
     )
-    rows.reverse()
-    return rows
+    raw_rows.reverse()
+    raw_batches_by_message_id = {row_id: batch for row_id, batch in raw_rows}
+    turns: list[CoachHistoryTurn] = []
+    pending_user: str | None = None
+    for message in (
+        CoachMessage.objects.filter(conversation=conversation)
+        .only("role", "content", "ai_message_batch", "created_at", "id")
+        .order_by("created_at", "id")
+    ):
+        if message.role == CoachMessage.Role.USER:
+            pending_user = message.content
+            continue
+        if pending_user is None or message.ai_message_batch is None:
+            continue
+        turns.append(CoachHistoryTurn(
+            user_content=pending_user,
+            assistant_content=message.content,
+            raw_batch=raw_batches_by_message_id.get(message.id),
+        ))
+        pending_user = None
+    return CoachConversationHistory(
+        turns=turns,
+    )
 
 
 @transaction.atomic
@@ -165,6 +190,8 @@ def save_completed_turn(
     user_content: str,
     result: CoachRunResult,
     activities: list[CoachActivity] | None = None,
+    ui_action_original_request: str | None = None,
+    view_context: CoachViewContext | None = None,
 ) -> CoachMessage:
     """Atomically persists a completed user turn and its assistant response."""
 
@@ -173,6 +200,7 @@ def save_completed_turn(
         conversation=conversation,
         role=CoachMessage.Role.USER,
         content=user_content,
+        view_context=view_context.as_dict() if view_context is not None else None,
     )
     assistant_message = CoachMessage.objects.create(
         id=assistant_message_id,
@@ -182,12 +210,17 @@ def save_completed_turn(
         ai_message_batch=result.ai_message_batch,
         activity_log=[item.as_dict() for item in (activities or result.activities)],
     )
+    original_request = (ui_action_original_request or user_content).strip()[:2_000]
     UiAction.objects.bulk_create(
         [
             UiAction(
                 message=assistant_message,
                 type=action.type,
-                payload=action.payload.model_dump(mode="json"),
+                payload={
+                    **action.payload.model_dump(mode="json"),
+                    "original_request": original_request,
+                    "view_context": view_context.as_dict() if view_context is not None else None,
+                },
             )
             for action in result.ui_actions
         ]

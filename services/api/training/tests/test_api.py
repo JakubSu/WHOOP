@@ -246,7 +246,7 @@ class MinimalTrainingApiTests(TestCase):
         )
         exercise = Exercise.objects.create(
             name="Plank",
-            prescription_type=Exercise.PrescriptionType.TIMED,
+            prescription_type=Exercise.PrescriptionType.TIMED_SETS,
             user_id=str(self.user.id),
         )
 

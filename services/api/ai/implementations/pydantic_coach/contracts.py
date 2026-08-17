@@ -8,10 +8,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
-from ai.runner import CoachActivity
+from ai.runner import CoachActivity, CoachConversationHistory
 from coach.contracts.ui_actions import UiActionDraft
-
-from .memory import ConversationMemory
+from coach.view_context import CoachViewContext
 
 
 @dataclass(frozen=True)
@@ -19,9 +18,7 @@ class CoachRuntimeLimits:
     """Validated per-run limits loaded from trusted Django settings."""
 
     recent_turns: int
-    raw_history_tokens: int
-    summary_input_tokens: int
-    summary_output_tokens: int
+    context_token_reserve: int
     request_limit: int
     tool_calls_limit: int
     input_tokens_limit: int
@@ -33,9 +30,7 @@ class CoachRuntimeLimits:
     def __post_init__(self) -> None:
         for name in (
             "recent_turns",
-            "raw_history_tokens",
-            "summary_input_tokens",
-            "summary_output_tokens",
+            "context_token_reserve",
             "request_limit",
             "tool_calls_limit",
             "input_tokens_limit",
@@ -48,6 +43,10 @@ class CoachRuntimeLimits:
             raise ValueError("cost_limit_usd must be greater than zero.")
         if self.tool_timeout_seconds <= 0:
             raise ValueError("tool_timeout_seconds must be greater than zero.")
+        if self.context_token_reserve >= self.per_request_input_tokens_limit:
+            raise ValueError(
+                "context_token_reserve must be smaller than per_request_input_tokens_limit."
+            )
 
 
 @dataclass
@@ -58,6 +57,11 @@ class CoachRunState:
     activities: dict[str, CoachActivity] = field(default_factory=dict)
     recommendation_id: uuid.UUID | None = None
     ui_actions: list[UiActionDraft] = field(default_factory=list)
+    context_composed: bool = False
+    context_input_tokens: int | None = None
+    context_raw_turn_count: int = 0
+    context_visible_turn_count: int = 0
+    context_dropped_turn_count: int = 0
 
     def publish(self, activity: CoachActivity) -> None:
         self.activities[activity.id] = activity
@@ -93,4 +97,5 @@ class CoachDeps:
     run_id: uuid.UUID
     limits: CoachRuntimeLimits
     state: CoachRunState
-    memory: ConversationMemory = field(default_factory=ConversationMemory)
+    history: CoachConversationHistory = field(default_factory=CoachConversationHistory)
+    view_context: CoachViewContext | None = None

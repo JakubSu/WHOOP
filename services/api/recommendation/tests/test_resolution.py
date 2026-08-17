@@ -27,7 +27,7 @@ class RecommendationResolutionTests(TestCase):
         self.exercise = Exercise.objects.create(
             name="Interval",
             muscle_group=Exercise.MuscleGroup.QUADS,
-            prescription_type=Exercise.PrescriptionType.TIMED,
+            prescription_type=Exercise.PrescriptionType.TIMED_SETS,
         )
 
     def test_accepts_new_workout_and_timed_exercise_via_local_reference(self) -> None:

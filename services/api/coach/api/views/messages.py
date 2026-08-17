@@ -46,6 +46,7 @@ from coach.presentation import (
     safe_activity_presentation,
     updated_messages_for_message,
 )
+from coach.view_context import InvalidCoachViewContext, resolve_view_context
 
 logger = logging.getLogger(__name__)
 
@@ -115,11 +116,14 @@ class MessageCollectionAPIView(APIView):
         serializer = MessageCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         conversation = _conversation_or_404(request, conversation_id)
-        content = cast(dict[str, Any], serializer.validated_data)["content"]
-        run_request = _run_request(request, conversation, content)
+        validated_data = cast(dict[str, Any], serializer.validated_data)
+        content = validated_data["content"]
+        run_request = _run_request(
+            request, conversation, content, validated_data.get("view_context")
+        )
+        visible_content = _visible_content(request, content)
         try:
-            runner = get_coach_runner()
-            result = async_to_sync(runner.run)(run_request)
+            result = async_to_sync(get_coach_runner().run)(run_request)
         except CoachRunnerUnavailable as exc:
             raise CoachUnavailable() from exc
         except Exception as exc:
@@ -132,17 +136,10 @@ class MessageCollectionAPIView(APIView):
             conversation=conversation,
             user_message_id=uuid.uuid4(),
             assistant_message_id=uuid.uuid4(),
-            user_content=run_request.visible_content or content,
+            user_content=visible_content,
             result=result,
+            view_context=run_request.view_context,
         )
-        try:
-            async_to_sync(runner.maintain_memory)(
-                conversation_id=conversation.id, user_id=request.user.id
-            )
-        except Exception:  # noqa: BLE001 - memory cannot invalidate a saved turn
-            logger.exception(
-                "coach_memory_maintenance_failed conversation_id=%s", conversation.id
-            )
         return Response(
             CoachMessageSerializer(message).data, status=status.HTTP_201_CREATED
         )
@@ -172,8 +169,12 @@ class MessageStreamAPIView(APIView):
         serializer = MessageCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         conversation = _conversation_or_404(request, conversation_id)
-        content = cast(dict[str, Any], serializer.validated_data)["content"]
-        run_request = _run_request(request, conversation, content)
+        validated_data = cast(dict[str, Any], serializer.validated_data)
+        content = validated_data["content"]
+        run_request = _run_request(
+            request, conversation, content, validated_data.get("view_context")
+        )
+        visible_content = _visible_content(request, content)
         assistant_message_id = uuid.uuid4()
         user_message_id = uuid.uuid4()
 
@@ -201,8 +202,7 @@ class MessageStreamAPIView(APIView):
             yield event("thinking_started", {"label": "Thinking…"})
             thinking_active = True
             try:
-                runner = get_coach_runner()
-                runner_events = runner.stream(run_request)
+                runner_events = get_coach_runner().stream(run_request)
                 async for runner_event in runner_events:
                     if isinstance(runner_event, ThinkingChanged):
                         if runner_event.active and not thinking_active:
@@ -253,19 +253,14 @@ class MessageStreamAPIView(APIView):
                             conversation=conversation,
                             user_message_id=user_message_id,
                             assistant_message_id=assistant_message_id,
-                            user_content=run_request.visible_content or content,
+                            user_content=visible_content,
                             result=result,
                             activities=terminal_activities,
+                            ui_action_original_request=getattr(
+                                request, "_ui_action_original_request", None
+                            ),
+                            view_context=run_request.view_context,
                         )
-                        try:
-                            await runner.maintain_memory(
-                                conversation_id=conversation.id, user_id=request.user.id
-                            )
-                        except Exception:  # noqa: BLE001 - memory cannot invalidate a saved turn
-                            logger.exception(
-                                "coach_memory_maintenance_failed conversation_id=%s",
-                                conversation.id,
-                            )
                         payload, transitions, updated_messages = await sync_to_async(
                             _completed_message_payload, thread_sensitive=True
                         )(
@@ -334,17 +329,33 @@ class MessageStreamAPIView(APIView):
         return response
 
 
-def _run_request(request: Request, conversation: Any, content: str) -> CoachRunRequest:
+def _run_request(
+    request: Request,
+    conversation: Any,
+    content: str,
+    submitted_view_context: dict[str, Any] | None,
+) -> CoachRunRequest:
     """Builds one runner request from the current conversation and user message."""
 
+    try:
+        view_context = resolve_view_context(request.user, submitted_view_context)
+    except InvalidCoachViewContext as exc:
+        raise ValidationError({"view_context": str(exc)}) from exc
+    context_history = services.load_context_history(conversation)
     return CoachRunRequest(
         run_id=uuid.uuid4(),
         conversation_id=conversation.id,
         user_id=request.user.id,
         content=content,
-        ai_message_batches=services.load_ai_message_batches(conversation),
-        visible_content=getattr(request, "_ui_action_visible_content", None),
+        history=context_history,
+        view_context=view_context,
     )
+
+
+def _visible_content(request: Request, content: str) -> str:
+    """Returns presentation text without exposing continuation instructions."""
+
+    return getattr(request, "_ui_action_visible_content", None) or content
 
 
 def _expire_failed_run(user: Any, run_id: uuid.UUID) -> None:

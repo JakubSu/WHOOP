@@ -87,3 +87,24 @@ class MessageCreateSerializer(serializers.Serializer):
     """Validates the new user message sent to the coach."""
 
     content = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    view_context = serializers.JSONField(required=False, allow_null=True)
+
+    def validate_view_context(self, value: object) -> dict[str, object] | None:
+        if value is None:
+            return None
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
+        kind = value.get("kind")
+        if not isinstance(kind, str):
+            raise serializers.ValidationError("Must be a valid workout or week context.")
+        expected = {
+            "workout": {"kind", "workout_id"},
+            "week": {"kind", "week_start_date"},
+        }.get(kind)
+        if expected is None or set(value) != expected:
+            raise serializers.ValidationError("Must be a valid workout or week context.")
+        if kind == "workout":
+            field = serializers.UUIDField()
+            return {"kind": kind, "workout_id": field.to_internal_value(value["workout_id"])}
+        field = serializers.DateField()
+        return {"kind": kind, "week_start_date": field.to_internal_value(value["week_start_date"])}

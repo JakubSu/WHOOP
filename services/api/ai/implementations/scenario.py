@@ -106,9 +106,6 @@ class ScenarioCoachRunner:
         finally:
             execution.cancel()
 
-    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        """Deterministic scenario runs do not create model-backed memory."""
-
     def _execute(
         self,
         request: CoachRunRequest,

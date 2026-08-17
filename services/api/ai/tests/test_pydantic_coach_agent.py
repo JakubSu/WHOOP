@@ -28,9 +28,7 @@ class PydanticCoachAgentTests(SimpleTestCase):
         with self.assertRaises(ValueError):
             CoachRuntimeLimits(
                 recent_turns=0,
-                raw_history_tokens=6_000,
-                summary_input_tokens=4_000,
-                summary_output_tokens=500,
+                context_token_reserve=4_000,
                 request_limit=6,
                 tool_calls_limit=12,
                 input_tokens_limit=24_000,
@@ -44,9 +42,7 @@ class PydanticCoachAgentTests(SimpleTestCase):
         agent = create_coach_agent(model_name="gpt-5.6-luna", tool_timeout_seconds=10)
         limits = CoachRuntimeLimits(
             recent_turns=4,
-            raw_history_tokens=6_000,
-            summary_input_tokens=4_000,
-            summary_output_tokens=500,
+            context_token_reserve=4_000,
             request_limit=6,
             tool_calls_limit=12,
             input_tokens_limit=24_000,

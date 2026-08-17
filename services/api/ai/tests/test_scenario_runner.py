@@ -54,7 +54,6 @@ class ScenarioCoachRunnerTests(TransactionTestCase):
             conversation_id=self.conversation.id,
             user_id=self.user.id,
             content=content,
-            ai_message_batches=[],
         )
 
     def workout(self, name: str = "First workout") -> Workout:

@@ -15,6 +15,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
+RUN python manage.py collectstatic --noinput
+
+RUN chmod +x /app/docker-entrypoint.sh
+
 EXPOSE 8000
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 CMD ["gunicorn", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "config.asgi:application"]

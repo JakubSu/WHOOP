@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 
 from coach.contracts.ui_actions import UiActionDraft
+from coach.view_context import CoachViewContext
 
 ActivityKind = Literal[
     "recovery_data", "training_data", "workout_data", "recommendation", "other"
@@ -39,6 +40,22 @@ class CoachActivity:
 
 
 @dataclass(frozen=True)
+class CoachHistoryTurn:
+    """One complete exchange with an optional model-protocol representation."""
+
+    user_content: str
+    assistant_content: str
+    raw_batch: list[dict[str, Any]] | None = None
+
+
+@dataclass(frozen=True)
+class CoachConversationHistory:
+    """Chronological complete turns used to construct one Coach prompt."""
+
+    turns: list[CoachHistoryTurn] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class CoachRunRequest:
     """The API-owned input required to execute one coach turn."""
 
@@ -46,8 +63,8 @@ class CoachRunRequest:
     conversation_id: uuid.UUID
     user_id: uuid.UUID
     content: str
-    ai_message_batches: list[list[dict[str, Any]]]
-    visible_content: str | None = None
+    history: CoachConversationHistory = field(default_factory=CoachConversationHistory)
+    view_context: CoachViewContext | None = None
 
 
 @dataclass(frozen=True)
@@ -112,8 +129,6 @@ class CoachRunner(Protocol):
 
     def stream(self, request: CoachRunRequest) -> AsyncIterable[CoachRunnerEvent]: ...
 
-    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None: ...
-
 
 class CoachRunnerUnavailable(RuntimeError):
     """Raised when the Coach API is called without a configured runner."""
@@ -132,9 +147,6 @@ class UnavailableCoachRunner:
 
         raise CoachRunnerUnavailable("The coach agent is not configured.")
         yield TextDelta(delta="")  # pragma: no cover - makes this an async generator
-
-    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        raise CoachRunnerUnavailable("The coach agent is not configured.")
 
 
 def create_unavailable_runner() -> CoachRunner:

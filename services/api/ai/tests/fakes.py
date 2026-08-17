@@ -1,7 +1,6 @@
 """Deterministic runner doubles used by Coach API tests."""
 
 import asyncio
-import uuid
 from collections.abc import AsyncIterator
 
 from ai.runner import CoachRunnerEvent, CoachRunRequest, CoachRunResult
@@ -29,9 +28,6 @@ class ScriptedRunner:
             await asyncio.sleep(self.stream_delay)
         for event in self.events:
             yield event
-
-    async def maintain_memory(self, *, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        """Test double intentionally has no private-memory side effect."""
 
 
 runner = ScriptedRunner()

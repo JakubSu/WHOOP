@@ -13,7 +13,7 @@ class ExerciseDraft(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     name: str = Field(min_length=1, max_length=200)
-    prescription_type: Literal["strength", "timed"]
+    prescription_type: Literal["strength", "timed_sets", "timed"]
     muscle_group: Literal[
         "chest",
         "back",
@@ -42,6 +42,7 @@ class ExerciseResolutionPayload(BaseModel):
 
     requested_name: str = Field(min_length=1, max_length=200)
     draft_exercise: ExerciseDraft
+    original_request: str = Field(default="", max_length=2_000)
 
 
 class ExerciseResolutionUiActionDraft(BaseModel):

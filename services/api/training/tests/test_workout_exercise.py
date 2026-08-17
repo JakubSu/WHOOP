@@ -67,7 +67,7 @@ class WorkoutExerciseServiceTests(TestCase):
             user_id=self.user_id,
         )
         exercise = services.create_exercise(
-            {"name": "Plank", "prescription_type": "timed", "default_time": 45},
+            {"name": "Plank", "prescription_type": "timed_sets", "default_time": 45},
             user_id=self.user_id,
         )
 
@@ -86,6 +86,33 @@ class WorkoutExerciseServiceTests(TestCase):
         self.assertEqual(workout_exercise.time, 45)
         self.assertEqual(workout_exercise.weight, Decimal("10.00"))
         self.assertEqual(workout_exercise.weight_unit, "kg")
+
+    def test_duration_workout_exercise_accepts_time_only(self) -> None:
+        workout = services.create_workout(
+            {"name": "Cardio", "date": "2026-06-09"}, user_id=self.user_id
+        )
+        exercise = services.create_exercise(
+            {"name": "Run", "prescription_type": "timed", "default_time": 600},
+            user_id=self.user_id,
+        )
+
+        workout_exercise = services.create_workout_exercise(
+            {"workout": str(workout.id), "exercise": str(exercise.id), "time": 600},
+            user_id=self.user_id,
+        )
+
+        self.assertEqual(workout_exercise.time, 600)
+
+        with self.assertRaises(ValueError):
+            services.create_workout_exercise(
+                {
+                    "workout": str(workout.id),
+                    "exercise": str(exercise.id),
+                    "time": 600,
+                    "sets": 2,
+                },
+                user_id=self.user_id,
+            )
 
     def test_create_workout_with_training_plan(self) -> None:
         training_plan = services.create_training_plan(

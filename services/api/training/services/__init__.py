@@ -5,6 +5,7 @@ from training.services.exercise import (
     list_exercises,
     update_exercise,
 )
+from training.services.shared_exercise_bank import sync_shared_exercise_bank
 from training.services.training_plan import (
     create_training_plan,
     delete_training_plan,
@@ -50,6 +51,7 @@ __all__ = [
     "list_workout_exercises_for_workout",
     "list_workouts",
     "list_workouts_page",
+    "sync_shared_exercise_bank",
     "update_exercise",
     "update_training_plan",
     "update_workout",

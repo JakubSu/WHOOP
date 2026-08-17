@@ -10,6 +10,8 @@ from django.test import SimpleTestCase, override_settings
 
 from ai.implementations.echo import EchoCoachRunner
 from ai.runner import (
+    CoachConversationHistory,
+    CoachHistoryTurn,
     CoachRunRequest,
     RunCompleted,
     TextDelta,
@@ -38,7 +40,9 @@ class EchoCoachRunnerTests(SimpleTestCase):
             conversation_id=uuid.uuid4(),
             user_id=uuid.uuid4(),
             content="Repeat this.",
-            ai_message_batches=[[{"private": "history"}]],
+            history=CoachConversationHistory(
+                turns=[CoachHistoryTurn("", "", raw_batch=[{"private": "history"}])],
+            ),
         )
 
     def test_run_echoes_the_new_user_message(self) -> None:

@@ -109,9 +109,18 @@ def _validate_workout_exercise_prescription(payload: dict[str, Any]) -> None:
         return
 
     prescription_type = exercise.prescription_type
+    if prescription_type == Exercise.PrescriptionType.TIMED_SETS:
+        if payload.get("reps", 0) > 0:
+            raise ValueError("Timed-set exercises can only use sets, time, weight, and note.")
+        return
+
     if prescription_type == Exercise.PrescriptionType.TIMED:
-        if payload.get("sets", 0) > 0 or payload.get("reps", 0) > 0:
-            raise ValueError("Timed exercises can only use time, weight, and note.")
+        if (
+            payload.get("sets", 0) > 0
+            or payload.get("reps", 0) > 0
+            or payload.get("weight") is not None
+        ):
+            raise ValueError("Duration exercises can only use time and note.")
         return
 
     if payload.get("time", 0) > 0:
