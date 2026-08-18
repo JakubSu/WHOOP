@@ -9,8 +9,12 @@ export const COACH_RECOMMENDATION_CARD_TARGET =
   '[data-tour="coach-recommendation-card"]'
 export const COACH_GENERATED_WORKOUT_TARGET =
   '[data-tour="coach-generated-workout-recommendation"]'
+export const COACH_REPLACEMENT_RECOMMENDATION_TARGET =
+  'article[data-tour="coach-recommendation-message"]:last-of-type [data-tour="coach-replacement-recommendation"]'
 export const COACH_REPLACEMENT_ACCEPT_ALL_TARGET =
-  '[data-tour="coach-replacement-recommendation"] [data-tour="coach-accept-all"]'
+  'article[data-tour="coach-recommendation-message"]:last-of-type [data-tour="coach-replacement-recommendation"] [data-tour="coach-accept-all"]'
+const COACH_CREATE_EXERCISE_TARGET =
+  'article:has([data-tour="create-missing-exercise"]):last-of-type [data-tour="create-missing-exercise"]'
 export type CoachTourActions = {
   openCoach: () => void
   closeCoach: () => void
@@ -170,7 +174,7 @@ export function createProductTourSteps({
       },
       popover: {
         ...popover('Accept the proposed workout', 'Review the proposed workout, then click Accept all to add it to your week.'),
-        ...(isDesktop ? {} : { side: 'top' as const }),
+        side: isDesktop ? 'left' as const : 'top' as const,
         showButtons: ['close'],
       },
     },
@@ -198,9 +202,18 @@ export function createProductTourSteps({
       popover: { ...popover('Wait for the replacement response', 'The Coach is checking the requested exercise and will explain what to do when it is not in your library.'), showButtons: ['close'] },
     },
     {
-      element: '[data-tour="create-missing-exercise"]',
+      element: COACH_CREATE_EXERCISE_TARGET,
       advanceOnClick: true,
-      popover: { ...popover('Create a new exercise', 'Click Create new exercise to open the exercise form.'), showButtons: ['previous', 'close'] },
+      onHighlighted: () => {
+        document
+          .querySelector<HTMLElement>(COACH_CREATE_EXERCISE_TARGET)
+          ?.scrollIntoView({ behavior: 'auto', block: 'center' })
+      },
+      popover: {
+        ...popover('Create a new exercise', 'Click Create new exercise to open the exercise form.'),
+        side: 'top' as const,
+        showButtons: ['previous', 'close'],
+      },
     },
     {
       element: '[data-tour="create-exercise-submit"]',
@@ -210,6 +223,16 @@ export function createProductTourSteps({
       element: '[data-tour="coach-messages"]',
       waitForElement: COACH_RESPONSE_WAIT_MS,
       popover: { ...popover('Wait for the replacement workout', 'The Coach is applying your new exercise and preparing an updated recommendation.'), showButtons: ['close'] },
+    },
+    {
+      element: COACH_REPLACEMENT_RECOMMENDATION_TARGET,
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      onHighlightStarted: () => {
+        document
+          .querySelector<HTMLElement>(COACH_REPLACEMENT_RECOMMENDATION_TARGET)
+          ?.scrollIntoView({ behavior: 'auto', block: 'center' })
+      },
+      popover: popover('Review the updated Coach response', 'The updated recommendation includes your new exercise. Review it, then click Next.'),
     },
     {
       element: COACH_REPLACEMENT_ACCEPT_ALL_TARGET,

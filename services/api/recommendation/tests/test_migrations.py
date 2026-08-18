@@ -10,8 +10,14 @@ from django.test import TransactionTestCase
 class OneActiveRecommendationPerUserMigrationTests(TransactionTestCase):
     """Ensures migration 0015 repairs existing duplicate active recommendations."""
 
-    migrate_from = [("recommendation", "0014_rename_presentation_snapshot")]
-    migrate_to = [("recommendation", "0015_one_active_recommendation_per_user")]
+    migrate_from = [
+        ("users", "0002_user_demo_account"),
+        ("recommendation", "0014_rename_presentation_snapshot"),
+    ]
+    migrate_to = [
+        ("users", "0002_user_demo_account"),
+        ("recommendation", "0015_one_active_recommendation_per_user"),
+    ]
 
     @classmethod
     def setUpClass(cls) -> None:

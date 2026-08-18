@@ -20,6 +20,7 @@ export function CoachOverlay() {
   const desktop = useCoachPanel();
   const {
     registerCoachActions,
+    refreshProductTour,
     guidedCoachStage,
     notifyGuidedCoachSubmitted,
     notifyGuidedCoachCompleted,
@@ -47,6 +48,10 @@ export function CoachOverlay() {
   prepareForPrependRef.current = autoScroll.prepareForPrepend;
   const label = labelForCoachContext(currentContext);
   const isBusy = chat.isLoading || chat.isStreaming;
+  const handleCoachScroll = useCallback(() => {
+    autoScroll.onScroll();
+    refreshProductTour();
+  }, [autoScroll.onScroll, refreshProductTour]);
 
   useEffect(() => {
     if (
@@ -170,7 +175,7 @@ export function CoachOverlay() {
         notifyGuidedCoachSubmitted();
         void chat.send();
       }}
-      onScroll={autoScroll.onScroll}
+      onScroll={handleCoachScroll}
       onLoadOlder={() => void chat.loadOlderMessages()}
       onJumpToLatest={autoScroll.scrollToLatest}
       isBusy={isBusy}

@@ -17,11 +17,12 @@ const WORKSPACE_READY_RETRY_DELAY_MS = 200
 const MAX_WORKSPACE_READY_ATTEMPTS = 30
 const DRIVER_TARGET_WAIT_MS = 1_000
 const NEXT_PAINT_DELAY_MS = 0
-const DEMO_TOUR_END_TITLE = 'You’re ready to train with WHOOP'
+const DEMO_TOUR_END_TITLE = 'You’re ready to train!'
 
 type ProductTourContextValue = {
   startTour: () => void
   replayTour: () => void
+  refreshProductTour: () => void
   registerCoachActions: (actions: CoachTourActions | null) => void
   guidedCoachStage: GuidedCoachStage
   notifyGuidedCoachSubmitted: () => void
@@ -47,6 +48,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const guidedCoachStartRef = useRef<Promise<boolean> | null>(null)
   const guidedWorkoutDateRef = useRef<string | null>(null)
   const guidedWorkoutIdRef = useRef<string | null>(null)
+  const tourRefreshFrameRef = useRef<number | null>(null)
   const [guidedCoachStage, setGuidedCoachStage] = useState<GuidedCoachStage>(null)
   const previousGuidedCoachStageRef = useRef<GuidedCoachStage>(null)
 
@@ -153,6 +155,14 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     coachActionsRef.current = actions
   }, [])
 
+  const refreshProductTour = useCallback(() => {
+    if (tourRefreshFrameRef.current !== null) return
+    tourRefreshFrameRef.current = window.requestAnimationFrame(() => {
+      tourRefreshFrameRef.current = null
+      if (driverRef.current?.isActive()) driverRef.current.refresh()
+    })
+  }, [])
+
   const notifyGuidedRecommendationExpanded = useCallback(() => {
     const tour = driverRef.current
     if (
@@ -243,7 +253,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, startTour, status, user])
 
   return (
-    <ProductTourContext.Provider value={{ startTour, replayTour, registerCoachActions, guidedCoachStage,
+    <ProductTourContext.Provider value={{ startTour, replayTour, refreshProductTour, registerCoachActions, guidedCoachStage,
       notifyGuidedCoachSubmitted: () => setGuidedCoachStage((stage) => stage === 'initial_ready' ? 'waiting_initial' : stage === 'followup_ready' ? 'waiting_followup' : stage),
       notifyGuidedCoachCompleted: (hasExerciseResolution) => setGuidedCoachStage((stage) => stage === 'waiting_initial' ? 'review_initial' : stage === 'waiting_followup' ? hasExerciseResolution ? 'exercise_resolution' : 'unavailable' : stage === 'waiting_resolution' ? 'review_replacement' : stage),
       notifyGuidedExerciseResolutionStarted: () => setGuidedCoachStage((stage) => stage === 'exercise_resolution' ? 'waiting_resolution' : stage),
