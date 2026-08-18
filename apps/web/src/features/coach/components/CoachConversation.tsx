@@ -1,4 +1,4 @@
-import { type ReactNode, type RefObject } from "react";
+import { type RefObject } from "react";
 import { CoachComposer } from "./CoachComposer";
 import { CoachMessageList } from "./CoachMessageList";
 import { CoachSheetHeader } from "./CoachSheetHeader";
@@ -35,7 +35,6 @@ type CoachConversationProps = {
     method: "created" | "selected",
   ) => void;
   onDismissUiAction: (actionId: string) => void;
-  guide?: ReactNode;
 };
 
 export function CoachConversation(props: CoachConversationProps) {
@@ -67,7 +66,6 @@ export function CoachConversation(props: CoachConversationProps) {
         onResolveUiAction={props.onResolveUiAction}
         onDismissUiAction={props.onDismissUiAction}
       />
-      {props.guide}
       <CoachComposer
         value={props.value}
         isLoading={props.isLoading}

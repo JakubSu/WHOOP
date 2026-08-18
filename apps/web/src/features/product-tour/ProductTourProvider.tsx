@@ -3,8 +3,9 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../auth/store/authStore'
-import { createProductTourSteps, type CoachTourActions } from './tourSteps'
+import { COACH_GENERATED_WORKOUT_TARGET, createProductTourSteps, type CoachTourActions } from './tourSteps'
 import { shouldAutoStartProductTour } from './tourEligibility'
+import { addDaysIso, getLocalDateIso } from '../training/services/formatters'
 import {
   clearProductTourCompletion,
   hasCompletedProductTour,
@@ -25,9 +26,12 @@ type ProductTourContextValue = {
   notifyGuidedCoachSubmitted: () => void
   notifyGuidedCoachCompleted: (hasExerciseResolution: boolean) => void
   notifyGuidedExerciseResolutionStarted: () => void
+  notifyGuidedRecommendationExpanded: () => void
+  notifyGuidedRecommendationAccepted: () => void
+  notifyGuidedWorkoutOpened: () => void
 }
 
-export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'complete' | 'unavailable'
+export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'review_initial' | 'waiting_initial_accept' | 'week_ready' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'review_replacement' | 'updated_workout' | 'complete' | 'unavailable'
 
 const ProductTourContext = createContext<ProductTourContextValue | null>(null)
 
@@ -40,7 +44,9 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const driverRef = useRef<Driver | null>(null)
   const autoStartAttemptedRef = useRef<string | null>(null)
   const guidedCoachStartRef = useRef<Promise<boolean> | null>(null)
+  const guidedWorkoutDateRef = useRef<string | null>(null)
   const [guidedCoachStage, setGuidedCoachStage] = useState<GuidedCoachStage>(null)
+  const previousGuidedCoachStageRef = useRef<GuidedCoachStage>(null)
 
   const completeTour = useCallback(() => {
     if (user) markProductTourCompleted(user.id)
@@ -57,19 +63,22 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
         actions: () => coachActionsRef.current ? ({
           ...coachActionsRef.current,
           goToWeekForTour: () => {
-            const date = document.querySelector<HTMLElement>('[data-tour-workout-date]')?.dataset.tourWorkoutDate
+            const date = guidedWorkoutDateRef.current ?? document.querySelector<HTMLElement>('[data-tour-workout-date]')?.dataset.tourWorkoutDate
             if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
           },
+          notifyGuidedRecommendationExpanded: () => setGuidedCoachStage((stage) => stage === 'review_initial' ? 'waiting_initial_accept' : stage),
+          notifyGuidedWorkoutOpened: () => setGuidedCoachStage((stage) => stage === 'week_ready' ? 'followup_ready' : stage),
           startGuidedCoachFlow: () => {
             if (guidedCoachStartRef.current) return guidedCoachStartRef.current
             const start = async () => {
-            const restDate = document.querySelector<HTMLElement>('[data-tour-rest-day]')?.dataset.tourRestDay
             const action = coachActionsRef.current
-            if (!restDate || !action) {
+            if (!action) {
               setGuidedCoachStage('unavailable')
               return false
             }
-            const prompt = `Create a 45-minute upper-body workout for ${restDate} using Bench Press, Arnold Press, Dumbbell Curl, and Dumbbell Lateral Raise.`
+            const tomorrow = addDaysIso(getLocalDateIso(), 1)
+            guidedWorkoutDateRef.current = tomorrow
+            const prompt = `Create a 45-minute upper-body workout for ${tomorrow} using Bench Press, Arnold Press, Dumbbell Curl, and Dumbbell Lateral Raise.`
             const ready = await action.startFreshConversationAndPrefill(prompt)
             setGuidedCoachStage(ready ? 'initial_ready' : 'unavailable')
             return ready
@@ -113,6 +122,10 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const replayTour = useCallback(() => {
     if (!user) return
     clearProductTourCompletion(user.id)
+    guidedCoachStartRef.current = null
+    guidedWorkoutDateRef.current = null
+    previousGuidedCoachStageRef.current = null
+    setGuidedCoachStage(null)
     driverRef.current?.destroy()
     if (!location.pathname.startsWith('/workouts/')) {
       autoStartAttemptedRef.current = null
@@ -126,6 +139,67 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const registerCoachActions = useCallback((actions: CoachTourActions | null) => {
     coachActionsRef.current = actions
   }, [])
+
+  const notifyGuidedRecommendationExpanded = useCallback(() => {
+    const tour = driverRef.current
+    if (
+      !tour?.isActive() ||
+      guidedCoachStage !== 'review_initial' ||
+      tour.getActiveStep()?.element !== COACH_GENERATED_WORKOUT_TARGET
+    ) {
+      return
+    }
+
+    setGuidedCoachStage('waiting_initial_accept')
+    window.requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(COACH_GENERATED_WORKOUT_TARGET)
+      target?.scrollIntoView({ behavior: 'auto', block: 'center' })
+      if (driverRef.current?.isActive()) driverRef.current.refresh()
+    })
+  }, [guidedCoachStage])
+
+  useEffect(() => {
+    const previousStage = previousGuidedCoachStageRef.current
+    previousGuidedCoachStageRef.current = guidedCoachStage
+    const shouldAdvance =
+      (previousStage === 'initial_ready' && guidedCoachStage === 'waiting_initial') ||
+      (previousStage === 'waiting_initial' && guidedCoachStage === 'review_initial') ||
+      (previousStage === 'waiting_initial_accept' && guidedCoachStage === 'week_ready') ||
+      (previousStage === 'followup_ready' && guidedCoachStage === 'waiting_followup') ||
+      (previousStage === 'waiting_followup' && guidedCoachStage === 'exercise_resolution') ||
+      (previousStage === 'exercise_resolution' && guidedCoachStage === 'waiting_resolution') ||
+      (previousStage === 'waiting_resolution' && guidedCoachStage === 'review_replacement') ||
+      (previousStage === 'review_replacement' && guidedCoachStage === 'updated_workout')
+    if (!shouldAdvance || !driverRef.current?.isActive()) return
+    if (guidedCoachStage === 'week_ready') {
+      const date = guidedWorkoutDateRef.current
+      if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
+    }
+    let attempts = 0
+    const moveNextWhenReady = () => {
+      const tour = driverRef.current
+      if (!tour?.isActive()) return
+      if (guidedCoachStage === 'week_ready' && !window.location.pathname.startsWith('/week')) {
+        const date = guidedWorkoutDateRef.current
+        if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
+        window.setTimeout(moveNextWhenReady, WORKSPACE_READY_RETRY_DELAY_MS)
+        return
+      }
+      const nextElement = tour.getNextStep()?.element
+      const nextSelector = typeof nextElement === 'string' ? nextElement : null
+      if (
+        nextSelector &&
+        !document.querySelector(nextSelector) &&
+        attempts < MAX_WORKSPACE_READY_ATTEMPTS
+      ) {
+        attempts += 1
+        window.setTimeout(moveNextWhenReady, WORKSPACE_READY_RETRY_DELAY_MS)
+        return
+      }
+      tour.moveNext()
+    }
+    window.setTimeout(moveNextWhenReady, NEXT_PAINT_DELAY_MS)
+  }, [guidedCoachStage])
 
   useEffect(() => {
     if (status !== 'authenticated' || !user || hasCompletedProductTour(user.id)) return
@@ -158,8 +232,11 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   return (
     <ProductTourContext.Provider value={{ startTour, replayTour, registerCoachActions, guidedCoachStage,
       notifyGuidedCoachSubmitted: () => setGuidedCoachStage((stage) => stage === 'initial_ready' ? 'waiting_initial' : stage === 'followup_ready' ? 'waiting_followup' : stage),
-      notifyGuidedCoachCompleted: (hasExerciseResolution) => setGuidedCoachStage((stage) => stage === 'waiting_initial' ? 'followup_ready' : stage === 'waiting_followup' ? hasExerciseResolution ? 'exercise_resolution' : 'unavailable' : stage === 'waiting_resolution' ? 'complete' : stage),
+      notifyGuidedCoachCompleted: (hasExerciseResolution) => setGuidedCoachStage((stage) => stage === 'waiting_initial' ? 'review_initial' : stage === 'waiting_followup' ? hasExerciseResolution ? 'exercise_resolution' : 'unavailable' : stage === 'waiting_resolution' ? 'review_replacement' : stage),
       notifyGuidedExerciseResolutionStarted: () => setGuidedCoachStage((stage) => stage === 'exercise_resolution' ? 'waiting_resolution' : stage),
+      notifyGuidedRecommendationExpanded,
+      notifyGuidedRecommendationAccepted: () => setGuidedCoachStage((stage) => stage === 'waiting_initial_accept' ? 'week_ready' : stage === 'review_replacement' ? 'updated_workout' : stage),
+      notifyGuidedWorkoutOpened: () => setGuidedCoachStage((stage) => stage === 'week_ready' ? 'followup_ready' : stage),
     }}>
       {children}
     </ProductTourContext.Provider>

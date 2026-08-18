@@ -42,7 +42,7 @@ export function WeekPlanList({ date, compact = false }: WeekPlanListProps) {
                 <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">{formatDate(day.date)}</span>
               </div>
               <div className="grid gap-2">
-                {day.workouts.length ? day.workouts.map((workout) => <WorkoutListItemButton key={workout.id} workout={workout} compact={compact} />) : (
+                {day.workouts.length ? day.workouts.map((workout) => <WorkoutListItemButton key={workout.id} workout={workout} compact={compact} isTourWorkout={!compact && workout.date === date} />) : (
                   <p className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground" data-tour-rest-day={day.date}>Rest day</p>
                 )}
               </div>

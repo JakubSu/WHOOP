@@ -4,14 +4,24 @@ export const EXERCISE_PRACTICE_PROMPT =
   'Replace Dumbbell Lateral Raise with Lean-away Cable Lateral Raise.'
 
 const COACH_COMPOSER_WAIT_MS = 1_500
+const COACH_RESPONSE_WAIT_MS = 30_000
+export const COACH_RECOMMENDATION_CARD_TARGET =
+  '[data-tour="coach-recommendation-card"]'
+export const COACH_GENERATED_WORKOUT_TARGET =
+  '[data-tour="coach-generated-workout-recommendation"]'
+export const COACH_REPLACEMENT_RECOMMENDATION_TARGET =
+  '[data-tour="coach-replacement-recommendation"]'
 export type CoachTourActions = {
   openCoach: () => void
+  closeCoach: () => void
   prefillCoachMessage: (message: string) => void
   startFreshConversationAndPrefill: (message: string) => Promise<boolean>
 }
 
 export type ProductTourActions = CoachTourActions & {
   goToWeekForTour: () => void
+  notifyGuidedRecommendationExpanded: () => void
+  notifyGuidedWorkoutOpened: () => void
   startGuidedCoachFlow: () => Promise<boolean>
 }
 
@@ -39,31 +49,44 @@ export function createProductTourSteps({
   actions,
 }: TourStepOptions): DriveStep[] {
   const whoopDescription = hasWhoopConnection
-    ? 'Sleep, Recovery, and Strain give your plan the daily context it needs.'
+    ? 'Sleep, Recovery, and Strain give you and your AI coach the context it needs.'
     : 'Connect WHOOP when you are ready to personalize your plan with sleep, recovery, and strain.'
   const weekSteps: DriveStep[] = isDesktop
     ? [{
-        element: weekNavigationTargetForViewport(true),
-        popover: popover('Your week at a glance', 'Browse scheduled workouts and rest days from the week navigator.'),
-      }]
+      element: weekNavigationTargetForViewport(true),
+      popover: popover('Your week at a glance', 'Browse scheduled workouts and rest days from the week panel.'),
+    }]
     : [
-        {
-          element: '[data-tour="week-navigation-mobile"]',
-          advanceOnClick: true,
-          popover: popover('Your week at a glance', 'Click the week button to see every scheduled workout and rest day.'),
+      {
+        element: '[data-tour="week-navigation-mobile"]',
+        advanceOnClick: true,
+        popover: {
+          ...popover('Your week at a glance', 'Click the week button to see every scheduled workout and rest day.'),
+          showButtons: ['previous', 'close'],
         },
-        {
-          element: '[data-tour="week-navigation-page"]',
-          waitForElement: COACH_COMPOSER_WAIT_MS,
-          popover: popover('Your week at a glance', 'Browse scheduled workouts and rest days across the full week.'),
-        },
-      ]
+      },
+      {
+        element: '[data-tour="week-navigation-page"]',
+        waitForElement: COACH_COMPOSER_WAIT_MS,
+        popover: popover('Your week at a glance', 'Browse scheduled workouts and rest days across the full week.'),
+      },
+    ]
+  const mobileCoachReopenStep: DriveStep[] = isDesktop
+    ? []
+    : [{
+      element: '[data-tour="coach-open"]',
+      advanceOnClick: true,
+      popover: {
+        ...popover('Open your Coach again', 'The workout is open. Click the Coach button to continue with the follow-up request.'),
+        showButtons: ['previous', 'close'],
+      },
+    }]
 
   return [
     {
       popover: popover(
-        'Your training, adapted daily',
-        'This plan brings your workouts, readiness, and coaching together so training can respond to how you are doing today.',
+        'Your training, all in one place',
+        'Plan your workouts, track your recovery, and use your AI coach to create workouts or recommend changes based on your training.',
       ),
     },
     {
@@ -74,31 +97,30 @@ export function createProductTourSteps({
       element: '[data-tour="workout-panel"]',
       popover: popover(
         'Today’s workout',
-        'Review today’s session here. Use the arrows to move between workouts, or open the workout week for the larger plan.',
+        'Review today’s session here. Use the arrows to move between workouts, or use the week view to browse the full plan.',
       ),
-    },
-    {
-      element: '[data-tour="workout-edit"]',
-      popover: popover('You are always in control', 'Edit your workout directly whenever you want. The Coach supports your decisions; it never makes hidden changes.'),
     },
     ...weekSteps,
     isDesktop
       ? {
-          element: '[data-tour="coach-panel"]',
-          onHighlightStarted: () => actions()?.openCoach(),
-          popover: popover(
-            'Your context-aware Coach',
-            'The Coach understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
-          ),
-        }
+        element: '[data-tour="coach-panel"]',
+        onHighlightStarted: () => actions()?.openCoach(),
+        popover: popover(
+          'Your context-aware Coach',
+          'The Coach understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
+        ),
+      }
       : {
-          element: '[data-tour="coach-open"]',
-          advanceOnClick: true,
-          popover: popover(
+        element: '[data-tour="coach-open"]',
+        advanceOnClick: true,
+        popover: {
+          ...popover(
             'Your context-aware Coach',
-            'Click the Coach button to open a coach that understands the workout or week you are viewing.',
+            'Click the Coach button to open a coach that understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
           ),
+          showButtons: ['previous', 'close'],
         },
+      },
     {
       element: '[data-tour="coach-composer"]',
       waitForElement: COACH_COMPOSER_WAIT_MS,
@@ -109,32 +131,114 @@ export function createProductTourSteps({
     },
     {
       element: '[data-tour="coach-composer"]',
+      waitForElement: COACH_COMPOSER_WAIT_MS,
       onHighlightStarted: () => {
         void actions()?.startGuidedCoachFlow()
       },
       popover: {
         ...popover(
-          'Build a workout with the Coach',
-          'We have prepared an upper-body workout request for the first rest day in your visible week. Review it, then continue to Send.',
+          'Use the example prompt and send it',
+          'We prepared an upper-body workout request for tomorrow. Review the prompt, then click Send to continue.',
         ),
-        onNextClick: (_element, _step, { driver }) => {
-          void actions()?.startGuidedCoachFlow().then((ready) => {
-            if (ready) driver.moveNext()
-          })
-        },
+        showButtons: ['close'],
       },
     },
     {
-      element: '[data-tour="coach-send"]',
-      waitForElement: COACH_COMPOSER_WAIT_MS,
-      advanceOnClick: true,
-      popover: popover('Send your request', 'Click the real Send button to ask the Coach for this workout. The response will stream above.'),
+      element: '[data-tour="coach-messages"]',
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      popover: { ...popover('Wait for the Coach', 'The Coach is preparing your workout. Keep this tour open while the response streams into the conversation.'), showButtons: ['close'] },
     },
     {
-      popover: popover(
-        'You are ready to train',
-        'Open the Coach whenever you want help. You can replay this tour any time from your profile menu.',
-      ),
+      element: COACH_GENERATED_WORKOUT_TARGET,
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      onHighlightStarted: () => {
+        actions()?.notifyGuidedRecommendationExpanded()
+        document
+          .querySelector<HTMLElement>(COACH_GENERATED_WORKOUT_TARGET)
+          ?.scrollIntoView({ behavior: 'auto', block: 'center' })
+      },
+      popover: popover('Review the Coach response', 'The generated workout recommendation is open. Review the proposed workout, then click Next.'),
+    },
+    {
+      element: '[data-tour="coach-accept-all"]',
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      onHighlighted: () => {
+        document
+          .querySelector<HTMLElement>('[data-tour="coach-accept-all"]')
+          ?.scrollIntoView({ behavior: 'auto', block: 'center' })
+      },
+      popover: {
+        ...popover('Accept the proposed workout', 'Review the proposed workout, then click Accept all to add it to your week.'),
+        ...(isDesktop ? {} : { side: 'top' as const }),
+        showButtons: ['close'],
+      },
+    },
+    {
+      element: '[data-tour="created-workout"]',
+      advanceOnClick: true,
+      onHighlightStarted: () => {
+        if (!isDesktop) actions()?.closeCoach()
+      },
+      popover: {
+        ...popover('Open the new workout', 'Your accepted workout now appears in the week schedule. Click it to open the workout and continue.'),
+        showButtons: ['previous', 'close'],
+      },
+    },
+    {
+      element: '[data-tour="workout-panel"]',
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      onHighlightStarted: () => actions()?.notifyGuidedWorkoutOpened(),
+      popover: popover('Your new workout', 'This is the workout you just accepted. Click Next to continue to the follow-up request.'),
+    },
+    ...mobileCoachReopenStep,
+    {
+      element: '[data-tour="coach-composer"]',
+      waitForElement: COACH_COMPOSER_WAIT_MS,
+      popover: {
+        ...popover('Use the follow-up prompt and send it', 'The follow-up prompt is ready. Review it, then click the real Send button to request the replacement exercise.'),
+        showButtons: ['close'],
+      },
+    },
+    {
+      element: '[data-tour="coach-messages"]',
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      popover: { ...popover('Wait for the replacement response', 'The Coach is checking the requested exercise and will explain what to do when it is not in your library.'), showButtons: ['close'] },
+    },
+    {
+      element: '[data-tour="create-missing-exercise"]',
+      advanceOnClick: true,
+      popover: { ...popover('Create a new exercise', 'Click Create new exercise to open the exercise form.'), showButtons: ['previous', 'close'] },
+    },
+    {
+      element: '[data-tour="create-exercise-submit"]',
+      popover: { ...popover('Save the exercise', 'Review the pre-filled exercise details, then click Create exercise.'), showButtons: ['close'] },
+    },
+    {
+      element: '[data-tour="coach-messages"]',
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      popover: { ...popover('Wait for the replacement workout', 'The Coach is applying your new exercise and preparing an updated recommendation.'), showButtons: ['close'] },
+    },
+    {
+      element: COACH_REPLACEMENT_RECOMMENDATION_TARGET,
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      onHighlightStarted: () => {
+        document
+          .querySelector<HTMLElement>(COACH_REPLACEMENT_RECOMMENDATION_TARGET)
+          ?.scrollIntoView({ behavior: 'auto', block: 'center' })
+      },
+      popover: { ...popover('Accept the replacement workout', 'The updated recommendation is open. Click Accept all inside it to apply the new exercise.'), showButtons: ['close'] },
+    },
+    {
+      element: '[data-tour="workout-panel"]',
+      waitForElement: COACH_RESPONSE_WAIT_MS,
+      onHighlightStarted: () => {
+        if (!isDesktop) actions()?.closeCoach()
+      },
+      popover: popover('Review the updated workout', 'The workout is updated with your new exercise. Review it here before finishing the tour.'),
+    },
+    {
+      element: '[data-tour="workout-edit"]',
+      popover: popover('You are always in control', 'Edit your workout directly whenever you want. The Coach supports your decisions; it never makes hidden changes.'),
     },
   ]
 }

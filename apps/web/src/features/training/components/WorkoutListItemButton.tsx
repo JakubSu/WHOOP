@@ -7,9 +7,10 @@ import { Card } from '../../../shared/components/ui'
 type WorkoutListItemButtonProps = {
   workout: WorkoutListItem
   compact?: boolean
+  isTourWorkout?: boolean
 }
 
-export function WorkoutListItemButton({ workout, compact = false }: WorkoutListItemButtonProps) {
+export function WorkoutListItemButton({ workout, compact = false, isTourWorkout = false }: WorkoutListItemButtonProps) {
   const navigate = useNavigate()
 
   return (
@@ -17,6 +18,7 @@ export function WorkoutListItemButton({ workout, compact = false }: WorkoutListI
       <button
         className={compact ? 'flex w-full items-center gap-2 p-3 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring' : 'flex w-full items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'}
         type="button"
+        data-tour={isTourWorkout ? 'created-workout' : undefined}
         onClick={() => navigate(`/workouts/${workout.id}`)}
       >
         <span className="min-w-0 flex-1">

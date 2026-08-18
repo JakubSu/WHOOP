@@ -36,7 +36,7 @@ export function CoachMessageList({
   onDismissUiAction: (actionId: string) => void;
 }) {
   return (
-    <div className="relative min-h-0 flex-1">
+    <div className="relative min-h-0 flex-1" data-tour="coach-messages">
       <ScrollArea
         className="h-full px-4 py-4"
         viewportRef={scrollRef}

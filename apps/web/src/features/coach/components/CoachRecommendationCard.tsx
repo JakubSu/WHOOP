@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, LoaderCircle } from "lucide-react";
 import {
@@ -21,6 +21,7 @@ import {
   buildDraftExercises,
   groupTargetKey,
 } from "../../recommendations/services/workoutCard";
+import { useProductTour } from "../../product-tour/ProductTourProvider";
 import { type CoachRecommendationReference } from "../types";
 
 type Props = { recommendation: CoachRecommendationReference };
@@ -41,8 +42,8 @@ function RecommendationCardDetail({
   recommendationId: string;
   fallback: CoachRecommendationReference;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [confirmAcceptAll, setConfirmAcceptAll] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const { guidedCoachStage, notifyGuidedRecommendationExpanded, notifyGuidedRecommendationAccepted } = useProductTour();
   const detail = useRecommendation(recommendationId, undefined, fallback.actionable);
   const recommendation = detail.recommendation;
 
@@ -62,12 +63,18 @@ function RecommendationCardDetail({
     <section
       className="mt-3 overflow-hidden rounded-lg border border-primary/30 bg-background"
       aria-label="Coach recommendation"
+      data-tour={guidedCoachStage === 'review_replacement' ? 'coach-replacement-recommendation' : 'coach-recommendation-card'}
     >
       <button
         className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
         type="button"
-        onClick={() => setExpanded((value) => !value)}
+        onClick={() => {
+          const nextExpanded = !expanded;
+          setExpanded(nextExpanded);
+          if (nextExpanded) notifyGuidedRecommendationExpanded();
+        }}
         aria-expanded={expanded}
+        data-tour="coach-recommendation-toggle"
       >
         <span>
           <strong className="block text-sm">Training recommendation</strong>
@@ -87,7 +94,7 @@ function RecommendationCardDetail({
         />
       </button>
       {expanded ? (
-        <div className="grid gap-3 border-t border-border p-3">
+        <div className="grid gap-3 border-t border-border p-3" data-tour="coach-recommendation-details">
           {recommendation.groups.map((group) => (
             <WorkoutRecommendationCard
               key={group.id}
@@ -99,47 +106,27 @@ function RecommendationCardDetail({
           ))}
           {!readOnly ? (
             <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-              {confirmAcceptAll ? (
-                <>
-                  <button
-                    className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
-                    type="button"
-                    disabled={detail.isBulkAccepting}
-                    onClick={() =>
-                      void detail
-                        .acceptAll()
-                        .then(() => setConfirmAcceptAll(false))
-                    }
-                  >
-                    Confirm accept all
-                  </button>
-                  <button
-                    className="rounded border px-2 py-1 text-xs"
-                    type="button"
-                    onClick={() => setConfirmAcceptAll(false)}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
-                    type="button"
-                    onClick={() => setConfirmAcceptAll(true)}
-                  >
-                    Accept all
-                  </button>
-                  <button
-                    className="rounded border px-2 py-1 text-xs"
-                    type="button"
-                    disabled={detail.isBulkRejecting}
-                    onClick={() => void detail.rejectAll()}
-                  >
-                    Reject all
-                  </button>
-                </>
-              )}
+              <button
+                className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
+                type="button"
+                data-tour="coach-accept-all"
+                disabled={detail.isBulkAccepting}
+                onClick={() =>
+                  void detail.acceptAll().then(() => {
+                    notifyGuidedRecommendationAccepted();
+                  })
+                }
+              >
+                Accept all
+              </button>
+              <button
+                className="rounded border px-2 py-1 text-xs"
+                type="button"
+                disabled={detail.isBulkRejecting}
+                onClick={() => void detail.rejectAll()}
+              >
+                Reject all
+              </button>
             </div>
           ) : null}
           {detail.error ? (
@@ -164,7 +151,16 @@ function WorkoutRecommendationCard({
   detail: ReturnType<typeof useRecommendation>;
   readOnly: boolean;
 }) {
+  const { guidedCoachStage } = useProductTour();
   const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (
+      (group.target.kind === "new" && guidedCoachStage === "review_initial") ||
+      guidedCoachStage === "review_replacement"
+    ) {
+      setExpanded(true);
+    }
+  }, [group.target.kind, guidedCoachStage]);
   const operations = recommendation.operations.filter((operation) =>
     group.operation_ids.includes(operation.id),
   );
@@ -180,6 +176,11 @@ function WorkoutRecommendationCard({
     <details
       className="rounded-md border bg-card"
       open={expanded}
+      data-tour={
+        group.target.kind === "new"
+          ? "coach-generated-workout-recommendation"
+          : undefined
+      }
       onToggle={(event) =>
         setExpanded((event.currentTarget as HTMLDetailsElement).open)
       }

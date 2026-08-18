@@ -77,6 +77,7 @@ export function CoachSheetHeader({
             type="button"
             aria-label="Restore coach size"
             onClick={onCollapse}
+            data-tour="coach-close"
           >
             <Minimize2 size={18} aria-hidden="true" />
           </Button>
