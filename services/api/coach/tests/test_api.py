@@ -2,7 +2,9 @@ import asyncio
 import json
 import uuid
 from datetime import timedelta
+from decimal import Decimal
 from typing import Any, cast
+from unittest.mock import AsyncMock, patch
 
 from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
@@ -14,6 +16,7 @@ from rest_framework.test import APIClient
 from ai.runner import (
     ActivityChanged,
     CoachActivity,
+    CoachRunFailed,
     CoachRunResult,
     RunCompleted,
     RunFailed,
@@ -22,7 +25,12 @@ from ai.runner import (
 from ai.tests.fakes import runner
 from coach.api.views.messages import _with_sse_heartbeats
 from coach.contracts.ui_actions import ExerciseResolutionUiActionDraft
-from coach.models import CoachConversation, CoachMessage, UiAction
+from coach.models import (
+    CoachBudgetReservation,
+    CoachConversation,
+    CoachMessage,
+    UiAction,
+)
 from recommendation.contracts import RecommendationDraft
 from recommendation.models import Recommendation, RecommendationOperation
 from recommendation.services import create_recommendation
@@ -102,6 +110,67 @@ class CoachConversationApiTests(TestCase):
             create_response.json()["id"],
         )
         self.assertIsNone(list_response.json()["results"][0]["last_message_preview"])
+
+    @override_settings(
+        COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner",
+        COACH_MAX_COST_USD=Decimal("0.05"),
+        COACH_USER_MONTHLY_BUDGET_USD=Decimal("0.05"),
+        COACH_GLOBAL_MONTHLY_BUDGET_USD=Decimal("1.00"),
+    )
+    def test_monthly_budget_blocks_a_second_coach_message(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+        runner.result = CoachRunResult(
+            content="Ready.", ai_message_batch=[], cost_usd=Decimal("0.05")
+        )
+
+        first = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages",
+            {"content": "First request"},
+            format="json",
+        )
+        second = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages",
+            {"content": "Second request"},
+            format="json",
+        )
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 429)
+        self.assertEqual(second.json()["code"], "monthly_budget_exceeded")
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_non_stream_failure_settles_the_known_provider_cost(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+        failure = CoachRunFailed(
+            RunFailed(code="timeout", retryable=True, cost_usd=Decimal("0.02"))
+        )
+
+        with patch.object(runner, "run", new=AsyncMock(side_effect=failure)):
+            response = self.client.post(
+                f"/api/v1/coach/conversations/{conversation.id}/messages",
+                {"content": "Try this"},
+                format="json",
+            )
+
+        reservation = CoachBudgetReservation.objects.get()
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(reservation.status, CoachBudgetReservation.Status.SETTLED)
+        self.assertEqual(reservation.actual_usd, Decimal("0.02"))
+
+    @override_settings(COACH_RUNNER_FACTORY="ai.tests.fakes.create_runner")
+    def test_closing_an_unstarted_stream_releases_its_budget_reservation(self) -> None:
+        conversation = CoachConversation.objects.create(user=self.user)
+
+        response = self.client.post(
+            f"/api/v1/coach/conversations/{conversation.id}/messages/stream",
+            {"content": "Start but do not stream"},
+            format="json",
+            HTTP_ACCEPT="text/event-stream",
+        )
+        cast(StreamingHttpResponse, response).close()
+
+        reservation = CoachBudgetReservation.objects.get()
+        self.assertEqual(reservation.status, CoachBudgetReservation.Status.RELEASED)
 
     def test_conversation_crud_hides_other_users_resources(self) -> None:
         """Conversation reads, updates, and deletion enforce ownership."""

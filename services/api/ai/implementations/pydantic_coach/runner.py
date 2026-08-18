@@ -29,6 +29,7 @@ from pydantic_ai.usage import UsageLimits
 from ai.runner import (
     ActivityChanged,
     CoachActivity,
+    CoachRunFailed,
     CoachRunnerEvent,
     CoachRunRequest,
     CoachRunResult,
@@ -68,7 +69,7 @@ class PydanticCoachRunner:
             if isinstance(event, RunCompleted):
                 return event.result
             if isinstance(event, RunFailed):
-                raise TypeError(f"Pydantic Coach run failed: {event.code}")
+                raise CoachRunFailed(event)
         raise RuntimeError("Pydantic Coach run ended without a completion event.")
 
     async def stream(self, request: CoachRunRequest) -> AsyncIterator[CoachRunnerEvent]:
@@ -213,7 +214,11 @@ class PydanticCoachRunner:
                 yield ActivityChanged(activity)
             if thinking_active:
                 yield ThinkingChanged(active=False)
-            yield RunFailed(code="timeout", retryable=True)
+            yield RunFailed(
+                code="timeout",
+                retryable=True,
+                cost_usd=_usage_cost(events.usage) if events is not None else None,
+            )
             return
         except asyncio.CancelledError:
             state.fail_running()
@@ -239,7 +244,11 @@ class PydanticCoachRunner:
                 yield ActivityChanged(activity)
             if thinking_active:
                 yield ThinkingChanged(active=False)
-            yield RunFailed(code=code, retryable=False)
+            yield RunFailed(
+                code=code,
+                retryable=False,
+                cost_usd=_usage_cost(events.usage) if events is not None else None,
+            )
             return
         except Exception as exc:  # noqa: BLE001 - normalized into the runner protocol
             logger.warning(
@@ -256,6 +265,7 @@ class PydanticCoachRunner:
             yield RunFailed(
                 code=_provider_failure_code(exc),
                 retryable=_is_retryable_provider_error(exc),
+                cost_usd=_usage_cost(events.usage) if events is not None else None,
             )
             return
 
@@ -282,11 +292,18 @@ class PydanticCoachRunner:
             CoachRunResult(
                 content=result.output,
                 ai_message_batch=ai_message_batch,
+                cost_usd=_usage_cost(events.usage),
                 activities=terminal_activities,
                 recommendation_id=state.recommendation_id,
                 ui_actions=state.ui_actions,
             )
         )
+
+
+def _usage_cost(usage: Any) -> Decimal:
+    """Return the provider-calculated cost as a Decimal for budget settlement."""
+
+    return Decimal(str(getattr(usage, "cost", 0) or 0))
 
 
 def _activity_from_native_event(event: Any) -> CoachActivity | None:
@@ -335,11 +352,7 @@ def _provider_failure_code(error: Exception) -> str:
     message = str(error).lower()
     if status_code == 429 or "rate limit" in message:
         return "rate_limit"
-    if (
-        status_code in {401, 403}
-        or "api key" in message
-        or "authentication" in message
-    ):
+    if status_code in {401, 403} or "api key" in message or "authentication" in message:
         return "provider_access"
     if status_code == 400 and ("context length" in message or "token" in message):
         return "context_limit"

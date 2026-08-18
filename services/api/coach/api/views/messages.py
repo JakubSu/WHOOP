@@ -7,6 +7,7 @@ import logging
 import uuid
 from collections.abc import AsyncIterable, AsyncIterator, Iterable
 from contextlib import suppress
+from decimal import Decimal
 from typing import Any, cast
 
 from asgiref.sync import async_to_sync, sync_to_async
@@ -24,6 +25,7 @@ from rest_framework.views import APIView
 from ai.runner import (
     ActivityChanged,
     CoachActivity,
+    CoachRunFailed,
     CoachRunnerUnavailable,
     CoachRunRequest,
     CoachRunResult,
@@ -41,6 +43,12 @@ from coach.api.serializers import (
     MessagePageSerializer,
 )
 from coach.api.views.conversations import _conversation_or_404
+from coach.budget import (
+    MonthlyBudgetExceeded,
+    release_run_budget,
+    reserve_run_budget,
+    settle_run_budget,
+)
 from coach.presentation import (
     recommendation_transitions_for_message,
     safe_activity_presentation,
@@ -73,6 +81,17 @@ class CoachUnavailable(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The coach is temporarily unavailable."
     default_code = "coach_unavailable"
+
+
+class CoachMonthlyBudgetExceeded(APIException):
+    """Reports that either monthly Coach budget cannot accept another run."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    default_detail = {
+        "code": "monthly_budget_exceeded",
+        "detail": "The AI coach's monthly allowance has been reached. Please try again next month.",
+    }
+    default_code = "monthly_budget_exceeded"
 
 
 class MessageCollectionAPIView(APIView):
@@ -110,7 +129,10 @@ class MessageCollectionAPIView(APIView):
         tags=["Coach"],
         operation_id="coach_messages_create",
         request=MessageCreateSerializer,
-        responses={201: CoachMessageSerializer},
+        responses={
+            201: CoachMessageSerializer,
+            429: OpenApiResponse(description="Monthly Coach budget exceeded."),
+        },
     )
     def post(self, request: Request, conversation_id: uuid.UUID) -> Response:
         serializer = MessageCreateSerializer(data=request.data)
@@ -122,15 +144,23 @@ class MessageCollectionAPIView(APIView):
             request, conversation, content, validated_data.get("view_context")
         )
         visible_content = _visible_content(request, content)
+        _reserve_budget_or_raise(request.user, run_request.run_id)
         try:
             result = async_to_sync(get_coach_runner().run)(run_request)
         except CoachRunnerUnavailable as exc:
+            release_run_budget(run_id=run_request.run_id)
+            raise CoachUnavailable() from exc
+        except CoachRunFailed as exc:
+            _settle_failed_budget(run_request.run_id, exc.failure.cost_usd)
+            _expire_failed_run(request.user, run_request.run_id)
             raise CoachUnavailable() from exc
         except Exception as exc:
+            _settle_reserved_budget(run_request.run_id)
             _expire_failed_run(request.user, run_request.run_id)
             logger.exception("coach_run_failed run_id=%s", run_request.run_id)
             raise CoachUnavailable() from exc
         result = _sanitize_result(result)
+        settle_run_budget(run_id=run_request.run_id, actual_cost_usd=result.cost_usd)
         message = services.save_completed_turn(
             user=request.user,
             conversation=conversation,
@@ -160,7 +190,8 @@ class MessageStreamAPIView(APIView):
             200: OpenApiResponse(
                 response=OpenApiTypes.BINARY,
                 description="Owned Coach SSE v1 event stream.",
-            )
+            ),
+            429: OpenApiResponse(description="Monthly Coach budget exceeded."),
         },
     )
     def post(
@@ -175,6 +206,7 @@ class MessageStreamAPIView(APIView):
             request, conversation, content, validated_data.get("view_context")
         )
         visible_content = _visible_content(request, content)
+        _reserve_budget_or_raise(request.user, run_request.run_id)
         assistant_message_id = uuid.uuid4()
         user_message_id = uuid.uuid4()
 
@@ -243,6 +275,10 @@ class MessageStreamAPIView(APIView):
                         yield event("thinking_finished")
                         thinking_active = False
                         result = _sanitize_result(runner_event.result)
+                        await sync_to_async(settle_run_budget, thread_sensitive=True)(
+                            run_id=run_request.run_id,
+                            actual_cost_usd=result.cost_usd,
+                        )
                         terminal_activities = _merge_terminal_activities(
                             activities.values(), result.activities
                         )
@@ -280,6 +316,17 @@ class MessageStreamAPIView(APIView):
                         completed = True
                         break
                     if isinstance(runner_event, RunFailed):
+                        if runner_event.cost_usd is None:
+                            await sync_to_async(
+                                _settle_reserved_budget, thread_sensitive=True
+                            )(run_request.run_id)
+                        else:
+                            await sync_to_async(
+                                settle_run_budget, thread_sensitive=True
+                            )(
+                                run_id=run_request.run_id,
+                                actual_cost_usd=runner_event.cost_usd,
+                            )
                         await sync_to_async(_expire_failed_run, thread_sensitive=True)(
                             request.user, run_request.run_id
                         )
@@ -298,9 +345,29 @@ class MessageStreamAPIView(APIView):
                 if not completed:
                     raise RuntimeError("Coach runner ended without a result.")
             except asyncio.CancelledError:
+                await sync_to_async(_settle_reserved_budget, thread_sensitive=True)(
+                    run_request.run_id
+                )
                 logger.info("coach_stream_cancelled run_id=%s", run_request.run_id)
                 raise
+            except CoachRunnerUnavailable:
+                await sync_to_async(release_run_budget, thread_sensitive=True)(
+                    run_id=run_request.run_id
+                )
+                if thinking_active:
+                    yield event("thinking_finished")
+                yield event(
+                    "error",
+                    {
+                        "code": "coach_unavailable",
+                        "message": "The coach is temporarily unavailable.",
+                        "retryable": True,
+                    },
+                )
             except Exception:
+                await sync_to_async(_settle_reserved_budget, thread_sensitive=True)(
+                    run_request.run_id
+                )
                 await sync_to_async(_expire_failed_run, thread_sensitive=True)(
                     request.user, run_request.run_id
                 )
@@ -326,6 +393,9 @@ class MessageStreamAPIView(APIView):
         )
         response["Cache-Control"] = "no-cache, no-transform"
         response["X-Accel-Buffering"] = "no"
+        response._resource_closers.append(  # type: ignore[attr-defined]
+            lambda: release_run_budget(run_id=run_request.run_id)
+        )
         return response
 
 
@@ -350,6 +420,33 @@ def _run_request(
         history=context_history,
         view_context=view_context,
     )
+
+
+def _reserve_budget_or_raise(user: Any, run_id: uuid.UUID) -> None:
+    """Reserve a monthly budget slot before starting an AI provider request."""
+
+    try:
+        reserve_run_budget(user=user, run_id=run_id)
+    except MonthlyBudgetExceeded as exc:
+        raise CoachMonthlyBudgetExceeded() from exc
+
+
+def _settle_reserved_budget(run_id: uuid.UUID) -> None:
+    """Conservatively charge a run when provider usage is unavailable."""
+
+    settle_run_budget(
+        run_id=run_id,
+        actual_cost_usd=Decimal(str(settings.COACH_MAX_COST_USD)),
+    )
+
+
+def _settle_failed_budget(run_id: uuid.UUID, cost_usd: Decimal | None) -> None:
+    """Charge known failure usage or conservatively retain the full reservation."""
+
+    if cost_usd is None:
+        _settle_reserved_budget(run_id)
+        return
+    settle_run_budget(run_id=run_id, actual_cost_usd=cost_usd)
 
 
 def _visible_content(request: Request, content: str) -> str:
@@ -422,6 +519,7 @@ def _sanitize_result(result: CoachRunResult) -> CoachRunResult:
     return CoachRunResult(
         content=result.content,
         ai_message_batch=result.ai_message_batch,
+        cost_usd=result.cost_usd,
         activities=[
             _sanitize_activity(item)
             for item in result.activities

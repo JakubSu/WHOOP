@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterable, AsyncIterator
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Any, Literal, Protocol
 
 from django.conf import settings
@@ -73,6 +74,7 @@ class CoachRunResult:
 
     content: str
     ai_message_batch: list[dict[str, Any]]
+    cost_usd: Decimal = Decimal(0)
     activities: list[CoachActivity] = field(default_factory=list)
     recommendation_id: uuid.UUID | None = None
     ui_actions: list[UiActionDraft] = field(default_factory=list)
@@ -115,6 +117,7 @@ class RunFailed:
 
     code: str
     retryable: bool
+    cost_usd: Decimal | None = None
 
 
 CoachRunnerEvent = (
@@ -132,6 +135,14 @@ class CoachRunner(Protocol):
 
 class CoachRunnerUnavailable(RuntimeError):
     """Raised when the Coach API is called without a configured runner."""
+
+
+class CoachRunFailed(RuntimeError):
+    """Carries a normalized failed-run result to non-streaming callers."""
+
+    def __init__(self, failure: RunFailed) -> None:
+        super().__init__(failure.code)
+        self.failure = failure
 
 
 class UnavailableCoachRunner:

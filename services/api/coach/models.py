@@ -1,8 +1,10 @@
 import uuid
+from decimal import Decimal
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 if TYPE_CHECKING:
     from recommendation.models import Recommendation
@@ -83,7 +85,9 @@ class UiAction(models.Model):
         CoachMessage, on_delete=models.CASCADE, related_name="ui_actions"
     )
     type = models.CharField(max_length=64)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.PENDING
+    )
     payload = models.JSONField(default=dict)
     resolution = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -91,5 +95,118 @@ class UiAction(models.Model):
 
     class Meta:
         indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["message", "status"], name="coach_uiaction_msg_status_idx")
+            models.Index(
+                fields=["message", "status"], name="coach_uiaction_msg_status_idx"
+            )
+        ]
+
+
+class CoachUserMonthlyUsage(models.Model):
+    """One user's AI spend and in-flight reservations for a calendar month."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="coach_monthly_usage",
+    )
+    period_start = models.DateField()
+    spent_usd = models.DecimalField(max_digits=12, decimal_places=6, default=Decimal(0))
+    reserved_usd = models.DecimalField(
+        max_digits=12, decimal_places=6, default=Decimal(0)
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["user", "period_start"], name="coach_user_monthly_usage_unique"
+            ),
+            models.CheckConstraint(
+                condition=Q(spent_usd__gte=0),
+                name="coach_user_monthly_spent_nonnegative",
+            ),
+            models.CheckConstraint(
+                condition=Q(reserved_usd__gte=0),
+                name="coach_user_monthly_reserved_nonnegative",
+            ),
+        ]
+
+
+class CoachGlobalMonthlyUsage(models.Model):
+    """Service-wide AI spend and in-flight reservations for a calendar month."""
+
+    period_start = models.DateField(unique=True)
+    spent_usd = models.DecimalField(max_digits=12, decimal_places=6, default=Decimal(0))
+    reserved_usd = models.DecimalField(
+        max_digits=12, decimal_places=6, default=Decimal(0)
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.CheckConstraint(
+                condition=Q(spent_usd__gte=0),
+                name="coach_global_monthly_spent_nonnegative",
+            ),
+            models.CheckConstraint(
+                condition=Q(reserved_usd__gte=0),
+                name="coach_global_monthly_reserved_nonnegative",
+            ),
+        ]
+
+
+class CoachBudgetReservation(models.Model):
+    """Durable budget hold and final charge for one Coach run."""
+
+    class Status(models.TextChoices):
+        RESERVED = "reserved", "Reserved"
+        SETTLED = "settled", "Settled"
+        RELEASED = "released", "Released"
+
+    run_id = models.UUIDField(unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="coach_budget_reservations",
+    )
+    user_monthly_usage = models.ForeignKey(
+        CoachUserMonthlyUsage,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+    )
+    global_monthly_usage = models.ForeignKey(
+        CoachGlobalMonthlyUsage,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+    )
+    reserved_usd = models.DecimalField(max_digits=12, decimal_places=6)
+    actual_usd = models.DecimalField(
+        max_digits=12, decimal_places=6, null=True, blank=True
+    )
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.RESERVED
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    settled_at = models.DateTimeField(null=True, blank=True)
+
+    user_monthly_usage_id: int
+    global_monthly_usage_id: int
+
+    class Meta:
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.CheckConstraint(
+                condition=Q(reserved_usd__gte=0),
+                name="coach_budget_reservation_nonnegative",
+            ),
+            models.CheckConstraint(
+                condition=Q(actual_usd__isnull=True) | Q(actual_usd__gte=0),
+                name="coach_budget_actual_nonnegative",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(
+                fields=["status", "created_at"], name="coach_budget_status_idx"
+            )
         ]
