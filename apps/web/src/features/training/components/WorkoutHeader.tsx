@@ -1,6 +1,6 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 import { Button, Input } from '@/shared/components/ui'
-import { formatWeekRange, formatWeekdayDate } from '../services/formatters'
+import { formatWeekdayDate } from '../services/formatters'
 import { type Workout } from '../types'
 
 type WorkoutHeaderProps = {
@@ -16,7 +16,6 @@ type WorkoutHeaderProps = {
   draftWorkoutName: string
   onPrevious: () => void
   onNext: () => void
-  onOpenWeek: () => void
   onStartEditing: () => void
   onCancelEditing: () => void
   onSave: () => void
@@ -36,7 +35,6 @@ export function WorkoutHeader({
   draftWorkoutName,
   onPrevious,
   onNext,
-  onOpenWeek,
   onStartEditing,
   onCancelEditing,
   onSave,
@@ -46,21 +44,6 @@ export function WorkoutHeader({
 
   return (
     <header className="mb-6 border-b border-border pb-5" data-tour="workout-header" data-tour-workout-date={workout?.date}>
-      <Button
-        className="mb-4 flex w-full justify-between border-border/70 px-3 text-sm font-semibold lg:hidden"
-        aria-label={workout?.date ? `Open week of ${formatWeekRange(workout.date)}` : 'Open workout week'}
-        type="button"
-        variant="outline"
-        disabled={isEditing || !workout?.date}
-        onClick={onOpenWeek}
-        data-tour="week-navigation-mobile"
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          <CalendarDays aria-hidden="true" size={16} className="shrink-0 text-primary" />
-          <span className="truncate">{workout?.date ? `Week of ${formatWeekRange(workout.date)}` : 'View week'}</span>
-        </span>
-        <ChevronRight aria-hidden="true" size={17} className="shrink-0 text-muted-foreground" />
-      </Button>
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Workout</p>
         {isEditing ? (

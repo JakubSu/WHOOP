@@ -20,7 +20,7 @@ export function WhoopMetricsHeader() {
   const data = summary.data
 
   return (
-    <header className="mb-2 grid grid-cols-[1fr_auto] items-start gap-3 lg:mb-5" data-tour="whoop-metrics">
+    <header className="mb-2 grid grid-cols-[1fr_auto] items-start gap-3 lg:mb-5">
       <div className="grid grid-cols-3 gap-2" aria-label="WHOOP metrics">
         <WhoopMetricRing
           label="Sleep"

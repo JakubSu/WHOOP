@@ -29,6 +29,10 @@ export function weekNavigationTargetForViewport(isDesktop: boolean) {
     : '[data-tour="week-navigation-mobile"], [data-tour="week-navigation-page"]'
 }
 
+export function whoopMetricsTargetForViewport(isDesktop: boolean) {
+  return isDesktop ? '[data-tour="whoop-metrics-desktop"]' : '[data-tour="whoop-metrics-mobile"]'
+}
+
 export function createProductTourSteps({
   hasWhoopConnection,
   isDesktop,
@@ -44,8 +48,9 @@ export function createProductTourSteps({
       }]
     : [
         {
-          onHighlightStarted: () => actions()?.goToWeekForTour(),
-          popover: popover('Your week at a glance', 'We are opening the full Week view so you can see every scheduled workout and rest day.'),
+          element: '[data-tour="week-navigation-mobile"]',
+          advanceOnClick: true,
+          popover: popover('Your week at a glance', 'Click the week button to see every scheduled workout and rest day.'),
         },
         {
           element: '[data-tour="week-navigation-page"]',
@@ -62,11 +67,11 @@ export function createProductTourSteps({
       ),
     },
     {
-      element: '[data-tour="whoop-metrics"]',
+      element: whoopMetricsTargetForViewport(isDesktop),
       popover: popover('Start with readiness', whoopDescription),
     },
     {
-      element: '[data-tour="workout-header"]',
+      element: '[data-tour="workout-panel"]',
       popover: popover(
         'Today’s workout',
         'Review today’s session here. Use the arrows to move between workouts, or open the workout week for the larger plan.',
@@ -77,13 +82,23 @@ export function createProductTourSteps({
       popover: popover('You are always in control', 'Edit your workout directly whenever you want. The Coach supports your decisions; it never makes hidden changes.'),
     },
     ...weekSteps,
-    {
-      onHighlightStarted: () => actions()?.openCoach(),
-      popover: popover(
-        'Your context-aware Coach',
-        'The Coach understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
-      ),
-    },
+    isDesktop
+      ? {
+          element: '[data-tour="coach-panel"]',
+          onHighlightStarted: () => actions()?.openCoach(),
+          popover: popover(
+            'Your context-aware Coach',
+            'The Coach understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
+          ),
+        }
+      : {
+          element: '[data-tour="coach-open"]',
+          advanceOnClick: true,
+          popover: popover(
+            'Your context-aware Coach',
+            'Click the Coach button to open a coach that understands the workout or week you are viewing.',
+          ),
+        },
     {
       element: '[data-tour="coach-composer"]',
       waitForElement: COACH_COMPOSER_WAIT_MS,
