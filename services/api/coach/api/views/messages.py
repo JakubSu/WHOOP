@@ -509,8 +509,14 @@ def _expire_failed_run(user: Any, run_id: uuid.UUID) -> None:
 def _sanitize_activity(activity: CoachActivity) -> CoachActivity:
     """Maps a runner activity to a safe public presentation."""
 
-    kind, label = safe_activity_presentation(activity.kind)
-    return CoachActivity(id=activity.id, kind=kind, label=label, status=activity.status)
+    kind, label = safe_activity_presentation(activity.kind, activity.tool_name)
+    return CoachActivity(
+        id=activity.id,
+        kind=kind,
+        label=label,
+        status=activity.status,
+        tool_name=activity.tool_name,
+    )
 
 
 def _sanitize_result(result: CoachRunResult) -> CoachRunResult:

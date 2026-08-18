@@ -10,7 +10,7 @@ from uuid import UUID
 from asgiref.sync import sync_to_async
 from pydantic_ai import Agent, ModelRetry, RunContext
 
-from ai.runner import ActivityKind, ActivityStatus, CoachActivity
+from ai.runner import ActivityStatus, CoachActivity
 from ai.tools import (
     CoachToolContext,
     create_recommendation,
@@ -24,26 +24,13 @@ from ai.tools import (
 from ai.tools.contracts import ExerciseSummary
 from ai.tools.errors import ToolNotFoundError, ToolValidationError
 from coach.contracts.ui_actions import UiActionDraft
+from coach.presentation import safe_activity_presentation
 from recommendation.contracts import RecommendationDraft
 from training.models import Exercise
 
 from .contracts import CoachDeps
 
 logger = logging.getLogger(__name__)
-
-_ACTIVITY_BY_TOOL: dict[str, tuple[ActivityKind, str]] = {
-    "search_workouts": ("workout_data", "Looking up your workouts…"),
-    "get_workout": ("workout_data", "Looking up that workout…"),
-    "get_whoop_summary": ("recovery_data", "Fetching your recovery data…"),
-    "search_exercises": ("training_data", "Searching your exercise library…"),
-    "get_exercise": ("training_data", "Checking the selected exercise…"),
-    "get_active_recommendation": (
-        "recommendation",
-        "Checking your active recommendation…",
-    ),
-    "create_recommendation": ("recommendation", "Preparing your recommendation…"),
-}
-
 
 def _tool_context(ctx: RunContext[CoachDeps]) -> CoachToolContext:
     return CoachToolContext(
@@ -56,14 +43,18 @@ def _tool_context(ctx: RunContext[CoachDeps]) -> CoachToolContext:
 
 def activity_for_tool(
     tool_name: str, tool_call_id: str, status: ActivityStatus
-) -> CoachActivity | None:
+) -> CoachActivity:
     """Builds a user-safe activity for one registered Pydantic AI tool call."""
 
-    presentation = _ACTIVITY_BY_TOOL.get(tool_name)
-    if presentation is None:
-        return None
+    presentation = safe_activity_presentation("other", tool_name)
     kind, label = presentation
-    return CoachActivity(id=tool_call_id, kind=kind, label=label, status=status)
+    return CoachActivity(
+        id=tool_call_id,
+        kind=kind,
+        label=label,
+        status=status,
+        tool_name=tool_name,
+    )
 
 
 async def _call(ctx: RunContext[CoachDeps], function: Any, **kwargs: Any) -> Any:

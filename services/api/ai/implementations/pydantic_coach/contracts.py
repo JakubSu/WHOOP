@@ -78,6 +78,7 @@ class CoachRunState:
                     kind=activity.kind,
                     label=activity.label,
                     status="failed",
+                    tool_name=activity.tool_name,
                 )
                 self.activities[terminal.id] = terminal
                 failed.append(terminal)

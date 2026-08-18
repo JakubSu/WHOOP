@@ -28,6 +28,7 @@ class CoachActivity:
     kind: ActivityKind
     label: str
     status: ActivityStatus
+    tool_name: str | None = None
 
     def as_dict(self) -> dict[str, str]:
         """Converts the activity to its owned JSON-compatible representation."""
