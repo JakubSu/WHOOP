@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from coach.models import CoachConversation, CoachMessage, UiAction
+from coach.models import (
+    CoachBudgetReservation,
+    CoachConversation,
+    CoachGlobalMonthlyUsage,
+    CoachMessage,
+    CoachUserMonthlyUsage,
+    UiAction,
+)
 
 
 class CoachMessageInline(admin.TabularInline):
@@ -46,3 +53,38 @@ class UiActionAdmin(admin.ModelAdmin):
         "message__conversation",
         "message__conversation__user",
     )
+
+
+@admin.register(CoachUserMonthlyUsage)
+class CoachUserMonthlyUsageAdmin(admin.ModelAdmin):
+    list_display = ("user", "period_start", "spent_usd", "reserved_usd", "updated_at")
+    list_filter = ("period_start",)
+    search_fields = ("user__email",)
+    readonly_fields = ("user", "period_start", "spent_usd", "reserved_usd", "created_at", "updated_at")
+    list_select_related = ("user",)
+
+
+@admin.register(CoachGlobalMonthlyUsage)
+class CoachGlobalMonthlyUsageAdmin(admin.ModelAdmin):
+    list_display = ("period_start", "spent_usd", "reserved_usd", "updated_at")
+    list_filter = ("period_start",)
+    readonly_fields = ("period_start", "spent_usd", "reserved_usd", "created_at", "updated_at")
+
+
+@admin.register(CoachBudgetReservation)
+class CoachBudgetReservationAdmin(admin.ModelAdmin):
+    list_display = ("run_id", "user", "status", "reserved_usd", "actual_usd", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("run_id", "user__email")
+    readonly_fields = (
+        "run_id",
+        "user",
+        "user_monthly_usage",
+        "global_monthly_usage",
+        "reserved_usd",
+        "actual_usd",
+        "status",
+        "created_at",
+        "settled_at",
+    )
+    list_select_related = ("user", "user_monthly_usage", "global_monthly_usage")
