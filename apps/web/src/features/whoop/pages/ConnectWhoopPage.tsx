@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { AuthShell } from '../../../shared/components/AuthShell'
 import { InlineError } from '../../../shared/components/InlineError'
+import { Button, Card } from '../../../shared/components/ui'
 import { ConnectWhoopButton } from '../components/ConnectWhoopButton'
 import { useConnectWhoop } from '../hooks/useConnectWhoop'
 
@@ -41,26 +42,24 @@ export function ConnectWhoopPage() {
       description="Link your WHOOP data so your coach can use recovery, sleep, and strain context."
       icon={<Watch aria-hidden="true" />}
     >
-      <div className="connect-panel">
-        <div className="flow-note">
+      <div className="grid gap-5">
+        <Card className="space-y-3 p-4 text-sm leading-6 text-muted-foreground">
           <p>
             We ask the API for a fresh WHOOP authorization link, then send this
             browser directly to WHOOP.
           </p>
           <p>If WHOOP is unavailable, you can continue and connect it later.</p>
-        </div>
+        </Card>
         <ConnectWhoopButton
           isLoading={connectWhoop.isPending}
           onClick={handleConnect}
         />
         {connectUrl ? (
-          <a className="primary-button secondary-action" href={connectUrl}>
-            Continue to WHOOP
-          </a>
+          <Button asChild className="w-full sm:w-auto" variant="outline">
+            <a href={connectUrl}>Continue to WHOOP</a>
+          </Button>
         ) : null}
-        <Link className="primary-button secondary-action" to="/">
-          Continue without WHOOP
-        </Link>
+        <Button asChild className="w-full sm:w-auto" variant="ghost"><Link to="/">Continue without WHOOP</Link></Button>
         <InlineError message={error} />
       </div>
     </AuthShell>

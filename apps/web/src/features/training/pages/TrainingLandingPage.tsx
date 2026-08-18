@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { getLocalDateIso } from '../services/formatters'
 import { getWorkoutLanding } from '../api/trainingApi'
+import { Spinner } from '../../../shared/components/ui'
 
 export function TrainingLandingPage() {
   const navigate = useNavigate()
@@ -15,5 +16,5 @@ export function TrainingLandingPage() {
   }, [landing.data, navigate])
 
   if (landing.isError) return <Navigate to="/week" replace />
-  return <main className="status-screen"><p>Finding your next workout...</p></main>
+  return <main className="grid min-h-screen place-items-center bg-background p-6"><p className="flex items-center gap-2 text-sm text-muted-foreground"><Spinner className="size-4" />Finding your next workout...</p></main>
 }

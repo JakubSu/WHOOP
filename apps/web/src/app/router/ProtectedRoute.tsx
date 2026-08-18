@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../features/auth/store/authStore'
+import { Spinner } from '../../shared/components/ui'
 
 type ProtectedRouteProps = {
   children: ReactNode
@@ -12,8 +13,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (status === 'idle' || status === 'checking') {
     return (
-      <main className="status-screen">
-        <p>Loading your session...</p>
+      <main className="grid min-h-screen place-items-center bg-background p-6">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground"><Spinner className="size-4" />Loading your session...</p>
       </main>
     )
   }

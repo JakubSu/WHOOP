@@ -1,6 +1,6 @@
-import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 import { Button, Input } from '@/shared/components/ui'
-import { formatWeekdayDate } from '../services/formatters'
+import { formatWeekRange, formatWeekdayDate } from '../services/formatters'
 import { type Workout } from '../types'
 
 type WorkoutHeaderProps = {
@@ -46,6 +46,21 @@ export function WorkoutHeader({
 
   return (
     <header className="mb-6 border-b border-border pb-5" data-tour="workout-header" data-tour-workout-date={workout?.date}>
+      <Button
+        className="mb-4 flex w-full justify-between border-border/70 px-3 text-sm font-semibold lg:hidden"
+        aria-label={workout?.date ? `Open week of ${formatWeekRange(workout.date)}` : 'Open workout week'}
+        type="button"
+        variant="outline"
+        disabled={isEditing || !workout?.date}
+        onClick={onOpenWeek}
+        data-tour="week-navigation-mobile"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <CalendarDays aria-hidden="true" size={16} className="shrink-0 text-primary" />
+          <span className="truncate">{workout?.date ? `Week of ${formatWeekRange(workout.date)}` : 'View week'}</span>
+        </span>
+        <ChevronRight aria-hidden="true" size={17} className="shrink-0 text-muted-foreground" />
+      </Button>
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Workout</p>
         {isEditing ? (
@@ -73,12 +88,11 @@ export function WorkoutHeader({
             {!isLoading ? <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-primary">{exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}</p> : null}
           </div>
         ) : (
-          <button className="min-w-0 rounded-md px-2 py-1 text-center outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" type="button" disabled={!workout?.date} onClick={onOpenWeek} data-tour="week-navigation-mobile">
+          <div className="min-w-0 px-2 py-1 text-center">
             <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl">{workout?.name ?? 'Workout'}</h1>
             {workout ? <p className="mt-1 truncate text-sm text-muted-foreground">{workoutDate}</p> : null}
             {!isLoading ? <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-primary">{exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}</p> : null}
-            <span className="sr-only">Open this workout's week</span>
-          </button>
+          </div>
         )}
         <Button aria-label="Next workout" type="button" variant="ghost" size="icon" disabled={!nextWorkout} onClick={onNext}><ChevronRight aria-hidden="true" size={20} /></Button>
       </div>

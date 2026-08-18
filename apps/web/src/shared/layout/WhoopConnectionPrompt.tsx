@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWhoopSummary } from '../../features/whoop/hooks/useWhoopSummary'
 import { getErrorMessage } from '../api/errors'
-import { PrimaryButton } from '../components/PrimaryButton'
+import { Button, Dialog, DialogContent, DialogTitle } from '../components/ui'
 
 const DISMISS_KEY = 'whoop-connection-prompt-dismissed'
 
@@ -32,37 +32,23 @@ export function WhoopConnectionPrompt() {
     return null
   }
 
+  function dismiss() {
+    window.sessionStorage.setItem(DISMISS_KEY, 'true')
+    setIsDismissed(true)
+  }
+
   return (
-    <div className="whoop-modal-backdrop" role="presentation">
-      <section
-        className="whoop-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="whoop-modal-title"
-      >
-        <p className="eyebrow">WHOOP connection</p>
-        <h2 id="whoop-modal-title">Connect WHOOP to load your metrics</h2>
-        <p className="whoop-modal__copy">{detailFor(summary)}</p>
-        <div className="whoop-modal__actions">
-          <PrimaryButton
-            type="button"
-            onClick={() => navigate('/connect-whoop')}
-          >
-            Connect WHOOP
-          </PrimaryButton>
-          <button
-            className="reject-button"
-            type="button"
-            onClick={() => {
-              window.sessionStorage.setItem(DISMISS_KEY, 'true')
-              setIsDismissed(true)
-            }}
-          >
-            Continue without WHOOP
-          </button>
+    <Dialog open onOpenChange={(open) => { if (!open) dismiss() }}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6" aria-describedby="whoop-modal-copy">
+        <p className="text-xs font-bold uppercase tracking-[.16em] text-primary">WHOOP connection</p>
+        <DialogTitle className="mt-2 text-xl font-bold tracking-tight">Connect WHOOP to load your metrics</DialogTitle>
+        <p id="whoop-modal-copy" className="mt-3 text-sm leading-6 text-muted-foreground">{detailFor(summary)}</p>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button className="w-full sm:w-auto" type="button" variant="ghost" onClick={dismiss}>Continue without WHOOP</Button>
+          <Button className="w-full sm:w-auto" type="button" onClick={() => navigate('/connect-whoop')}>Connect WHOOP</Button>
         </div>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

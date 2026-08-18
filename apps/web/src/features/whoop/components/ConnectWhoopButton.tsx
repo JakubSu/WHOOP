@@ -1,5 +1,5 @@
 import { Watch } from 'lucide-react'
-import { PrimaryButton } from '../../../shared/components/PrimaryButton'
+import { Button, Spinner } from '../../../shared/components/ui'
 
 type ConnectWhoopButtonProps = {
   isLoading: boolean
@@ -11,9 +11,9 @@ export function ConnectWhoopButton({
   onClick,
 }: ConnectWhoopButtonProps) {
   return (
-    <PrimaryButton type="button" isLoading={isLoading} onClick={onClick}>
-      <Watch aria-hidden="true" size={18} />
-      Connect to WHOOP
-    </PrimaryButton>
+    <Button className="w-full sm:w-auto" type="button" disabled={isLoading} onClick={onClick}>
+      {isLoading ? <Spinner className="size-[18px]" /> : <Watch aria-hidden="true" size={18} />}
+      {isLoading ? 'Opening WHOOP…' : 'Connect to WHOOP'}
+    </Button>
   )
 }

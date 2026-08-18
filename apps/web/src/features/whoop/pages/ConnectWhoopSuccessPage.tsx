@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { getCurrentUser } from '../../auth/api/authApi'
 import { useAuthStore } from '../../auth/store/authStore'
 import { AuthShell } from '../../../shared/components/AuthShell'
+import { Card, Spinner } from '../../../shared/components/ui'
 
 export function ConnectWhoopSuccessPage() {
   const navigate = useNavigate()
@@ -42,10 +43,10 @@ export function ConnectWhoopSuccessPage() {
       description="We are refreshing your profile and preparing your training workspace."
       icon={<CheckCircle2 aria-hidden="true" />}
     >
-      <div className="status-card">
-        <span className="spinner" aria-hidden="true" />
+      <Card className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
+        <Spinner className="size-5" />
         <p>Finishing connection...</p>
-      </div>
+      </Card>
     </AuthShell>
   )
 }

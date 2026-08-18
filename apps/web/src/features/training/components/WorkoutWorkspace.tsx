@@ -23,12 +23,12 @@ export function WorkoutWorkspace() {
 
   return <section className="mx-auto grid min-h-0 w-full max-w-2xl grid-rows-[auto_auto_1fr] px-4 py-6 sm:px-6 lg:max-w-none lg:px-8 lg:py-7" data-tour-workspace-ready={!workoutPage.isLoading ? 'true' : undefined}>
     <WorkoutHeader canEdit={Boolean(workoutPage.resolvedWorkoutId)} draftWorkoutName={editor.draftWorkoutName} exerciseCount={visibleExercises.length} isEditing={editor.isEditing} isLoading={workoutPage.isLoading} isSaving={editor.isSaving} isToday={workoutPage.isToday} nextWorkout={workoutPage.nextWorkout} previousWorkout={workoutPage.previousWorkout} workout={workoutPage.workout} onCancelEditing={editor.cancelEditing} onNext={() => workoutPage.nextWorkout && navigate(`/workouts/${workoutPage.nextWorkout.id}`)} onOpenWeek={() => workoutPage.workout?.date && navigate(`/week?date=${workoutPage.workout.date}`)} onPrevious={() => workoutPage.previousWorkout && navigate(`/workouts/${workoutPage.previousWorkout.id}`)} onSave={editor.save} onStartEditing={editor.startEditing} onWorkoutNameChange={editor.setDraftWorkoutName} />
-    <div className="workout-status-stack">
-      {workoutPage.isLoading ? <p className="muted">Loading workout...</p> : null}
+    <div className="grid gap-2">
+      {workoutPage.isLoading ? <p className="text-sm text-muted-foreground">Loading workout...</p> : null}
       <InlineError message={workoutPage.error ? getErrorMessage(workoutPage.error) : null} />
       <InlineError message={editor.saveError ? getErrorMessage(editor.saveError) : null} />
     </div>
-    <ScrollableStack empty={!workoutPage.isLoading && !editor.isEditing ? <p className="empty-state">This workout has no exercises yet.</p> : null}>
+    <ScrollableStack empty={!workoutPage.isLoading && !editor.isEditing ? <p className="grid place-items-center rounded-lg border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">This workout has no exercises yet.</p> : null}>
       <WorkoutExerciseList draftExercises={editor.draftExercises} exercises={workoutPage.exerciseDisplays} isEditing={editor.isEditing} onOpenAddDialog={editor.openAddDialog} onRemoveExercise={editor.removeExercise} onReorder={editor.reorder} onUpdateExercise={editor.updateExercise} />
     </ScrollableStack>
     <AddExerciseDialog exercises={editor.exerciseLibrary} isLoading={editor.isExerciseLibraryLoading} isCreating={editor.isCreatingExercise} muscleGroupFilter={editor.muscleGroupFilter} open={editor.isAddOpen} intent={{ kind: 'workout', onSelect: editor.addExercise }} onCreate={editor.createExercise} onOpenChange={editor.setIsAddOpen} onMuscleGroupFilterChange={editor.setMuscleGroupFilter} />

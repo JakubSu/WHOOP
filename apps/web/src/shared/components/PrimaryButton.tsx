@@ -21,7 +21,7 @@ export function PrimaryButton({
     >
       {isLoading ? (
         <>
-          <LoaderCircle className="spin" aria-hidden="true" size={18} />
+          <LoaderCircle className="animate-spin" aria-hidden="true" size={18} />
           Working
         </>
       ) : (
