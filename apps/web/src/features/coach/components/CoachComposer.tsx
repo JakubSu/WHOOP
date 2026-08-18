@@ -23,6 +23,7 @@ export function CoachComposer({
     <form
       className="flex shrink-0 gap-2 border-t border-border bg-card px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
       onSubmit={submit}
+      data-tour="coach-composer"
     >
       <Input
         aria-label="Message coach"

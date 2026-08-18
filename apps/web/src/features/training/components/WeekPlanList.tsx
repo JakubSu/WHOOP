@@ -14,7 +14,7 @@ export function WeekPlanList({ date, compact = false }: WeekPlanListProps) {
   const { visibleWeekStartDate, rangeTitle, weekDays, moveToPreviousWeek, moveToNextWeek, isLoading, error } = useWeekPage(date)
 
   return (
-    <section className={compact ? 'grid min-h-0 grid-rows-[auto_1fr]' : ''}>
+    <section className={compact ? 'grid min-h-0 grid-rows-[auto_1fr]' : ''} data-tour={compact ? undefined : 'week-navigation-page'} data-tour-workspace-ready={!isLoading && !compact ? 'true' : undefined}>
       {!compact ? <WeekCoachContext weekStartDate={visibleWeekStartDate} /> : null}
       <header className={compact ? 'mb-3' : 'mb-6 border-b border-border pb-5'}>
         {!compact ? <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Week</p> : null}

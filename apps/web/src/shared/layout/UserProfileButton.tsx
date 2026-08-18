@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Unlink, Watch } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useNavigate } from 'react-router-dom'
+import { useProductTour } from '../../features/product-tour/ProductTourProvider'
 import { logoutUser } from '../../features/auth/api/authApi'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { disconnectWhoop } from '../../features/whoop/api/whoopApi'
@@ -23,6 +24,7 @@ export function UserProfileButton() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { setTheme } = useTheme()
+  const { replayTour } = useProductTour()
   const logout = useMutation({
     mutationFn: logoutUser,
     onSettled: async () => {
@@ -75,6 +77,8 @@ export function UserProfileButton() {
           </DropdownMenuItem>
           <Separator /><div className="px-2 pb-1 pt-2 text-xs font-semibold text-muted-foreground">Theme</div>
           {(['light','dark','system'] as const).map((theme) => <DropdownMenuItem key={theme} onSelect={() => setTheme(theme)}>{theme[0].toUpperCase() + theme.slice(1)}</DropdownMenuItem>)}
+          <Separator />
+          <DropdownMenuItem onSelect={replayTour} data-tour="replay-product-tour">Replay product tour</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

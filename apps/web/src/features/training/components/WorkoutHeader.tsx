@@ -45,7 +45,7 @@ export function WorkoutHeader({
   const workoutDate = isToday ? 'Today' : formatWeekdayDate(workout?.date ?? null)
 
   return (
-    <header className="mb-6 border-b border-border pb-5">
+    <header className="mb-6 border-b border-border pb-5" data-tour="workout-header">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Workout</p>
         {isEditing ? (
@@ -54,7 +54,7 @@ export function WorkoutHeader({
             <Button size="sm" type="button" disabled={isSaving} onClick={onSave}>{isSaving ? 'Saving…' : 'Save'}</Button>
           </div>
         ) : (
-          <Button size="sm" type="button" variant="outline" disabled={!canEdit} onClick={onStartEditing}>
+          <Button size="sm" type="button" variant="outline" disabled={!canEdit} onClick={onStartEditing} data-tour="workout-edit">
             <Pencil aria-hidden="true" size={15} />Edit
           </Button>
         )}
@@ -73,7 +73,7 @@ export function WorkoutHeader({
             {!isLoading ? <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-primary">{exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}</p> : null}
           </div>
         ) : (
-          <button className="min-w-0 rounded-md px-2 py-1 text-center outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" type="button" disabled={!workout?.date} onClick={onOpenWeek}>
+          <button className="min-w-0 rounded-md px-2 py-1 text-center outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" type="button" disabled={!workout?.date} onClick={onOpenWeek} data-tour="week-navigation-mobile">
             <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl">{workout?.name ?? 'Workout'}</h1>
             {workout ? <p className="mt-1 truncate text-sm text-muted-foreground">{workoutDate}</p> : null}
             {!isLoading ? <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-primary">{exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}</p> : null}

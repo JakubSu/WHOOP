@@ -21,7 +21,7 @@ export function WorkoutWorkspace() {
   useCoachPageContext(coachContext)
   const visibleExercises = editor.isEditing ? editor.draftExercises : workoutPage.exerciseDisplays
 
-  return <section className="mx-auto grid min-h-0 w-full max-w-2xl grid-rows-[auto_auto_1fr] px-4 py-6 sm:px-6 lg:max-w-none lg:px-8 lg:py-7">
+  return <section className="mx-auto grid min-h-0 w-full max-w-2xl grid-rows-[auto_auto_1fr] px-4 py-6 sm:px-6 lg:max-w-none lg:px-8 lg:py-7" data-tour-workspace-ready={!workoutPage.isLoading ? 'true' : undefined}>
     <WorkoutHeader canEdit={Boolean(workoutPage.resolvedWorkoutId)} draftWorkoutName={editor.draftWorkoutName} exerciseCount={visibleExercises.length} isEditing={editor.isEditing} isLoading={workoutPage.isLoading} isSaving={editor.isSaving} isToday={workoutPage.isToday} nextWorkout={workoutPage.nextWorkout} previousWorkout={workoutPage.previousWorkout} workout={workoutPage.workout} onCancelEditing={editor.cancelEditing} onNext={() => workoutPage.nextWorkout && navigate(`/workouts/${workoutPage.nextWorkout.id}`)} onOpenWeek={() => workoutPage.workout?.date && navigate(`/week?date=${workoutPage.workout.date}`)} onPrevious={() => workoutPage.previousWorkout && navigate(`/workouts/${workoutPage.previousWorkout.id}`)} onSave={editor.save} onStartEditing={editor.startEditing} onWorkoutNameChange={editor.setDraftWorkoutName} />
     <div className="workout-status-stack">
       {workoutPage.isLoading ? <p className="muted">Loading workout...</p> : null}

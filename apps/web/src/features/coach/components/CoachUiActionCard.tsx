@@ -36,7 +36,7 @@ export function CoachUiActionCard({
       </p>
     );
   return (
-    <section className="mt-3 rounded-lg border border-border bg-background p-3 text-sm">
+    <section className="mt-3 rounded-lg border border-border bg-background p-3 text-sm" data-tour="coach-exercise-resolution">
       <p className="font-medium">
         I couldn’t find “{action.payload.requested_name}”.
       </p>
@@ -44,7 +44,7 @@ export function CoachUiActionCard({
         Create it, or choose an existing exercise.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" disabled={disabled} onClick={() => setMode("create")}>
+        <Button size="sm" disabled={disabled} onClick={() => setMode("create")} data-tour="create-missing-exercise">
           Create new exercise
         </Button>
         <Button
@@ -52,6 +52,7 @@ export function CoachUiActionCard({
           variant="outline"
           disabled={disabled}
           onClick={() => setMode("search")}
+          data-tour="select-existing-exercise"
         >
           Choose existing exercise
         </Button>
