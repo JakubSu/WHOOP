@@ -10,17 +10,20 @@ import { labelForCoachContext } from '../services/coachContext'
 import { CoachBottomSheet } from './CoachBottomSheet'
 import { CoachCollapsedBar } from './CoachCollapsedBar'
 import { CoachConversation } from './CoachConversation'
+import { CoachTourGuide } from './CoachTourGuide'
+import { EXERCISE_PRACTICE_PROMPT } from '../../product-tour/tourSteps'
 import { useProductTour } from '../../product-tour/ProductTourProvider'
 
 export function CoachOverlay() {
   const { currentContext } = useCoachOverlayContext()
   const desktop = useCoachPanel()
-  const { registerCoachActions } = useProductTour()
+  const { registerCoachActions, guidedCoachStage, notifyGuidedCoachSubmitted, notifyGuidedCoachCompleted, notifyGuidedExerciseResolutionStarted } = useProductTour()
   const isDesktop = useDesktopViewport()
   const sheet = useCoachBottomSheet(true)
   const startFollowingRef = useRef<() => void>(() => {})
   const prepareForPrependRef = useRef<() => void>(() => {})
   const hasLoadedDesktopConversationRef = useRef(false)
+  const wasStreamingRef = useRef(false)
   const chat = useCoachChat({ currentContext, onSend: () => startFollowingRef.current(), onBeforeLoadOlder: () => prepareForPrependRef.current() })
   const autoScroll = useCoachAutoScroll({ isOpen: sheet.isOpen || desktop.mode !== 'collapsed', messageCount: chat.messages.length, isStreaming: chat.isStreaming, streamVersion: chat.streamVersion })
   startFollowingRef.current = autoScroll.startFollowing
@@ -41,6 +44,14 @@ export function CoachOverlay() {
     void chat.loadLatestConversation()
   }, [chat.conversationId, chat.loadLatestConversation, chat.messages.length, desktop.mode, isDesktop])
 
+  useEffect(() => {
+    if (wasStreamingRef.current && !chat.isStreaming) {
+      const latestAssistant = [...chat.messages].reverse().find((message) => message.role === 'assistant')
+      notifyGuidedCoachCompleted(Boolean(latestAssistant?.ui_actions.some((action) => action.status === 'pending')))
+    }
+    wasStreamingRef.current = chat.isStreaming
+  }, [chat.isStreaming, chat.messages, notifyGuidedCoachCompleted])
+
   const openCoach = useCallback(() => {
     sheet.open()
     desktop.open()
@@ -57,11 +68,25 @@ export function CoachOverlay() {
           document.querySelector<HTMLInputElement>('[data-tour="coach-composer"] input')?.focus()
         }, 0)
       },
+      startFreshConversationAndPrefill: async (message) => {
+        openCoach()
+        const created = await chat.newChat()
+        if (!created) return false
+        chat.setInput(message)
+        window.setTimeout(() => document.querySelector<HTMLInputElement>('[data-tour="coach-composer"] input')?.focus(), 0)
+        return true
+      },
     })
     return () => registerCoachActions(null)
   }, [chat.setInput, openCoach, registerCoachActions])
 
-  const conversation = <CoachConversation label={label} conversations={chat.conversations} conversationId={chat.conversationId} messages={chat.messages} activeMessageId={chat.activeMessageId} thinking={chat.thinking} value={chat.input} isLoading={chat.isLoading} isStreaming={chat.isStreaming} error={chat.error} canLoadOlder={Boolean(chat.nextMessageCursor)} isFollowing={autoScroll.isFollowing} scrollRef={autoScroll.scrollRef} onSelect={(id) => void chat.selectConversation(id)} onNewChat={() => void chat.newChat()} onCollapse={isDesktop ? desktop.collapse : sheet.close} onExpand={isDesktop && desktop.mode === 'open' ? desktop.expand : undefined} onChange={chat.setInput} onSubmit={() => void chat.send()} onScroll={autoScroll.onScroll} onLoadOlder={() => void chat.loadOlderMessages()} onJumpToLatest={autoScroll.scrollToLatest} isBusy={isBusy} onResolveUiAction={(actionId, exercise, method) => void chat.resolveUiAction(actionId, exercise.id, method)} onDismissUiAction={(actionId) => void chat.dismissUiAction(actionId)} />
+  useEffect(() => {
+    if (guidedCoachStage !== 'followup_ready') return
+    chat.setInput(EXERCISE_PRACTICE_PROMPT)
+    window.setTimeout(() => document.querySelector<HTMLInputElement>('[data-tour="coach-composer"] input')?.focus(), 0)
+  }, [chat.setInput, guidedCoachStage])
+
+  const conversation = <CoachConversation label={label} conversations={chat.conversations} conversationId={chat.conversationId} messages={chat.messages} activeMessageId={chat.activeMessageId} thinking={chat.thinking} value={chat.input} isLoading={chat.isLoading} isStreaming={chat.isStreaming} error={chat.error} canLoadOlder={Boolean(chat.nextMessageCursor)} isFollowing={autoScroll.isFollowing} scrollRef={autoScroll.scrollRef} onSelect={(id) => void chat.selectConversation(id)} onNewChat={() => void chat.newChat()} onCollapse={isDesktop ? desktop.collapse : sheet.close} onExpand={isDesktop && desktop.mode === 'open' ? desktop.expand : undefined} onChange={chat.setInput} onSubmit={() => { notifyGuidedCoachSubmitted(); void chat.send() }} onScroll={autoScroll.onScroll} onLoadOlder={() => void chat.loadOlderMessages()} onJumpToLatest={autoScroll.scrollToLatest} isBusy={isBusy} onResolveUiAction={(actionId, exercise, method) => { notifyGuidedExerciseResolutionStarted(); void chat.resolveUiAction(actionId, exercise.id, method) }} onDismissUiAction={(actionId) => void chat.dismissUiAction(actionId)} guide={<CoachTourGuide />} />
 
   return <div className="contents" aria-live={chat.isStreaming ? 'polite' : 'off'}>
     {!isDesktop ? <div className="lg:hidden">

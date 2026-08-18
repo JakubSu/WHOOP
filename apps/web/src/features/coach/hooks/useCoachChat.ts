@@ -41,14 +41,15 @@ export function useCoachChat({ currentContext, onSend, onBeforeLoadOlder }: { cu
   }, [conversationId, isStreaming])
 
   const newChat = useCallback(async () => {
-    if (isStreaming) return
+    if (isStreaming) return false
     setIsLoading(true); setError(null)
     try {
       const conversation = await createCoachConversation()
       setConversationId(conversation.id)
       setConversations((items) => [{ id: conversation.id, title: conversation.title, last_message_preview: null, updated_at: conversation.updated_at }, ...items])
       setNextMessageCursor(null); setChat(EMPTY_CHAT)
-    } catch (reason) { setError(errorMessage(reason)) } finally { setIsLoading(false) }
+      return true
+    } catch (reason) { setError(errorMessage(reason)); return false } finally { setIsLoading(false) }
   }, [isStreaming])
 
   const send = useCallback(async () => {

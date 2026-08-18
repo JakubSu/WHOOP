@@ -1,14 +1,18 @@
 import { type DriveStep } from 'driver.js'
 
 export const EXERCISE_PRACTICE_PROMPT =
-  'Replace barbell rows with chest-supported dumbbell rows.'
+  'Replace Dumbbell Lateral Raise with Lean-away Cable Lateral Raise.'
 
 const COACH_COMPOSER_WAIT_MS = 1_500
-const NEXT_PAINT_DELAY_MS = 0
-
-export type ProductTourActions = {
+export type CoachTourActions = {
   openCoach: () => void
   prefillCoachMessage: (message: string) => void
+  startFreshConversationAndPrefill: (message: string) => Promise<boolean>
+}
+
+export type ProductTourActions = CoachTourActions & {
+  goToWeekForTour: () => void
+  startGuidedCoachFlow: () => Promise<void>
 }
 
 type TourStepOptions = {
@@ -33,6 +37,22 @@ export function createProductTourSteps({
   const whoopDescription = hasWhoopConnection
     ? 'Sleep, Recovery, and Strain give your plan the daily context it needs.'
     : 'Connect WHOOP when you are ready to personalize your plan with sleep, recovery, and strain.'
+  const weekSteps: DriveStep[] = isDesktop
+    ? [{
+        element: weekNavigationTargetForViewport(true),
+        popover: popover('Your week at a glance', 'Browse scheduled workouts and rest days from the week navigator.'),
+      }]
+    : [
+        {
+          onHighlightStarted: () => actions()?.goToWeekForTour(),
+          popover: popover('Your week at a glance', 'We are opening the full Week view so you can see every scheduled workout and rest day.'),
+        },
+        {
+          element: '[data-tour="week-navigation-page"]',
+          waitForElement: COACH_COMPOSER_WAIT_MS,
+          popover: popover('Your week at a glance', 'Browse scheduled workouts and rest days across the full week.'),
+        },
+      ]
 
   return [
     {
@@ -53,25 +73,10 @@ export function createProductTourSteps({
       ),
     },
     {
-      element: weekNavigationTargetForViewport(isDesktop),
-      popover: popover(
-        'Your week at a glance',
-        'Browse scheduled workouts and rest days to see how your training is laid out across the week.',
-      ),
-    },
-    {
       element: '[data-tour="workout-edit"]',
-      popover: {
-        ...popover(
-          'You are always in control',
-          'Edit your workout directly whenever you want. The Coach supports your decisions; it never makes hidden changes.',
-        ),
-        onNextClick: (_element, _step, { driver }) => {
-          actions()?.openCoach()
-          window.setTimeout(() => driver.moveNext(), NEXT_PAINT_DELAY_MS)
-        },
-      },
+      popover: popover('You are always in control', 'Edit your workout directly whenever you want. The Coach supports your decisions; it never makes hidden changes.'),
     },
+    ...weekSteps,
     {
       onHighlightStarted: () => actions()?.openCoach(),
       popover: popover(
@@ -91,16 +96,16 @@ export function createProductTourSteps({
       element: '[data-tour="coach-composer"]',
       popover: {
         ...popover(
-          'Need an exercise that is not in your library?',
-          'The Coach can help you create it or choose an existing match. Try the optional example below; it only fills the message, and will not send anything.',
+          'Build a workout with the Coach',
+          'Use this guided example to create an upper-body workout. We will only prefill it; you will press Send yourself.',
         ),
         onPopoverRender: (popoverDom) => {
           const button = document.createElement('button')
           button.type = 'button'
           button.className = 'product-tour-practice-button'
-          button.textContent = 'Prefill example'
+          button.textContent = 'Use this example'
           button.addEventListener('click', () => {
-            actions()?.prefillCoachMessage(EXERCISE_PRACTICE_PROMPT)
+            void actions()?.startGuidedCoachFlow?.()
           })
           popoverDom.footer.prepend(button)
         },

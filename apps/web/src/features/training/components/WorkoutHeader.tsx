@@ -45,7 +45,7 @@ export function WorkoutHeader({
   const workoutDate = isToday ? 'Today' : formatWeekdayDate(workout?.date ?? null)
 
   return (
-    <header className="mb-6 border-b border-border pb-5" data-tour="workout-header">
+    <header className="mb-6 border-b border-border pb-5" data-tour="workout-header" data-tour-workout-date={workout?.date}>
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Workout</p>
         {isEditing ? (

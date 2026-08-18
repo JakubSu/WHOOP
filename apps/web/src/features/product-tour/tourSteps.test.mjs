@@ -18,6 +18,6 @@ test('week navigation target follows the visible desktop or mobile control', () 
   assert.equal(steps.weekNavigationTargetForViewport(false), '[data-tour="week-navigation-mobile"], [data-tour="week-navigation-page"]')
 })
 
-test('the exercise practice prompt is a fixed prefill request', () => {
-  assert.equal(steps.EXERCISE_PRACTICE_PROMPT, 'Replace barbell rows with chest-supported dumbbell rows.')
+test('the exercise practice prompt requests the missing lateral-raise alternative', () => {
+  assert.equal(steps.EXERCISE_PRACTICE_PROMPT, 'Replace Dumbbell Lateral Raise with Lean-away Cable Lateral Raise.')
 })
