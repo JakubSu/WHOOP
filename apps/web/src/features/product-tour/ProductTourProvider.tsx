@@ -17,6 +17,7 @@ const WORKSPACE_READY_RETRY_DELAY_MS = 200
 const MAX_WORKSPACE_READY_ATTEMPTS = 30
 const DRIVER_TARGET_WAIT_MS = 1_000
 const NEXT_PAINT_DELAY_MS = 0
+const DEMO_TOUR_END_TITLE = 'You’re ready to train with WHOOP'
 
 type ProductTourContextValue = {
   startTour: () => void
@@ -27,11 +28,11 @@ type ProductTourContextValue = {
   notifyGuidedCoachCompleted: (hasExerciseResolution: boolean) => void
   notifyGuidedExerciseResolutionStarted: () => void
   notifyGuidedRecommendationExpanded: () => void
-  notifyGuidedRecommendationAccepted: () => void
+  notifyGuidedRecommendationAccepted: (workoutId?: string) => void
   notifyGuidedWorkoutOpened: () => void
 }
 
-export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'review_initial' | 'waiting_initial_accept' | 'week_ready' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'review_replacement' | 'updated_workout' | 'complete' | 'unavailable'
+export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'review_initial' | 'waiting_initial_accept' | 'workout_ready' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'review_replacement' | 'updated_workout' | 'complete' | 'unavailable'
 
 const ProductTourContext = createContext<ProductTourContextValue | null>(null)
 
@@ -45,6 +46,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const autoStartAttemptedRef = useRef<string | null>(null)
   const guidedCoachStartRef = useRef<Promise<boolean> | null>(null)
   const guidedWorkoutDateRef = useRef<string | null>(null)
+  const guidedWorkoutIdRef = useRef<string | null>(null)
   const [guidedCoachStage, setGuidedCoachStage] = useState<GuidedCoachStage>(null)
   const previousGuidedCoachStageRef = useRef<GuidedCoachStage>(null)
 
@@ -59,15 +61,12 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     const tour = driver({
       steps: createProductTourSteps({
         hasWhoopConnection,
+        isDemo: user.account_type === 'demo',
         isDesktop: window.matchMedia('(min-width: 1024px)').matches,
         actions: () => coachActionsRef.current ? ({
           ...coachActionsRef.current,
-          goToWeekForTour: () => {
-            const date = guidedWorkoutDateRef.current ?? document.querySelector<HTMLElement>('[data-tour-workout-date]')?.dataset.tourWorkoutDate
-            if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
-          },
           notifyGuidedRecommendationExpanded: () => setGuidedCoachStage((stage) => stage === 'review_initial' ? 'waiting_initial_accept' : stage),
-          notifyGuidedWorkoutOpened: () => setGuidedCoachStage((stage) => stage === 'week_ready' ? 'followup_ready' : stage),
+          notifyGuidedWorkoutOpened: () => setGuidedCoachStage((stage) => stage === 'workout_ready' ? 'followup_ready' : stage),
           startGuidedCoachFlow: () => {
             if (guidedCoachStartRef.current) return guidedCoachStartRef.current
             const start = async () => {
@@ -111,6 +110,19 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
         completeTour()
         tour.destroy()
       },
+      onPopoverRender: (popover) => {
+        if (tour.getActiveStep()?.popover?.title !== DEMO_TOUR_END_TITLE) return
+        const registerButton = document.createElement('button')
+        registerButton.type = 'button'
+        registerButton.className = 'driver-popover-footer-btn'
+        registerButton.textContent = 'Register'
+        registerButton.addEventListener('click', () => {
+          completeTour()
+          tour.destroy()
+          navigate('/register?source=demo-tour', { replace: true })
+        })
+        popover.footerButtons.appendChild(registerButton)
+      },
       onDestroyed: () => {
         driverRef.current = null
       },
@@ -124,6 +136,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     clearProductTourCompletion(user.id)
     guidedCoachStartRef.current = null
     guidedWorkoutDateRef.current = null
+    guidedWorkoutIdRef.current = null
     previousGuidedCoachStageRef.current = null
     setGuidedCoachStage(null)
     driverRef.current?.destroy()
@@ -164,24 +177,24 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     const shouldAdvance =
       (previousStage === 'initial_ready' && guidedCoachStage === 'waiting_initial') ||
       (previousStage === 'waiting_initial' && guidedCoachStage === 'review_initial') ||
-      (previousStage === 'waiting_initial_accept' && guidedCoachStage === 'week_ready') ||
+      (previousStage === 'waiting_initial_accept' && guidedCoachStage === 'workout_ready') ||
       (previousStage === 'followup_ready' && guidedCoachStage === 'waiting_followup') ||
       (previousStage === 'waiting_followup' && guidedCoachStage === 'exercise_resolution') ||
       (previousStage === 'exercise_resolution' && guidedCoachStage === 'waiting_resolution') ||
       (previousStage === 'waiting_resolution' && guidedCoachStage === 'review_replacement') ||
       (previousStage === 'review_replacement' && guidedCoachStage === 'updated_workout')
     if (!shouldAdvance || !driverRef.current?.isActive()) return
-    if (guidedCoachStage === 'week_ready') {
-      const date = guidedWorkoutDateRef.current
-      if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
+    if (guidedCoachStage === 'workout_ready') {
+      const workoutId = guidedWorkoutIdRef.current
+      if (workoutId) navigate(`/workouts/${workoutId}`)
     }
     let attempts = 0
     const moveNextWhenReady = () => {
       const tour = driverRef.current
       if (!tour?.isActive()) return
-      if (guidedCoachStage === 'week_ready' && !window.location.pathname.startsWith('/week')) {
-        const date = guidedWorkoutDateRef.current
-        if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
+      if (guidedCoachStage === 'workout_ready' && !window.location.pathname.startsWith('/workouts/')) {
+        const workoutId = guidedWorkoutIdRef.current
+        if (workoutId) navigate(`/workouts/${workoutId}`)
         window.setTimeout(moveNextWhenReady, WORKSPACE_READY_RETRY_DELAY_MS)
         return
       }
@@ -235,8 +248,11 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
       notifyGuidedCoachCompleted: (hasExerciseResolution) => setGuidedCoachStage((stage) => stage === 'waiting_initial' ? 'review_initial' : stage === 'waiting_followup' ? hasExerciseResolution ? 'exercise_resolution' : 'unavailable' : stage === 'waiting_resolution' ? 'review_replacement' : stage),
       notifyGuidedExerciseResolutionStarted: () => setGuidedCoachStage((stage) => stage === 'exercise_resolution' ? 'waiting_resolution' : stage),
       notifyGuidedRecommendationExpanded,
-      notifyGuidedRecommendationAccepted: () => setGuidedCoachStage((stage) => stage === 'waiting_initial_accept' ? 'week_ready' : stage === 'review_replacement' ? 'updated_workout' : stage),
-      notifyGuidedWorkoutOpened: () => setGuidedCoachStage((stage) => stage === 'week_ready' ? 'followup_ready' : stage),
+      notifyGuidedRecommendationAccepted: (workoutId?: string) => {
+        if (workoutId) guidedWorkoutIdRef.current = workoutId
+        setGuidedCoachStage((stage) => stage === 'waiting_initial_accept' ? 'workout_ready' : stage === 'review_replacement' ? 'updated_workout' : stage)
+      },
+      notifyGuidedWorkoutOpened: () => setGuidedCoachStage((stage) => stage === 'workout_ready' ? 'followup_ready' : stage),
     }}>
       {children}
     </ProductTourContext.Provider>

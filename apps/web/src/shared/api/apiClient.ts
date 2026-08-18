@@ -95,7 +95,7 @@ async function refreshAccessToken() {
   return refreshPromise
 }
 
-async function toApiError(response: Response) {
+export async function toApiError(response: Response) {
   let body = null
 
   try {

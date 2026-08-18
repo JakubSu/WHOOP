@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../shared/config/env'
-import { apiFetch, apiRequest } from '../../../shared/api/apiClient'
+import { apiFetch, apiRequest, toApiError } from '../../../shared/api/apiClient'
 import {
   type CoachConversation,
   type CoachConversationPage,
@@ -77,6 +77,7 @@ async function streamCoachRequest(path: string, body: object, onEvent: (event: C
   })
 
   if (!response.ok || !response.body) {
+    if (!response.ok) throw await toApiError(response)
     throw new Error(`Coach request failed with status ${response.status}`)
   }
 

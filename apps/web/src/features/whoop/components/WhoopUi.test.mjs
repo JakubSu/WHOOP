@@ -14,6 +14,8 @@ test('WHOOP screens use responsive Tailwind layouts instead of removed legacy se
   }
 
   assert.match(connectPage, /w-full sm:w-auto/)
+  assert.match(connectPage, /isRedirecting/)
+  assert.match(source('../components/ConnectWhoopButton.tsx'), /Redirecting to WHOOP/)
   assert.match(successPage, /<Spinner className="size-5"/)
   assert.match(prompt, /<Dialog open/)
   assert.match(prompt, /max-h-\[calc\(100dvh-2rem\)\] overflow-y-auto/)

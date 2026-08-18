@@ -25,16 +25,17 @@ test('the exercise practice prompt requests the missing lateral-raise alternativ
 test('guided Coach steps target the user actions in the recommendation flow', () => {
   const guidedSteps = steps.createProductTourSteps({
     hasWhoopConnection: true,
+    isDemo: false,
     isDesktop: true,
     actions: () => null,
   })
   const sendPromptStep = guidedSteps.find((step) => step.popover?.title === 'Use the example prompt and send it')
   const responseStep = guidedSteps.find((step) => step.popover?.title === 'Review the Coach response')
   const acceptStep = guidedSteps.find((step) => step.popover?.title === 'Accept the proposed workout')
-  const createdWorkoutStep = guidedSteps.find((step) => step.popover?.title === 'Open the new workout')
   const createExerciseStep = guidedSteps.find((step) => step.popover?.title === 'Create a new exercise')
   const saveExerciseStep = guidedSteps.find((step) => step.popover?.title === 'Save the exercise')
   const replacementStep = guidedSteps.find((step) => step.popover?.title === 'Accept the replacement workout')
+  const newWorkoutStep = guidedSteps.find((step) => step.popover?.title === 'Your new workout')
   const updatedWorkoutStep = guidedSteps.find((step) => step.popover?.title === 'Review the updated workout')
   const controlStep = guidedSteps.find((step) => step.popover?.title === 'You are always in control')
 
@@ -44,22 +45,24 @@ test('guided Coach steps target the user actions in the recommendation flow', ()
   assert.equal(typeof responseStep?.onHighlightStarted, 'function')
   assert.equal(acceptStep?.element, '[data-tour="coach-accept-all"]')
   assert.equal(typeof acceptStep?.onHighlighted, 'function')
-  assert.equal(createdWorkoutStep?.element, '[data-tour="created-workout"]')
-  assert.equal(createdWorkoutStep?.advanceOnClick, true)
-  assert.equal(createdWorkoutStep?.popover?.showButtons?.includes('next'), false)
+  assert.equal(guidedSteps.some((step) => step.popover?.title === 'Open the new workout'), false)
+  assert.equal(typeof newWorkoutStep?.onHighlightStarted, 'function')
   assert.equal(createExerciseStep?.element, '[data-tour="create-missing-exercise"]')
   assert.equal(createExerciseStep?.advanceOnClick, true)
   assert.equal(createExerciseStep?.popover?.showButtons?.includes('next'), false)
   assert.equal(saveExerciseStep?.element, '[data-tour="create-exercise-submit"]')
   assert.equal(saveExerciseStep?.popover?.showButtons?.includes('next'), false)
-  assert.equal(replacementStep?.element, steps.COACH_REPLACEMENT_RECOMMENDATION_TARGET)
+  assert.equal(replacementStep?.element, '[data-tour="coach-replacement-recommendation"] [data-tour="coach-accept-all"]')
+  assert.equal(typeof replacementStep?.onHighlighted, 'function')
   assert.equal(replacementStep?.popover?.showButtons?.includes('next'), false)
+  assert.equal(guidedSteps.some((step) => step.element === '[data-tour="coach-replacement-recommendation"]'), false)
   assert.equal(updatedWorkoutStep?.element, '[data-tour="workout-panel"]')
   assert.equal(typeof updatedWorkoutStep?.onHighlightStarted, 'function')
   assert.equal(controlStep?.element, '[data-tour="workout-edit"]')
 
   const mobileSteps = steps.createProductTourSteps({
     hasWhoopConnection: true,
+    isDemo: false,
     isDesktop: false,
     actions: () => null,
   })
@@ -78,4 +81,16 @@ test('guided Coach steps target the user actions in the recommendation flow', ()
   assert.equal(mobileSendPromptStep?.element, '[data-tour="coach-composer"]')
   assert.equal(mobileAcceptStep?.popover?.side, 'top')
   assert.equal(typeof mobileAcceptStep?.onHighlighted, 'function')
+
+  assert.equal(guidedSteps.some((step) => step.popover?.title === 'You’re ready to train with WHOOP'), false)
+  const demoSteps = steps.createProductTourSteps({
+    hasWhoopConnection: true,
+    isDemo: true,
+    isDesktop: true,
+    actions: () => null,
+  })
+  const demoEndStep = demoSteps.at(-1)
+  assert.equal(demoEndStep?.popover?.title, 'You’re ready to train!')
+  assert.equal(demoEndStep?.popover?.nextBtnText, 'Exit tour')
+  assert.deepEqual(demoEndStep?.popover?.showButtons, ['next', 'close'])
 })

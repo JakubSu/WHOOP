@@ -3,6 +3,7 @@ import { type RefObject } from "react";
 import { Button, ScrollArea } from "../../../shared/components/ui";
 import { type CoachMessage } from "../types";
 import { CoachMessageBubble } from "./CoachMessageBubble";
+import { DEMO_TOKEN_LIMIT_MESSAGE } from "../services/demoErrorMessage";
 
 export function CoachMessageList({
   scrollRef,
@@ -78,9 +79,14 @@ export function CoachMessageList({
           {error ? (
             <p
               role="alert"
-              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className={`rounded-lg px-3 py-2 text-sm ${error === DEMO_TOKEN_LIMIT_MESSAGE ? "bg-primary text-primary-foreground" : "bg-destructive/10 text-destructive"}`}
             >
-              {error}
+              {error === DEMO_TOKEN_LIMIT_MESSAGE ? (
+                <span className="flex items-center gap-2">
+                  <Bot className="text-black dark:text-black" size={16} aria-hidden="true" />
+                  <span>{error}</span>
+                </span>
+              ) : error}
             </p>
           ) : null}
         </div>

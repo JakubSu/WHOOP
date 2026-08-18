@@ -7,13 +7,17 @@ import { InlineError } from '../../../shared/components/InlineError'
 import { Button, Card } from '../../../shared/components/ui'
 import { ConnectWhoopButton } from '../components/ConnectWhoopButton'
 import { useConnectWhoop } from '../hooks/useConnectWhoop'
+import { useAuthStore } from '../../auth/store/authStore'
 
 export function ConnectWhoopPage() {
+  const user = useAuthStore((state) => state.user)
   const connectWhoop = useConnectWhoop()
   const [error, setError] = useState<string | null>(null)
   const [connectUrl, setConnectUrl] = useState<string | null>(null)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   async function handleConnect() {
+    if (user?.account_type === 'demo') return
     setError(null)
     setConnectUrl(null)
 
@@ -29,8 +33,10 @@ export function ConnectWhoopPage() {
       }
 
       setConnectUrl(connect_url)
-      window.location.assign(url.toString())
+      setIsRedirecting(true)
+      window.setTimeout(() => window.location.assign(url.toString()), 0)
     } catch (requestError) {
+      setIsRedirecting(false)
       setError(getConnectErrorMessage(requestError))
     }
   }
@@ -50,10 +56,15 @@ export function ConnectWhoopPage() {
           </p>
           <p>If WHOOP is unavailable, you can continue and connect it later.</p>
         </Card>
-        <ConnectWhoopButton
-          isLoading={connectWhoop.isPending}
-          onClick={handleConnect}
-        />
+        {user?.account_type === 'demo' ? (
+          <p className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">WHOOP connection is unavailable in the demo. Create an account to connect your device.</p>
+        ) : (
+          <ConnectWhoopButton
+            isLoading={connectWhoop.isPending || isRedirecting}
+            isRedirecting={isRedirecting}
+            onClick={handleConnect}
+          />
+        )}
         {connectUrl ? (
           <Button asChild className="w-full sm:w-auto" variant="outline">
             <a href={connectUrl}>Continue to WHOOP</a>

@@ -12,9 +12,11 @@ import { CoachCollapsedBar } from "./CoachCollapsedBar";
 import { CoachConversation } from "./CoachConversation";
 import { EXERCISE_PRACTICE_PROMPT } from "../../product-tour/tourSteps";
 import { useProductTour } from "../../product-tour/ProductTourProvider";
+import { useAuthStore } from "../../auth/store/authStore";
 
 export function CoachOverlay() {
   const { currentContext } = useCoachOverlayContext();
+  const user = useAuthStore((state) => state.user);
   const desktop = useCoachPanel();
   const {
     registerCoachActions,
@@ -31,6 +33,7 @@ export function CoachOverlay() {
   const wasStreamingRef = useRef(false);
   const chat = useCoachChat({
     currentContext,
+    isDemo: user?.account_type === 'demo',
     onSend: () => startFollowingRef.current(),
     onBeforeLoadOlder: () => prepareForPrependRef.current(),
   });

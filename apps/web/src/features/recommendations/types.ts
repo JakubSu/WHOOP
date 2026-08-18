@@ -18,7 +18,7 @@ type OperationBase = {
 }
 
 export type RecommendationOperation =
-  | (OperationBase & { operation_type: 'add_workout'; payload: { temporary_id: string; name: string; date: string; expected_time: number } })
+  | (OperationBase & { operation_type: 'add_workout'; payload: { temporary_id: string; name: string; date: string; expected_time: number; created_workout_id?: string } })
   | (OperationBase & { operation_type: 'update_workout'; payload: { workout_id: string; changes: Partial<{ name: string; date: string; expected_time: number }> } })
   | (OperationBase & { operation_type: 'remove_workout'; payload: { workout_id: string } })
   | (OperationBase & { operation_type: 'add_exercise'; payload: { workout: { kind: 'existing'; workout_id: string } | { kind: 'new'; temporary_id: string }; exercise_id: string; prescription: Prescription; position: number } })

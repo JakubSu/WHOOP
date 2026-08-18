@@ -26,15 +26,16 @@ export function UserProfileButton() {
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { replayTour } = useProductTour()
+  const finishLogout = async () => {
+    clearDemoSession()
+    clearSession()
+    await queryClient.cancelQueries()
+    queryClient.clear()
+    navigate('/login', { replace: true })
+  }
   const logout = useMutation({
     mutationFn: logoutUser,
-    onSettled: async () => {
-      clearDemoSession()
-      clearSession()
-      await queryClient.cancelQueries()
-      queryClient.clear()
-      navigate('/login', { replace: true })
-    },
+    onSettled: finishLogout,
   })
   const disconnect = useMutation({
     mutationFn: disconnectWhoop,
@@ -72,10 +73,10 @@ export function UserProfileButton() {
           )}
           <DropdownMenuItem
             disabled={logout.isPending || disconnect.isPending}
-            onClick={() => logout.mutate()}
+            onClick={() => user?.account_type === 'demo' ? finishLogout() : logout.mutate()}
           >
             <LogOut aria-hidden="true" size={16} />
-            {logout.isPending ? 'Signing out' : 'Log out'}
+            {logout.isPending ? 'Signing out' : user?.account_type === 'demo' ? 'Exit demo' : 'Log out'}
           </DropdownMenuItem>
           <Separator /><div className="px-2 pb-1 pt-2 text-xs font-semibold text-muted-foreground">Theme</div>
           {(['light','dark','system'] as const).map((theme) => <DropdownMenuItem key={theme} onSelect={() => setTheme(theme)}>{theme[0].toUpperCase() + theme.slice(1)}</DropdownMenuItem>)}

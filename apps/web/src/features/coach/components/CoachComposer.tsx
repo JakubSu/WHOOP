@@ -33,10 +33,9 @@ export function CoachComposer({
   }
 
   function submitFromTextarea(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-      event.preventDefault();
-      onSubmit();
-    }
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    onSubmit();
   }
 
   return (

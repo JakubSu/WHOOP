@@ -63,3 +63,16 @@ test('apiFetch refreshes an expired token and retries an SSE request once', asyn
     globalThis.fetch = originalFetch
   }
 })
+
+test('toApiError preserves structured streaming error codes', async () => {
+  const error = await apiClient.toApiError(new Response(JSON.stringify({
+    code: 'monthly_budget_exceeded',
+    detail: "The AI coach's monthly allowance has been reached.",
+  }), {
+    status: 429,
+    headers: { 'Content-Type': 'application/json' },
+  }))
+
+  assert.equal(error.status, 429)
+  assert.equal(error.body.code, 'monthly_budget_exceeded')
+})

@@ -9,8 +9,8 @@ export const COACH_RECOMMENDATION_CARD_TARGET =
   '[data-tour="coach-recommendation-card"]'
 export const COACH_GENERATED_WORKOUT_TARGET =
   '[data-tour="coach-generated-workout-recommendation"]'
-export const COACH_REPLACEMENT_RECOMMENDATION_TARGET =
-  '[data-tour="coach-replacement-recommendation"]'
+export const COACH_REPLACEMENT_ACCEPT_ALL_TARGET =
+  '[data-tour="coach-replacement-recommendation"] [data-tour="coach-accept-all"]'
 export type CoachTourActions = {
   openCoach: () => void
   closeCoach: () => void
@@ -19,7 +19,6 @@ export type CoachTourActions = {
 }
 
 export type ProductTourActions = CoachTourActions & {
-  goToWeekForTour: () => void
   notifyGuidedRecommendationExpanded: () => void
   notifyGuidedWorkoutOpened: () => void
   startGuidedCoachFlow: () => Promise<boolean>
@@ -27,6 +26,7 @@ export type ProductTourActions = CoachTourActions & {
 
 type TourStepOptions = {
   hasWhoopConnection: boolean
+  isDemo: boolean
   isDesktop: boolean
   actions: () => ProductTourActions | null
 }
@@ -45,6 +45,7 @@ export function whoopMetricsTargetForViewport(isDesktop: boolean) {
 
 export function createProductTourSteps({
   hasWhoopConnection,
+  isDemo,
   isDesktop,
   actions,
 }: TourStepOptions): DriveStep[] {
@@ -82,7 +83,7 @@ export function createProductTourSteps({
       },
     }]
 
-  return [
+  const steps: DriveStep[] = [
     {
       popover: popover(
         'Your training, all in one place',
@@ -174,20 +175,12 @@ export function createProductTourSteps({
       },
     },
     {
-      element: '[data-tour="created-workout"]',
-      advanceOnClick: true,
-      onHighlightStarted: () => {
-        if (!isDesktop) actions()?.closeCoach()
-      },
-      popover: {
-        ...popover('Open the new workout', 'Your accepted workout now appears in the week schedule. Click it to open the workout and continue.'),
-        showButtons: ['previous', 'close'],
-      },
-    },
-    {
       element: '[data-tour="workout-panel"]',
       waitForElement: COACH_RESPONSE_WAIT_MS,
-      onHighlightStarted: () => actions()?.notifyGuidedWorkoutOpened(),
+      onHighlightStarted: () => {
+        if (!isDesktop) actions()?.closeCoach()
+        actions()?.notifyGuidedWorkoutOpened()
+      },
       popover: popover('Your new workout', 'This is the workout you just accepted. Click Next to continue to the follow-up request.'),
     },
     ...mobileCoachReopenStep,
@@ -219,14 +212,14 @@ export function createProductTourSteps({
       popover: { ...popover('Wait for the replacement workout', 'The Coach is applying your new exercise and preparing an updated recommendation.'), showButtons: ['close'] },
     },
     {
-      element: COACH_REPLACEMENT_RECOMMENDATION_TARGET,
+      element: COACH_REPLACEMENT_ACCEPT_ALL_TARGET,
       waitForElement: COACH_RESPONSE_WAIT_MS,
-      onHighlightStarted: () => {
+      onHighlighted: () => {
         document
-          .querySelector<HTMLElement>(COACH_REPLACEMENT_RECOMMENDATION_TARGET)
+          .querySelector<HTMLElement>(COACH_REPLACEMENT_ACCEPT_ALL_TARGET)
           ?.scrollIntoView({ behavior: 'auto', block: 'center' })
       },
-      popover: { ...popover('Accept the replacement workout', 'The updated recommendation is open. Click Accept all inside it to apply the new exercise.'), showButtons: ['close'] },
+      popover: { ...popover('Accept the replacement workout', 'Click Accept all to apply the updated recommendation with your new exercise.'), showButtons: ['close'] },
     },
     {
       element: '[data-tour="workout-panel"]',
@@ -241,4 +234,19 @@ export function createProductTourSteps({
       popover: popover('You are always in control', 'Edit your workout directly whenever you want. The Coach supports your decisions; it never makes hidden changes.'),
     },
   ]
+
+  if (isDemo) {
+    steps.push({
+      popover: {
+        ...popover(
+          'You’re ready to train!',
+          'That’s the full tour. Exit whenever you like, or register to save your training plan and continue with your own account.',
+        ),
+        nextBtnText: 'Exit tour',
+        showButtons: ['next', 'close'],
+      },
+    })
+  }
+
+  return steps
 }

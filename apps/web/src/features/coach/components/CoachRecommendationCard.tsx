@@ -112,8 +112,15 @@ function RecommendationCardDetail({
                 data-tour="coach-accept-all"
                 disabled={detail.isBulkAccepting}
                 onClick={() =>
-                  void detail.acceptAll().then(() => {
-                    notifyGuidedRecommendationAccepted();
+                  void detail.acceptAll().then((accepted) => {
+                    const addWorkout = accepted.operations.find(
+                      (operation) => operation.operation_type === 'add_workout',
+                    )
+                    notifyGuidedRecommendationAccepted(
+                      addWorkout?.operation_type === 'add_workout'
+                        ? addWorkout.payload.created_workout_id
+                        : undefined,
+                    )
                   })
                 }
               >
