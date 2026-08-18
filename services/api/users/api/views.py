@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 from users import services
 from users.api.serializers import (
     AuthSessionSerializer,
+    DemoSessionSerializer,
     LoginSerializer,
     LogoutSerializer,
     ProfileSerializer,
@@ -191,6 +192,26 @@ class LoginAPIView(APIView):
 
         data = _serializer_data(AuthSessionSerializer(session))
         return _set_refresh_cookie(Response(data), str(data.get("refresh", "")))
+
+
+class DemoSessionAPIView(APIView):
+    authentication_classes: list[type[Any]] = []
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DemoSessionSerializer
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="Create a temporary demo session",
+        description="Creates a one-hour demo account with fictional WHOOP data and a seeded workout. No refresh token is issued.",
+        request=None,
+        responses={201: DemoSessionSerializer},
+    )
+    def post(self, request: Request) -> Response:
+        session = services.CreateDemoSessionService().execute()
+        return Response(
+            DemoSessionSerializer(session).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class RefreshAPIView(APIView):

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { configureAuthApi, getCurrentUser, refreshSession } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
+import { clearDemoSession, loadDemoSession } from '../services/demoSessionStorage'
 
 export function useAuthBootstrap() {
   const status = useAuthStore((state) => state.status)
@@ -21,11 +22,19 @@ export function useAuthBootstrap() {
 
     async function bootstrap() {
       try {
+        const demo = loadDemoSession()
+        if (demo) {
+          useAuthStore.getState().setAccessToken(demo.access)
+          const user = await getCurrentUser()
+          setSession(demo.access, user)
+          return
+        }
         const tokens = await refreshSession()
         useAuthStore.getState().setAccessToken(tokens.access)
         const user = await getCurrentUser()
         setSession(tokens.access, user)
       } catch {
+        clearDemoSession()
         clearSession()
       }
     }

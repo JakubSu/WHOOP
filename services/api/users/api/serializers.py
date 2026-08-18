@@ -54,6 +54,8 @@ class ProfileSerializer(serializers.Serializer):
     whoop_user_id = serializers.CharField(
         read_only=True, help_text="WHOOP user identifier when the account is connected."
     )
+    account_type = serializers.ChoiceField(choices=("normal", "demo"), read_only=True)
+    expires_at = serializers.DateTimeField(read_only=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
@@ -68,3 +70,8 @@ class AuthSessionSerializer(serializers.Serializer):
         read_only=True,
         help_text="Long-lived JWT refresh token also mirrored to an HTTP-only cookie.",
     )
+
+
+class DemoSessionSerializer(serializers.Serializer):
+    user = ProfileSerializer(read_only=True)
+    access = serializers.CharField(read_only=True)

@@ -9,7 +9,7 @@ from drf_spectacular.utils import (
     inline_serializer,
 )
 from rest_framework import permissions, serializers, status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -69,6 +69,8 @@ class WhoopConnectAPIView(APIView):
         ],
     )
     def get(self, request: Request) -> Response:
+        if request.user.is_demo:
+            raise PermissionDenied("WHOOP connection is unavailable in a demo session.")
         frontend_success_url = request.query_params.get("success_url", "")
         try:
             payload = services.create_build_connect_url_service().execute(
@@ -188,6 +190,8 @@ class WhoopDisconnectAPIView(APIView):
         },
     )
     def post(self, request: Request) -> Response:
+        if request.user.is_demo:
+            raise PermissionDenied("WHOOP connection is unavailable in a demo session.")
         disconnected = services.create_disconnect_service().execute(
             str(request.user.id)
         )

@@ -1,9 +1,16 @@
 from typing import Any, cast
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 from rest_framework.test import APIClient
+
+from coach.models import CoachConversation, CoachMessage, UiAction
+from recommendation.models import Recommendation, RecommendationOperation
+from training.models import Exercise, Workout, WorkoutExercise
+from whoop.models import WhoopSnapshot
 
 
 class UsersApiTests(TestCase):
@@ -25,6 +32,84 @@ class UsersApiTests(TestCase):
         self.assertEqual(response.json()["user"]["email"], "test-athlete@example.com")
         self.assertIn("access", response.json())
         self.assertIn("refresh", response.json())
+
+    def test_demo_session_creates_isolated_seeded_workspace_without_refresh(self) -> None:
+        response = self.client.post(reverse("user-demo-session"), {}, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        body = response.json()
+        self.assertIn("access", body)
+        self.assertNotIn("refresh", body)
+        self.assertNotIn("whoop_refresh", response.cookies)
+        self.assertEqual(body["user"]["account_type"], "demo")
+        self.assertIsNotNone(body["user"]["expires_at"])
+
+        user = get_user_model().objects.get(pk=body["user"]["id"])
+        self.assertEqual(Exercise.objects.filter(user_id=str(user.id)).count(), 0)
+        workout = Workout.objects.get(user_id=str(user.id))
+        self.assertEqual(workout.name, "Lower Body Strength")
+        self.assertEqual(workout.date, user.created_at.date())
+        self.assertEqual(
+            list(
+                WorkoutExercise.objects.filter(workout=workout)
+                .order_by("sort_order")
+                .values_list("exercise__name", flat=True)
+            ),
+            ["Back Squat", "Deadlift", "Bulgarian Split Squat", "Hamstring Curl"],
+        )
+        snapshot = WhoopSnapshot.objects.get(user_id=str(user.id))
+        self.assertEqual(snapshot.created_at, user.created_at)
+
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {body['access']}")
+        summary = client.get(reverse("whoop-summary"))
+        self.assertEqual(summary.status_code, 200)
+        self.assertTrue(summary.json()["connected"])
+        self.assertEqual(summary.json()["recovery_score"], 78.0)
+
+    def test_expired_demo_access_token_is_rejected(self) -> None:
+        response = self.client.post(reverse("user-demo-session"), {}, format="json")
+        user = get_user_model().objects.get(pk=response.json()["user"]["id"])
+        user.expires_at = timezone.now()
+        user.save(update_fields=["expires_at"])
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.json()['access']}")
+        self.assertEqual(self.client.get(reverse("user-me")).status_code, 401)
+
+    def test_purge_expired_demo_users_removes_coach_and_recommendation_data(self) -> None:
+        User = get_user_model()
+        demo_user = User.objects.create_user(
+            email="expired-demo@example.com",
+            account_type=User.AccountType.DEMO,
+            expires_at=timezone.now(),
+        )
+        conversation = CoachConversation.objects.create(user=demo_user)
+        message = CoachMessage.objects.create(
+            conversation=conversation,
+            role=CoachMessage.Role.ASSISTANT,
+            content="Demo advice",
+        )
+        UiAction.objects.create(message=message, type="test", payload={})
+        recommendation = Recommendation.objects.create(
+            user=demo_user,
+            conversation=conversation,
+            coach_message=message,
+            summary="Demo recommendation",
+        )
+        RecommendationOperation.objects.create(
+            recommendation=recommendation,
+            operation_type=RecommendationOperation.OperationType.ADD_WORKOUT,
+            payload={},
+        )
+
+        call_command("purge_expired_demo_users")
+
+        self.assertFalse(User.objects.filter(pk=demo_user.pk).exists())
+        self.assertFalse(CoachConversation.objects.filter(pk=conversation.pk).exists())
+        self.assertFalse(CoachMessage.objects.filter(pk=message.pk).exists())
+        self.assertFalse(UiAction.objects.exists())
+        self.assertFalse(Recommendation.objects.filter(pk=recommendation.pk).exists())
+        self.assertFalse(RecommendationOperation.objects.exists())
 
     def test_duplicate_email_is_rejected(self) -> None:
         User = get_user_model()

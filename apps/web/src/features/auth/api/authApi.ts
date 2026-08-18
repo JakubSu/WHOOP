@@ -1,5 +1,6 @@
 import { apiRequest, setAuthHandlers } from '../../../shared/api/apiClient'
 import { useAuthStore } from '../store/authStore'
+import { clearDemoSession } from '../services/demoSessionStorage'
 import {
   type AuthSession,
   type LoginPayload,
@@ -21,7 +22,10 @@ export function configureAuthApi() {
         return null
       }
     },
-    onAuthFailure: () => useAuthStore.getState().clearSession(),
+    onAuthFailure: () => {
+      clearDemoSession()
+      useAuthStore.getState().clearSession()
+    },
   })
 }
 
@@ -34,9 +38,18 @@ export function registerUser(payload: RegisterPayload) {
 }
 
 export function loginUser(payload: LoginPayload) {
+  clearDemoSession()
   return apiRequest<AuthSession>('/users/login/', {
     method: 'POST',
     body: JSON.stringify(payload),
+    skipRefresh: true,
+  })
+}
+
+export function createDemoSession() {
+  return apiRequest<Omit<AuthSession, 'refresh'>>('/users/demo-session/', {
+    method: 'POST',
+    body: JSON.stringify({}),
     skipRefresh: true,
   })
 }

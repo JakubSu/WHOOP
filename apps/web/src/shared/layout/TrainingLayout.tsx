@@ -5,6 +5,7 @@ import { CoachPanelProvider, useCoachPanel } from '../../features/coach/context/
 import { WhoopConnectionPrompt } from './WhoopConnectionPrompt'
 import { WhoopMetricsHeader } from './WhoopMetricsHeader'
 import { PlanSidebar } from './PlanSidebar'
+import { useAuthStore } from '../../features/auth/store/authStore'
 
 type TrainingLayoutProps = {
   children: ReactNode
@@ -21,10 +22,16 @@ export function TrainingLayout({ children, showWeekNavigator = true }: TrainingL
 
 function TrainingWorkspace({ children, showWeekNavigator }: Required<TrainingLayoutProps>) {
   const coach = useCoachPanel()
+  const user = useAuthStore((state) => state.user)
   const coachColumn = coach.mode === 'collapsed' ? 'lg:grid-cols-[19rem_minmax(0,1fr)_3rem]' : 'lg:grid-cols-[19rem_minmax(0,1fr)_24rem]'
 
   return (
     <main className="min-h-screen bg-background p-0 lg:h-screen lg:p-6">
+      {user?.account_type === 'demo' ? (
+        <div className="mx-auto max-w-[1600px] bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground lg:rounded-t-3xl">
+          You’re exploring a one-hour demo with fictional data. Create an account to save your progress.
+        </div>
+      ) : null}
       <div className={cn('mx-auto grid min-h-screen w-full max-w-2xl bg-card text-card-foreground shadow-xl lg:h-[calc(100dvh-3rem)] lg:min-h-0 lg:max-w-[1600px] lg:overflow-hidden lg:rounded-3xl lg:border', coachColumn)}>
         <aside className="hidden min-h-0 flex-col overflow-y-auto border-r border-border bg-card p-5 lg:flex">
           <div data-tour="whoop-metrics-desktop"><WhoopMetricsHeader /></div>

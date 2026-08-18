@@ -1,8 +1,12 @@
 import { type FormEvent, useId, useState } from 'react'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useMutation } from '@tanstack/react-query'
 import { AuthRedirectLink } from '../components/AuthRedirectLink'
 import { useLogin } from '../hooks/useLogin'
+import { createDemoSession } from '../api/authApi'
+import { useAuthStore } from '../store/authStore'
+import { saveDemoSession } from '../services/demoSessionStorage'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { AuthShell } from '../../../shared/components/AuthShell'
 import { InlineError } from '../../../shared/components/InlineError'
@@ -13,6 +17,15 @@ import { isValidEmail } from '../../../shared/utils/validation'
 export function LoginPage() {
   const navigate = useNavigate()
   const login = useLogin()
+  const setSession = useAuthStore((state) => state.setSession)
+  const demo = useMutation({
+    mutationFn: createDemoSession,
+    onSuccess: (session) => {
+      saveDemoSession(session)
+      setSession(session.access, session.user)
+      navigate('/', { replace: true })
+    },
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -73,6 +86,13 @@ export function LoginPage() {
         label="Create one"
         to="/register"
       />
+      <div className="mt-5 border-t pt-5 text-center">
+        <p className="mb-3 text-sm text-muted-foreground">Want to explore first?</p>
+        <Button className="w-full" type="button" variant="outline" disabled={demo.isPending} onClick={() => demo.mutate()}>
+          {demo.isPending ? 'Starting demo…' : 'Try the demo'}
+        </Button>
+        <InlineError message={demo.error ? getErrorMessage(demo.error) : null} />
+      </div>
     </AuthShell>
   )
 }

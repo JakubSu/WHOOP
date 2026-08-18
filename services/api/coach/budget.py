@@ -25,8 +25,15 @@ class MonthlyBudgetExceeded(RuntimeError):
 def reserve_run_budget(*, user: Any, run_id: uuid.UUID) -> CoachBudgetReservation:
     """Reserve the maximum allowed cost for one run under both monthly caps."""
 
-    reservation_amount = _money(settings.COACH_MAX_COST_USD)
-    user_limit = _money(settings.COACH_USER_MONTHLY_BUDGET_USD)
+    is_demo = bool(getattr(user, "is_demo", False))
+    reservation_amount = _money(
+        settings.COACH_DEMO_MAX_COST_USD if is_demo else settings.COACH_MAX_COST_USD
+    )
+    user_limit = _money(
+        settings.COACH_DEMO_TOTAL_BUDGET_USD
+        if is_demo
+        else settings.COACH_USER_MONTHLY_BUDGET_USD
+    )
     global_limit = _money(settings.COACH_GLOBAL_MONTHLY_BUDGET_USD)
     period_start = _current_period_start()
 

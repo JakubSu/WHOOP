@@ -82,3 +82,20 @@ class CoachBudgetTests(TestCase):
         self.assertEqual(reservation.status, CoachBudgetReservation.Status.RELEASED)
         self.assertEqual(user_usage.reserved_usd, Decimal(0))
         self.assertEqual(user_usage.spent_usd, Decimal(0))
+
+    @override_settings(COACH_DEMO_TOTAL_BUDGET_USD=Decimal("0.01"), COACH_DEMO_MAX_COST_USD=Decimal("0.005"))
+    def test_demo_user_uses_demo_budget_and_two_request_reservations(self) -> None:
+        user_model = cast(Any, get_user_model())
+        demo = user_model.objects.create_user(
+            email="demo@example.invalid",
+            password="strong-password",
+            account_type="demo",
+        )
+
+        first = reserve_run_budget(user=demo, run_id=uuid4())
+        second = reserve_run_budget(user=demo, run_id=uuid4())
+
+        self.assertEqual(first.reserved_usd, Decimal("0.005"))
+        self.assertEqual(second.reserved_usd, Decimal("0.005"))
+        with self.assertRaises(MonthlyBudgetExceeded):
+            reserve_run_budget(user=demo, run_id=uuid4())

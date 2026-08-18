@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useProductTour } from '../../features/product-tour/ProductTourProvider'
 import { logoutUser } from '../../features/auth/api/authApi'
 import { useAuthStore } from '../../features/auth/store/authStore'
+import { clearDemoSession } from '../../features/auth/services/demoSessionStorage'
 import { disconnectWhoop } from '../../features/whoop/api/whoopApi'
 import { Avatar, AvatarFallback, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Separator } from '../components/ui'
 
@@ -28,6 +29,7 @@ export function UserProfileButton() {
   const logout = useMutation({
     mutationFn: logoutUser,
     onSettled: async () => {
+      clearDemoSession()
       clearSession()
       await queryClient.cancelQueries()
       queryClient.clear()
@@ -51,21 +53,21 @@ export function UserProfileButton() {
           <div className="px-2 py-2 text-sm"><strong className="block">{user?.display_name || 'User'}</strong><span className="block break-all text-muted-foreground">{user?.email}</span></div><Separator />
           {user?.whoop_user_id ? (
             <DropdownMenuItem
-              disabled={disconnect.isPending || logout.isPending}
+              disabled={disconnect.isPending || logout.isPending || user?.account_type === 'demo'}
               onClick={() => disconnect.mutate()}
             >
               <Unlink aria-hidden="true" size={16} />
-              {disconnect.isPending ? 'Disconnecting WHOOP' : 'Disconnect WHOOP'}
+              {user?.account_type === 'demo' ? 'WHOOP unavailable in demo' : disconnect.isPending ? 'Disconnecting WHOOP' : 'Disconnect WHOOP'}
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
-              disabled={logout.isPending}
+              disabled={logout.isPending || user?.account_type === 'demo'}
               onClick={() => {
                 navigate('/connect-whoop')
               }}
             >
               <Watch aria-hidden="true" size={16} />
-              Connect WHOOP
+              {user?.account_type === 'demo' ? 'WHOOP unavailable in demo' : 'Connect WHOOP'}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem

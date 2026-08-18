@@ -220,3 +220,14 @@ class WhoopApiViewTests(TestCase):
         response = self.client.post(reverse("whoop-disconnect"))
 
         self.assertEqual(response.status_code, 204)
+
+    def test_demo_user_cannot_start_or_disconnect_whoop_connection(self) -> None:
+        User = cast(Any, get_user_model())
+        demo_user = User.objects.create_user(
+            email="demo@example.invalid", password="password", account_type="demo"
+        )
+        client = APIClient()
+        client.force_authenticate(demo_user)
+
+        self.assertEqual(client.get(reverse("whoop-connect-url")).status_code, 403)
+        self.assertEqual(client.post(reverse("whoop-disconnect")).status_code, 403)

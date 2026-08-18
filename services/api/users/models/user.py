@@ -7,6 +7,7 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.db import models
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager["User"]):
@@ -39,10 +40,18 @@ class UserManager(BaseUserManager["User"]):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class AccountType(models.TextChoices):
+        NORMAL = "normal", "Normal"
+        DEMO = "demo", "Demo"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     display_name = models.CharField(max_length=200, blank=True, default="")
     whoop_user_id = models.CharField(max_length=64, blank=True, default="")
+    account_type = models.CharField(
+        max_length=16, choices=AccountType.choices, default=AccountType.NORMAL
+    )
+    expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -58,3 +67,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.email
+
+    @property
+    def is_demo(self) -> bool:
+        return self.account_type == self.AccountType.DEMO
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expires_at is not None and self.expires_at <= timezone.now()

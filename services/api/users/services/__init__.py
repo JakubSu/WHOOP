@@ -21,3 +21,7 @@ __all__ = [
     "SetWhoopUserIdService",
     "UpdateProfileService",
 ]
+
+from users.services.demo import CreateDemoSessionService
+
+__all__.append("CreateDemoSessionService")

@@ -166,6 +166,9 @@ COACH_USER_MONTHLY_BUDGET_USD = os.environ.get(
 COACH_GLOBAL_MONTHLY_BUDGET_USD = os.environ.get(
     "COACH_GLOBAL_MONTHLY_BUDGET_USD", "20.00"
 )
+COACH_DEMO_TOTAL_BUDGET_USD = os.environ.get("COACH_DEMO_TOTAL_BUDGET_USD", "0.01")
+COACH_DEMO_MAX_COST_USD = os.environ.get("COACH_DEMO_MAX_COST_USD", "0.005")
+DEMO_SESSION_TTL_SECONDS = int(os.environ.get("DEMO_SESSION_TTL_SECONDS", "3600"))
 COACH_LOGFIRE_ENABLED = env_bool("COACH_LOGFIRE_ENABLED", False)
 COACH_LOGFIRE_CAPTURE_CONTENT = env_bool("COACH_LOGFIRE_CAPTURE_CONTENT", False)
 COACH_LOGFIRE_CAPTURE_BINARY_CONTENT = env_bool(
@@ -184,7 +187,7 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "users.authentication.DemoAwareJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
