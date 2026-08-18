@@ -39,6 +39,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const coachActionsRef = useRef<CoachTourActions | null>(null)
   const driverRef = useRef<Driver | null>(null)
   const autoStartAttemptedRef = useRef<string | null>(null)
+  const guidedCoachStartRef = useRef<Promise<boolean> | null>(null)
   const [guidedCoachStage, setGuidedCoachStage] = useState<GuidedCoachStage>(null)
 
   const completeTour = useCallback(() => {
@@ -59,20 +60,22 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
             const date = document.querySelector<HTMLElement>('[data-tour-workout-date]')?.dataset.tourWorkoutDate
             if (date) navigate(`/week?date=${encodeURIComponent(date)}`)
           },
-          startGuidedCoachFlow: async () => {
+          startGuidedCoachFlow: () => {
+            if (guidedCoachStartRef.current) return guidedCoachStartRef.current
+            const start = async () => {
             const restDate = document.querySelector<HTMLElement>('[data-tour-rest-day]')?.dataset.tourRestDay
             const action = coachActionsRef.current
             if (!restDate || !action) {
               setGuidedCoachStage('unavailable')
-              return
+              return false
             }
             const prompt = `Create a 45-minute upper-body workout for ${restDate} using Bench Press, Arnold Press, Dumbbell Curl, and Dumbbell Lateral Raise.`
             const ready = await action.startFreshConversationAndPrefill(prompt)
             setGuidedCoachStage(ready ? 'initial_ready' : 'unavailable')
-            if (ready) {
-              completeTour()
-              driverRef.current?.destroy()
+            return ready
             }
+            guidedCoachStartRef.current = start()
+            return guidedCoachStartRef.current
           },
         }) : null,
       }),

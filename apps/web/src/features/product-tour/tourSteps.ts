@@ -12,7 +12,7 @@ export type CoachTourActions = {
 
 export type ProductTourActions = CoachTourActions & {
   goToWeekForTour: () => void
-  startGuidedCoachFlow: () => Promise<void>
+  startGuidedCoachFlow: () => Promise<boolean>
 }
 
 type TourStepOptions = {
@@ -94,22 +94,26 @@ export function createProductTourSteps({
     },
     {
       element: '[data-tour="coach-composer"]',
+      onHighlightStarted: () => {
+        void actions()?.startGuidedCoachFlow()
+      },
       popover: {
         ...popover(
           'Build a workout with the Coach',
-          'Use this guided example to create an upper-body workout. We will only prefill it; you will press Send yourself.',
+          'We have prepared an upper-body workout request for the first rest day in your visible week. Review it, then continue to Send.',
         ),
-        onPopoverRender: (popoverDom) => {
-          const button = document.createElement('button')
-          button.type = 'button'
-          button.className = 'product-tour-practice-button'
-          button.textContent = 'Use this example'
-          button.addEventListener('click', () => {
-            void actions()?.startGuidedCoachFlow?.()
+        onNextClick: (_element, _step, { driver }) => {
+          void actions()?.startGuidedCoachFlow().then((ready) => {
+            if (ready) driver.moveNext()
           })
-          popoverDom.footer.prepend(button)
         },
       },
+    },
+    {
+      element: '[data-tour="coach-send"]',
+      waitForElement: COACH_COMPOSER_WAIT_MS,
+      advanceOnClick: true,
+      popover: popover('Send your request', 'Click the real Send button to ask the Coach for this workout. The response will stream above.'),
     },
     {
       popover: popover(

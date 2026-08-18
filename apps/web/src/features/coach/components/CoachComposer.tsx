@@ -37,6 +37,7 @@ export function CoachComposer({
         type="submit"
         aria-label="Send message"
         disabled={isStreaming || isLoading || !value.trim()}
+        data-tour="coach-send"
       >
         <Send size={18} aria-hidden="true" />
       </Button>
