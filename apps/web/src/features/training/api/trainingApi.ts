@@ -61,6 +61,12 @@ export function updateWorkout(workoutId: string, input: Partial<Pick<Workout, 'n
   })
 }
 
+export function deleteWorkout(workoutId: string) {
+  return apiRequest<void>(`/workouts/${workoutId}/`, {
+    method: 'DELETE',
+  })
+}
+
 export function listWorkoutExercises(workoutId: string) {
   return apiRequest<WorkoutExercise[]>(`/workouts/${workoutId}/exercises/`)
 }

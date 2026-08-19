@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
-import { Button, Input } from '@/shared/components/ui'
+import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Button, Dialog, DialogContent, DialogTitle, Input } from '@/shared/components/ui'
 import { formatWeekdayDate } from '../services/formatters'
 import { type Workout } from '../types'
 
@@ -12,7 +13,9 @@ type WorkoutHeaderProps = {
   isLoading: boolean
   isEditing: boolean
   isSaving: boolean
+  isDeleting: boolean
   canEdit: boolean
+  canDelete: boolean
   draftWorkoutName: string
   onPrevious: () => void
   onNext: () => void
@@ -20,6 +23,7 @@ type WorkoutHeaderProps = {
   onCancelEditing: () => void
   onSave: () => void
   onWorkoutNameChange: (name: string) => void
+  onDelete: () => Promise<void>
 }
 
 export function WorkoutHeader({
@@ -31,7 +35,9 @@ export function WorkoutHeader({
   isLoading,
   isEditing,
   isSaving,
+  isDeleting,
   canEdit,
+  canDelete,
   draftWorkoutName,
   onPrevious,
   onNext,
@@ -39,7 +45,9 @@ export function WorkoutHeader({
   onCancelEditing,
   onSave,
   onWorkoutNameChange,
+  onDelete,
 }: WorkoutHeaderProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const workoutDate = isToday ? 'Today' : formatWeekdayDate(workout?.date ?? null)
 
   return (
@@ -52,9 +60,14 @@ export function WorkoutHeader({
             <Button size="sm" type="button" disabled={isSaving} onClick={onSave}>{isSaving ? 'Saving…' : 'Save'}</Button>
           </div>
         ) : (
-          <Button size="sm" type="button" variant="outline" disabled={!canEdit} onClick={onStartEditing} data-tour="workout-edit">
-            <Pencil aria-hidden="true" size={15} />Edit
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" type="button" variant="outline" disabled={!canEdit} onClick={onStartEditing} data-tour="workout-edit">
+              <Pencil aria-hidden="true" size={15} />Edit
+            </Button>
+            <Button size="sm" type="button" variant="destructive" disabled={!canDelete || isDeleting} onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 aria-hidden="true" size={15} />Delete
+            </Button>
+          </div>
         )}
       </div>
       <div className="mt-2 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
@@ -79,6 +92,20 @@ export function WorkoutHeader({
         )}
         <Button aria-label="Next workout" type="button" variant="ghost" size="icon" disabled={!nextWorkout} onClick={onNext}><ChevronRight aria-hidden="true" size={20} /></Button>
       </div>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => !isDeleting && setIsDeleteDialogOpen(open)}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogTitle className="text-lg font-bold">Delete this workout?</DialogTitle>
+          <p className="mt-2 text-sm text-muted-foreground">
+            “{workout?.name ?? 'Workout'}” and all of its exercises will be permanently deleted.
+          </p>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button type="button" variant="outline" disabled={isDeleting} onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button type="button" variant="destructive" disabled={isDeleting} onClick={async () => { try { await onDelete() } finally { setIsDeleteDialogOpen(false) } }}>
+              {isDeleting ? 'Deleting…' : 'Delete workout'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }
