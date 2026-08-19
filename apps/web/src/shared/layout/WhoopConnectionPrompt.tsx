@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWhoopSummary } from '../../features/whoop/hooks/useWhoopSummary'
 import { useAuthStore } from '../../features/auth/store/authStore'
+import { useProductTour } from '../../features/product-tour/ProductTourProvider'
 import { getErrorMessage } from '../api/errors'
 import { Button, Dialog, DialogContent, DialogTitle } from '../components/ui'
 
@@ -10,6 +11,7 @@ const DISMISS_KEY = 'whoop-connection-prompt-dismissed'
 export function WhoopConnectionPrompt() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
+  const { shouldSuppressWhoopPrompt } = useProductTour()
   const summary = useWhoopSummary()
   const [isDismissed, setIsDismissed] = useState(() => {
     if (typeof window === 'undefined') {
@@ -20,6 +22,7 @@ export function WhoopConnectionPrompt() {
   })
 
   const needsPrompt =
+    !shouldSuppressWhoopPrompt &&
     user?.account_type !== 'demo' &&
     !summary.isLoading &&
     (summary.isError || summary.data?.connected === false)

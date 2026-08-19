@@ -19,3 +19,13 @@ export function shouldAutoStartProductTour(eligibility: ProductTourEligibility) 
     !eligibility.hasAutoStarted
   )
 }
+
+export function shouldSuppressWhoopPrompt({
+  isInitialTourPending,
+  isTourActive,
+}: {
+  isInitialTourPending: boolean
+  isTourActive: boolean
+}) {
+  return isInitialTourPending || isTourActive
+}

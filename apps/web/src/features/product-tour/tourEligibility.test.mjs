@@ -29,6 +29,12 @@ test('product tour starts only for a ready first authenticated session', () => {
   assert.equal(eligibility.shouldAutoStartProductTour({ ...readyFirstSession, hasAutoStarted: true }), false)
 })
 
+test('WHOOP prompt is suppressed during first-run onboarding and while the tour is active', () => {
+  assert.equal(eligibility.shouldSuppressWhoopPrompt({ isInitialTourPending: true, isTourActive: false }), true)
+  assert.equal(eligibility.shouldSuppressWhoopPrompt({ isInitialTourPending: false, isTourActive: true }), true)
+  assert.equal(eligibility.shouldSuppressWhoopPrompt({ isInitialTourPending: false, isTourActive: false }), false)
+})
+
 test('week and workout pages are valid product-tour workspace routes', () => {
   assert.equal(eligibility.isProductTourWorkspaceRoute('/week'), true)
   assert.equal(eligibility.isProductTourWorkspaceRoute('/workouts/workout-1'), true)

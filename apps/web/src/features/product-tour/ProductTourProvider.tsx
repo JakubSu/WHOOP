@@ -5,7 +5,7 @@ import 'driver.js/dist/driver.css'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../auth/store/authStore'
 import { COACH_GENERATED_WORKOUT_TARGET, createProductTourSteps, type CoachTourActions } from './tourSteps'
-import { isProductTourWorkspaceRoute, shouldAutoStartProductTour } from './tourEligibility'
+import { isProductTourWorkspaceRoute, shouldAutoStartProductTour, shouldSuppressWhoopPrompt } from './tourEligibility'
 import { addDaysIso, getLocalDateIso } from '../training/services/formatters'
 import { getWorkoutLanding } from '../training/api/trainingApi'
 import {
@@ -33,6 +33,7 @@ type ProductTourContextValue = {
   notifyGuidedRecommendationExpanded: () => void
   notifyGuidedRecommendationAccepted: (workoutId?: string) => void
   notifyGuidedWorkoutOpened: () => void
+  shouldSuppressWhoopPrompt: boolean
 }
 
 export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'review_initial' | 'waiting_initial_accept' | 'workout_ready' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'review_replacement' | 'updated_workout' | 'empty_prompt' | 'empty_submitted' | 'complete' | 'unavailable'
@@ -58,16 +59,34 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const guidedWorkoutIdRef = useRef<string | null>(null)
   const tourRefreshFrameRef = useRef<number | null>(null)
   const [guidedCoachStage, setGuidedCoachStage] = useState<GuidedCoachStage>(null)
+  const [isTourActive, setIsTourActive] = useState(false)
+  const [isTourFinished, setIsTourFinished] = useState(false)
   const previousGuidedCoachStageRef = useRef<GuidedCoachStage>(null)
   const hasWorkout = location.pathname.startsWith('/workouts/') || Boolean(workoutLanding.data?.selected_workout)
+  const isInitialTourPending = Boolean(
+    status === 'authenticated' &&
+    user &&
+    isProductTourWorkspaceRoute(location.pathname) &&
+    !hasCompletedProductTour(user.id) &&
+    !isTourFinished,
+  )
+  const suppressWhoopPrompt = shouldSuppressWhoopPrompt({ isInitialTourPending, isTourActive })
+
+  useEffect(() => {
+    setIsTourFinished(user ? hasCompletedProductTour(user.id) : false)
+  }, [user?.id])
 
   const completeTour = useCallback(() => {
-    if (user) markProductTourCompleted(user.id)
+    if (user) {
+      markProductTourCompleted(user.id)
+      setIsTourFinished(true)
+    }
   }, [user])
 
   const startTour = useCallback(() => {
     if (!user || driverRef.current?.isActive()) return
 
+    setIsTourActive(true)
     const hasWhoopConnection = Boolean(user.whoop_user_id)
     const tour = driver({
       steps: createProductTourSteps({
@@ -137,6 +156,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
       },
       onDestroyed: () => {
         driverRef.current = null
+        setIsTourActive(false)
       },
     })
     if (!hasWorkout) setGuidedCoachStage('empty_prompt')
@@ -147,6 +167,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const replayTour = useCallback(() => {
     if (!user) return
     clearProductTourCompletion(user.id)
+    setIsTourFinished(false)
     guidedCoachStartRef.current = null
     guidedWorkoutDateRef.current = null
     guidedWorkoutIdRef.current = null
@@ -266,7 +287,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, startTour, status, user, workoutLanding.isFetched])
 
   return (
-    <ProductTourContext.Provider value={{ startTour, replayTour, refreshProductTour, registerCoachActions, guidedCoachStage,
+    <ProductTourContext.Provider value={{ startTour, replayTour, refreshProductTour, registerCoachActions, guidedCoachStage, shouldSuppressWhoopPrompt: suppressWhoopPrompt,
       notifyGuidedCoachSubmitted: () => setGuidedCoachStage((stage) => stage === 'initial_ready' ? 'waiting_initial' : stage === 'followup_ready' ? 'waiting_followup' : stage === 'empty_prompt' ? 'empty_submitted' : stage),
       notifyGuidedCoachCompleted: (hasExerciseResolution) => setGuidedCoachStage((stage) => stage === 'waiting_initial' ? 'review_initial' : stage === 'waiting_followup' ? hasExerciseResolution ? 'exercise_resolution' : 'unavailable' : stage === 'waiting_resolution' ? 'review_replacement' : stage),
       notifyGuidedExerciseResolutionStarted: () => setGuidedCoachStage((stage) => stage === 'exercise_resolution' ? 'waiting_resolution' : stage),

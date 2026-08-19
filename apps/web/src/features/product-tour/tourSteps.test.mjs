@@ -113,6 +113,7 @@ test('accounts without workouts receive a first-workout onboarding tour', () => 
   assert.equal(emptySteps[0]?.popover?.title, 'Let’s plan your first workout')
   assert.equal(emptySteps.some((step) => step.popover?.title === 'Accept the proposed workout'), false)
   assert.equal(emptySteps.some((step) => step.element === '[data-tour="workout-panel"]'), false)
+  assert.deepEqual(emptySteps[4]?.popover?.showButtons, ['next', 'close'])
   assert.equal(emptySteps.at(-1)?.popover?.title, 'You’re ready to train!')
   assert.equal(Boolean(emptySteps.at(-1)?.popover?.showButtons?.includes('register')), false)
 })

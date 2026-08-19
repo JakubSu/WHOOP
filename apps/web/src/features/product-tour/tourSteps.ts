@@ -116,7 +116,7 @@ export function createProductTourSteps({
         onHighlightStarted: () => actions()?.openCoach(),
         popover: popover(
           'Your context-aware Coach',
-          'The Coach understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
+          'The Coach understands the workout or week you are viewing and can use your readiness context from WHOOP to guide the conversation.',
         ),
       }
       : {
@@ -125,7 +125,7 @@ export function createProductTourSteps({
         popover: {
           ...popover(
             'Your context-aware Coach',
-            'Click the Coach button to open a coach that understands the workout or week you are viewing and can use your available WHOOP context to guide the conversation.',
+            'Click the Coach button to open a coach that understands the workout or week you are viewing and can use your readiness context from WHOOP to guide the conversation.',
           ),
           showButtons: ['previous', 'close'],
         },
@@ -326,12 +326,12 @@ function createEmptyAccountTourSteps({
       waitForElement: COACH_COMPOSER_WAIT_MS,
       onHighlightStarted: () => actions()?.prefillCoachMessage(FIRST_WORKOUT_PROMPT),
       popover: {
-        ...popover('Ask Coach to build your first workout', 'Review the example request, edit it if you like, and press Send.'),
-        showButtons: ['close'],
+        ...popover('Ask Coach to build your first workout', 'Review the example request, edit it if you like, and press Send, or click Next to continue without sending.'),
+        showButtons: ['next', 'close'],
       },
     },
     {
-      popover: popover('You’re ready to train!', 'Send the request to create your first workout. You can always adjust it with Coach afterward.'),
+      popover: popover('You’re ready to train!', 'Send the request whenever you are ready to create your first workout. You can always adjust it with Coach afterward.'),
     },
   ]
 }
