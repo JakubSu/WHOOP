@@ -50,7 +50,7 @@ class UsersApiTests(TestCase):
         self.assertEqual(Exercise.objects.filter(user_id=str(user.id)).count(), 0)
         workout = Workout.objects.get(user_id=str(user.id))
         self.assertEqual(workout.name, "Lower Body Strength")
-        self.assertEqual(workout.date, user.created_at.date())
+        self.assertEqual(workout.date, timezone.localdate(user.created_at))
         self.assertEqual(
             list(
                 WorkoutExercise.objects.filter(workout=workout)
