@@ -14,14 +14,14 @@ This stack provisions the single-instance AWS deployment:
 
 ## Layout
 
-- `main.tf`: top-level composition, Cloudflare DNS/proxy record, SSM parameters, and EC2 module wiring
+- `main.tf`: top-level composition, Cloudflare Pages project/domain/DNS, Cloudflare app DNS/proxy record, SSM parameters, and EC2 module wiring
 - `modules/ec2`: VPC, subnet, internet gateway, security group, IAM, EC2, snapshots, and Docker bootstrap
 - `terraform.tfvars.example`: starter input values
 
 ## Apply Flow
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
-2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, secret values (including the Logfire write token), verified `ses_from_email`, and GitHub repository/environment if they differ from the defaults.
+2. Replace placeholder values with the real Cloudflare account ID, domains, zone/record details, SSH CIDR, key pair, secret values (including the Logfire write token), verified `ses_from_email`, and GitHub repository/environment if they differ from the defaults.
 3. Run `terraform init`.
 4. Run `terraform plan`.
 5. Run `terraform apply`.
@@ -52,7 +52,7 @@ Set these GitHub `production` environment variables:
 - `CADDY_ACME_EMAIL`
 - Optional runtime values: `OPENAI_MODEL`, `POSTGRES_DB`, `POSTGRES_USER`, and `SSM_PARAMETER_PREFIX`
 
-The EC2 host does not fetch source code or build images. It receives the checked-out Compose configuration and image digests from the workflow, pulls those images from ECR, runs migrations, and starts Docker Compose. ECR lifecycle policies retain only the three newest immutable releases per service.
+The EC2 host does not fetch source code or build images. It receives the checked-out Compose configuration and image digests from the workflow, pulls those images from ECR, runs migrations, and starts Docker Compose. ECR lifecycle policies retain only the three newest immutable releases per service. The marketing site is a separate Git-connected Cloudflare Pages project: Terraform provisions its project, GitHub source configuration, custom domain, and DNS record, while Cloudflare performs builds and deployments after repository pushes.
 
 ## GitHub OIDC Deployment Role
 
