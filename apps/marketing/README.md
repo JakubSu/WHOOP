@@ -11,4 +11,4 @@ Create a Pages project connected to this repository with:
 - Output directory: `.`
 - Custom domain: `aicoach.jakubsuran.com`
 
-The product app should be served separately at `app.aicoach.jakubsuran.com`.
+The product app should be served separately at `app-aicoach.jakubsuran.com`.
