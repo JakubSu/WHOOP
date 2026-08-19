@@ -64,7 +64,7 @@ export function WorkoutHeader({
             <Button size="sm" type="button" variant="outline" disabled={!canEdit} onClick={onStartEditing} data-tour="workout-edit">
               <Pencil aria-hidden="true" size={15} />Edit
             </Button>
-            <Button size="sm" type="button" variant="destructive" disabled={!canDelete || isDeleting} onClick={() => setIsDeleteDialogOpen(true)}>
+            <Button className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" size="sm" type="button" variant="outline" disabled={!canDelete || isDeleting} onClick={() => setIsDeleteDialogOpen(true)}>
               <Trash2 aria-hidden="true" size={15} />Delete
             </Button>
           </div>
