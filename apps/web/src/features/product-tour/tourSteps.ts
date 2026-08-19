@@ -204,14 +204,14 @@ export function createProductTourSteps({
     {
       element: COACH_CREATE_EXERCISE_TARGET,
       advanceOnClick: true,
-      onHighlighted: () => {
+      onHighlightStarted: () => {
         document
           .querySelector<HTMLElement>(COACH_CREATE_EXERCISE_TARGET)
           ?.scrollIntoView({ behavior: 'auto', block: 'center' })
       },
       popover: {
         ...popover('Create a new exercise', 'Click Create new exercise to open the exercise form.'),
-        side: 'top' as const,
+        side: 'right' as const,
         showButtons: ['previous', 'close'],
       },
     },

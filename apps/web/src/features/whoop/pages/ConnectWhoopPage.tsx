@@ -17,7 +17,7 @@ export function ConnectWhoopPage() {
   const [isRedirecting, setIsRedirecting] = useState(false)
 
   async function handleConnect() {
-    if (user?.account_type === 'demo') return
+    if (!user?.whoop_connection_allowed) return
     setError(null)
     setConnectUrl(null)
 
@@ -56,8 +56,8 @@ export function ConnectWhoopPage() {
           </p>
           <p>If WHOOP is unavailable, you can continue and connect it later.</p>
         </Card>
-        {user?.account_type === 'demo' ? (
-          <p className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">WHOOP connection is unavailable in the demo. Create an account to connect your device.</p>
+        {!user?.whoop_connection_allowed ? (
+          <p className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">WHOOP connection is currently available by invitation only.</p>
         ) : (
           <ConnectWhoopButton
             isLoading={connectWhoop.isPending || isRedirecting}

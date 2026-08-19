@@ -1,6 +1,7 @@
 import uuid
 from typing import ClassVar
 
+from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -71,6 +72,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_demo(self) -> bool:
         return self.account_type == self.AccountType.DEMO
+
+    @property
+    def whoop_connection_allowed(self) -> bool:
+        return (
+            not self.is_demo
+            and self.email.strip().lower() in settings.WHOOP_ALLOWED_USER_EMAILS
+        )
 
     @property
     def is_expired(self) -> bool:

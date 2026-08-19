@@ -135,6 +135,11 @@ WHOOP_FRONTEND_ALLOWED_ORIGINS = env_list(
     "WHOOP_FRONTEND_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
+WHOOP_ALLOWED_USER_EMAILS = {
+    email.lower()
+    for email in env_list("WHOOP_ALLOWED_USER_EMAILS", "")
+    if email
+}
 WHOOP_OAUTH_STATE_TTL_SECONDS = int(
     os.environ.get("WHOOP_OAUTH_STATE_TTL_SECONDS", "600")
 )

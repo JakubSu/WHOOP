@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 
+@override_settings(WHOOP_ALLOWED_USER_EMAILS={"api@example.com"})
 class WhoopApiViewTests(TestCase):
     def setUp(self) -> None:
         User = cast(Any, get_user_model())
@@ -66,6 +67,22 @@ class WhoopApiViewTests(TestCase):
             user_id=str(self.user.id),
             frontend_success_url="http://localhost:5173/connect-whoop/success",
         )
+
+    @patch("whoop.api.views.services.create_build_connect_url_service")
+    def test_connect_url_rejects_user_outside_allow_list(
+        self, factory: MagicMock
+    ) -> None:
+        User = cast(Any, get_user_model())
+        user = User.objects.create_user(
+            email="not-allowed@example.com", password="password"
+        )
+        client = APIClient()
+        client.force_authenticate(user)
+
+        response = client.get(reverse("whoop-connect-url"))
+
+        self.assertEqual(response.status_code, 403)
+        factory.assert_not_called()
 
     @patch("whoop.api.views.services.create_build_connect_url_service")
     def test_connect_url_returns_validation_error(self, factory: MagicMock) -> None:

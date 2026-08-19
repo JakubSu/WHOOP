@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 
@@ -55,9 +56,17 @@ class ProfileSerializer(serializers.Serializer):
         read_only=True, help_text="WHOOP user identifier when the account is connected."
     )
     account_type = serializers.ChoiceField(choices=("normal", "demo"), read_only=True)
+    whoop_connection_allowed = serializers.SerializerMethodField()
     expires_at = serializers.DateTimeField(read_only=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
+
+    def get_whoop_connection_allowed(self, user: object) -> bool:
+        email = getattr(user, "email", "")
+        return (
+            getattr(user, "account_type", "") != "demo"
+            and str(email).strip().lower() in settings.WHOOP_ALLOWED_USER_EMAILS
+        )
 
 
 class AuthSessionSerializer(serializers.Serializer):

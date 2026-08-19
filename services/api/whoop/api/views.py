@@ -69,8 +69,8 @@ class WhoopConnectAPIView(APIView):
         ],
     )
     def get(self, request: Request) -> Response:
-        if request.user.is_demo:
-            raise PermissionDenied("WHOOP connection is unavailable in a demo session.")
+        if not request.user.whoop_connection_allowed:
+            raise PermissionDenied("WHOOP connection is unavailable for this account.")
         frontend_success_url = request.query_params.get("success_url", "")
         try:
             payload = services.create_build_connect_url_service().execute(
