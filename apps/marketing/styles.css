@@ -413,6 +413,33 @@ h2 em {
   text-transform: none;
   color: var(--foreground);
 }
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--foreground);
+  font: 700 10px var(--mono);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 160ms ease;
+}
+.github-link:hover {
+  color: var(--primary);
+}
+.github-link svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+.topbar .github-link {
+  gap: 6px;
+  font-size: 11px;
+  text-transform: none;
+}
+.github-arrow {
+  color: var(--primary);
+  font-size: 12px;
+}
 @media (max-width: 760px) {
   .shell {
     width: calc(100% - 40px);
