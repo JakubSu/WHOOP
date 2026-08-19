@@ -426,10 +426,14 @@ h2 em {
 .github-link:hover {
   color: var(--primary);
 }
-.github-link svg {
+.github-icon {
+  display: inline-block;
   width: 17px;
   height: 17px;
-  fill: currentColor;
+  flex: 0 0 17px;
+  background: currentColor;
+  -webkit-mask: url("https://cdn.simpleicons.org/github") center / contain no-repeat;
+  mask: url("https://cdn.simpleicons.org/github") center / contain no-repeat;
 }
 .topbar .github-link {
   gap: 6px;
