@@ -482,6 +482,10 @@ h2 em {
     grid-template-columns: 1fr;
     gap: 20px;
   }
+  .mobile-shots figure {
+    width: min(100%, 280px);
+    margin-inline: auto;
+  }
   .mobile-shots figure:last-child {
     margin-top: 0;
   }

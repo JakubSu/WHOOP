@@ -44,7 +44,7 @@
 
 @media (max-width: 760px) {
   .hero-screenshot {
-    margin-top: 55px;
+    display: none;
   }
 
   .desktop-under {
