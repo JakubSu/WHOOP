@@ -1,11 +1,13 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../auth/store/authStore'
 import { COACH_GENERATED_WORKOUT_TARGET, createProductTourSteps, type CoachTourActions } from './tourSteps'
-import { shouldAutoStartProductTour } from './tourEligibility'
+import { isProductTourWorkspaceRoute, shouldAutoStartProductTour } from './tourEligibility'
 import { addDaysIso, getLocalDateIso } from '../training/services/formatters'
+import { getWorkoutLanding } from '../training/api/trainingApi'
 import {
   clearProductTourCompletion,
   hasCompletedProductTour,
@@ -33,7 +35,7 @@ type ProductTourContextValue = {
   notifyGuidedWorkoutOpened: () => void
 }
 
-export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'review_initial' | 'waiting_initial_accept' | 'workout_ready' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'review_replacement' | 'updated_workout' | 'complete' | 'unavailable'
+export type GuidedCoachStage = null | 'initial_ready' | 'waiting_initial' | 'review_initial' | 'waiting_initial_accept' | 'workout_ready' | 'followup_ready' | 'waiting_followup' | 'exercise_resolution' | 'waiting_resolution' | 'review_replacement' | 'updated_workout' | 'empty_prompt' | 'empty_submitted' | 'complete' | 'unavailable'
 
 const ProductTourContext = createContext<ProductTourContextValue | null>(null)
 
@@ -42,6 +44,12 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const status = useAuthStore((state) => state.status)
+  const today = getLocalDateIso()
+  const workoutLanding = useQuery({
+    queryKey: ['workout-landing', user?.id, today],
+    queryFn: () => getWorkoutLanding(today),
+    enabled: status === 'authenticated' && Boolean(user),
+  })
   const coachActionsRef = useRef<CoachTourActions | null>(null)
   const driverRef = useRef<Driver | null>(null)
   const autoStartAttemptedRef = useRef<string | null>(null)
@@ -51,6 +59,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const tourRefreshFrameRef = useRef<number | null>(null)
   const [guidedCoachStage, setGuidedCoachStage] = useState<GuidedCoachStage>(null)
   const previousGuidedCoachStageRef = useRef<GuidedCoachStage>(null)
+  const hasWorkout = location.pathname.startsWith('/workouts/') || Boolean(workoutLanding.data?.selected_workout)
 
   const completeTour = useCallback(() => {
     if (user) markProductTourCompleted(user.id)
@@ -65,6 +74,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
         hasWhoopConnection,
         isDemo: user.account_type === 'demo',
         isDesktop: window.matchMedia('(min-width: 1024px)').matches,
+        hasWorkout,
         actions: () => coachActionsRef.current ? ({
           ...coachActionsRef.current,
           notifyGuidedRecommendationExpanded: () => setGuidedCoachStage((stage) => stage === 'review_initial' ? 'waiting_initial_accept' : stage),
@@ -113,7 +123,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
         tour.destroy()
       },
       onPopoverRender: (popover) => {
-        if (tour.getActiveStep()?.popover?.title !== DEMO_TOUR_END_TITLE) return
+        if (user.account_type !== 'demo' || tour.getActiveStep()?.popover?.title !== DEMO_TOUR_END_TITLE) return
         const registerButton = document.createElement('button')
         registerButton.type = 'button'
         registerButton.className = 'driver-popover-footer-btn'
@@ -129,9 +139,10 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
         driverRef.current = null
       },
     })
+    if (!hasWorkout) setGuidedCoachStage('empty_prompt')
     driverRef.current = tour
     tour.drive()
-  }, [completeTour, navigate, user])
+  }, [completeTour, hasWorkout, navigate, user])
 
   const replayTour = useCallback(() => {
     if (!user) return
@@ -142,7 +153,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     previousGuidedCoachStageRef.current = null
     setGuidedCoachStage(null)
     driverRef.current?.destroy()
-    if (!location.pathname.startsWith('/workouts/')) {
+    if (!isProductTourWorkspaceRoute(location.pathname)) {
       autoStartAttemptedRef.current = null
       navigate('/')
       return
@@ -192,7 +203,8 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
       (previousStage === 'waiting_followup' && guidedCoachStage === 'exercise_resolution') ||
       (previousStage === 'exercise_resolution' && guidedCoachStage === 'waiting_resolution') ||
       (previousStage === 'waiting_resolution' && guidedCoachStage === 'review_replacement') ||
-      (previousStage === 'review_replacement' && guidedCoachStage === 'updated_workout')
+      (previousStage === 'review_replacement' && guidedCoachStage === 'updated_workout') ||
+      (previousStage === 'empty_prompt' && guidedCoachStage === 'empty_submitted')
     if (!shouldAdvance || !driverRef.current?.isActive()) return
     if (guidedCoachStage === 'workout_ready') {
       const workoutId = guidedWorkoutIdRef.current
@@ -227,17 +239,18 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status !== 'authenticated' || !user || hasCompletedProductTour(user.id)) return
     if (autoStartAttemptedRef.current === user.id) return
-    if (!location.pathname.startsWith('/workouts/')) return
+    if (!isProductTourWorkspaceRoute(location.pathname)) return
 
     let attempts = 0
     const startWhenWorkspaceReady = () => {
       attempts += 1
+      const landingReady = !location.pathname.endsWith('/week') || workoutLanding.isFetched
       const workspaceReady = Boolean(document.querySelector('[data-tour-workspace-ready="true"]'))
       if (shouldAutoStartProductTour({
         isAuthenticated: status === 'authenticated',
         hasUser: Boolean(user),
         hasCompleted: hasCompletedProductTour(user.id),
-        workspaceReady,
+        workspaceReady: workspaceReady && landingReady,
         hasAutoStarted: autoStartAttemptedRef.current === user.id,
       })) {
         autoStartAttemptedRef.current = user.id
@@ -250,11 +263,11 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     }
     const timeout = window.setTimeout(startWhenWorkspaceReady, WORKSPACE_READY_INITIAL_DELAY_MS)
     return () => window.clearTimeout(timeout)
-  }, [location.pathname, startTour, status, user])
+  }, [location.pathname, startTour, status, user, workoutLanding.isFetched])
 
   return (
     <ProductTourContext.Provider value={{ startTour, replayTour, refreshProductTour, registerCoachActions, guidedCoachStage,
-      notifyGuidedCoachSubmitted: () => setGuidedCoachStage((stage) => stage === 'initial_ready' ? 'waiting_initial' : stage === 'followup_ready' ? 'waiting_followup' : stage),
+      notifyGuidedCoachSubmitted: () => setGuidedCoachStage((stage) => stage === 'initial_ready' ? 'waiting_initial' : stage === 'followup_ready' ? 'waiting_followup' : stage === 'empty_prompt' ? 'empty_submitted' : stage),
       notifyGuidedCoachCompleted: (hasExerciseResolution) => setGuidedCoachStage((stage) => stage === 'waiting_initial' ? 'review_initial' : stage === 'waiting_followup' ? hasExerciseResolution ? 'exercise_resolution' : 'unavailable' : stage === 'waiting_resolution' ? 'review_replacement' : stage),
       notifyGuidedExerciseResolutionStarted: () => setGuidedCoachStage((stage) => stage === 'exercise_resolution' ? 'waiting_resolution' : stage),
       notifyGuidedRecommendationExpanded,

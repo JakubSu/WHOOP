@@ -28,3 +28,9 @@ test('product tour starts only for a ready first authenticated session', () => {
   assert.equal(eligibility.shouldAutoStartProductTour({ ...readyFirstSession, isAuthenticated: false }), false)
   assert.equal(eligibility.shouldAutoStartProductTour({ ...readyFirstSession, hasAutoStarted: true }), false)
 })
+
+test('week and workout pages are valid product-tour workspace routes', () => {
+  assert.equal(eligibility.isProductTourWorkspaceRoute('/week'), true)
+  assert.equal(eligibility.isProductTourWorkspaceRoute('/workouts/workout-1'), true)
+  assert.equal(eligibility.isProductTourWorkspaceRoute('/'), false)
+})

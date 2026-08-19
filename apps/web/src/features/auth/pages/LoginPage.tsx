@@ -86,9 +86,28 @@ export function LoginPage() {
         label="Create one"
         to="/register"
       />
-      <div className="mt-5 border-t pt-5 text-center">
-        <p className="mb-3 text-sm text-muted-foreground">Want to explore first?</p>
-        <Button className="w-full" type="button" variant="outline" disabled={demo.isPending} onClick={() => demo.mutate()}>
+      <div className="my-6 flex items-center gap-3" aria-hidden="true">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs font-bold uppercase tracking-[.16em] text-muted-foreground">Or</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-accent/45 p-4 text-left shadow-sm">
+        <div className="pointer-events-none absolute -right-8 -top-10 size-28 rounded-full bg-primary/10" aria-hidden="true" />
+        <div className="relative flex items-start gap-3">
+          <img
+            className="size-11 shrink-0 rounded-full ring-4 ring-background"
+            src="/favicon.svg"
+            alt=""
+            aria-hidden="true"
+          />
+          <div>
+            <p className="text-sm font-bold text-foreground">Meet your AI Coach</p>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
+              Explore the workspace with sample training data—no account needed.
+            </p>
+          </div>
+        </div>
+        <Button className="relative mt-4 w-full shadow-sm" type="button" disabled={demo.isPending} onClick={() => demo.mutate()}>
           {demo.isPending ? 'Starting demo…' : 'Try the demo'}
         </Button>
         <InlineError message={demo.error ? getErrorMessage(demo.error) : null} />

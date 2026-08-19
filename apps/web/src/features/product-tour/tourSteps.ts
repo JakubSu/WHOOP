@@ -32,6 +32,7 @@ type TourStepOptions = {
   hasWhoopConnection: boolean
   isDemo: boolean
   isDesktop: boolean
+  hasWorkout?: boolean
   actions: () => ProductTourActions | null
 }
 
@@ -51,8 +52,11 @@ export function createProductTourSteps({
   hasWhoopConnection,
   isDemo,
   isDesktop,
+  hasWorkout = true,
   actions,
 }: TourStepOptions): DriveStep[] {
+  if (!hasWorkout) return createEmptyAccountTourSteps({ hasWhoopConnection, isDesktop, actions })
+
   const whoopDescription = hasWhoopConnection
     ? 'Sleep, Recovery, and Strain give you and your AI coach the context it needs.'
     : 'Connect WHOOP when you are ready to personalize your plan with sleep, recovery, and strain.'
@@ -272,4 +276,62 @@ export function createProductTourSteps({
   }
 
   return steps
+}
+
+const FIRST_WORKOUT_PROMPT = 'Create my first workout for tomorrow using a balanced full-body routine.'
+
+function createEmptyAccountTourSteps({
+  hasWhoopConnection,
+  isDesktop,
+  actions,
+}: Pick<TourStepOptions, 'hasWhoopConnection' | 'isDesktop' | 'actions'>): DriveStep[] {
+  const whoopDescription = hasWhoopConnection
+    ? 'Sleep, Recovery, and Strain give you and your AI coach the context it needs.'
+    : 'Connect WHOOP when you are ready to personalize your plan with sleep, recovery, and strain.'
+  const weekStep: DriveStep = isDesktop
+    ? {
+      element: weekNavigationTargetForViewport(true),
+      popover: popover('Your week at a glance', 'Your week is ready for your first workout. Rest days will appear here as your plan grows.'),
+    }
+    : {
+      element: '[data-tour="week-navigation-page"]',
+      popover: popover('Your week at a glance', 'Your week is ready for your first workout. Rest days will appear here as your plan grows.'),
+    }
+
+  return [
+    {
+      popover: popover('Let’s plan your first workout', 'Your account is ready, but you do not have a workout yet. The Coach can help you create one.'),
+    },
+    {
+      element: whoopMetricsTargetForViewport(isDesktop),
+      popover: popover('Start with readiness', whoopDescription),
+    },
+    weekStep,
+    isDesktop
+      ? {
+        element: '[data-tour="coach-panel"]',
+        onHighlightStarted: () => actions()?.openCoach(),
+        popover: popover('Create your first workout with Coach', 'The Coach understands your week and can create a workout that fits your plan.'),
+      }
+      : {
+        element: '[data-tour="coach-open"]',
+        advanceOnClick: true,
+        popover: {
+          ...popover('Create your first workout with Coach', 'Tap Coach to create a workout that fits your week.'),
+          showButtons: ['previous', 'close'],
+        },
+      },
+    {
+      element: '[data-tour="coach-composer"]',
+      waitForElement: COACH_COMPOSER_WAIT_MS,
+      onHighlightStarted: () => actions()?.prefillCoachMessage(FIRST_WORKOUT_PROMPT),
+      popover: {
+        ...popover('Ask Coach to build your first workout', 'Review the example request, edit it if you like, and press Send.'),
+        showButtons: ['close'],
+      },
+    },
+    {
+      popover: popover('You’re ready to train!', 'Send the request to create your first workout. You can always adjust it with Coach afterward.'),
+    },
+  ]
 }

@@ -6,6 +6,10 @@ export type ProductTourEligibility = {
   hasAutoStarted: boolean
 }
 
+export function isProductTourWorkspaceRoute(pathname: string) {
+  return pathname === '/week' || pathname.startsWith('/workouts/')
+}
+
 export function shouldAutoStartProductTour(eligibility: ProductTourEligibility) {
   return (
     eligibility.isAuthenticated &&
