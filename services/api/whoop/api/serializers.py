@@ -7,6 +7,14 @@ class WhoopConnectUrlSerializer(serializers.Serializer):
     )
 
 
+class WhoopAccessRequestSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=("none", "pending", "approved", "rejected"), read_only=True
+    )
+    requested_at = serializers.DateTimeField(read_only=True)
+    reviewed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+
 class WhoopCallbackResultSerializer(serializers.Serializer):
     connected = serializers.BooleanField(
         help_text="Indicates that the WHOOP account was successfully connected."

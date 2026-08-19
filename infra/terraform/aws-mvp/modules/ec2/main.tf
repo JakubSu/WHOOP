@@ -103,6 +103,14 @@ data "aws_iam_policy_document" "ecr_pull_access" {
   }
 }
 
+data "aws_iam_policy_document" "ses_send_email_access" {
+  statement {
+    sid       = "SendWhoopAccessRequestEmail"
+    actions   = ["ses:SendEmail"]
+    resources = [var.ses_identity_arn]
+  }
+}
+
 data "aws_iam_policy_document" "dlm_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -232,6 +240,12 @@ resource "aws_iam_role_policy" "ecr_pull_access" {
   name   = "${var.instance_name}-ecr-pull-access"
   role   = aws_iam_role.ec2.id
   policy = data.aws_iam_policy_document.ecr_pull_access.json
+}
+
+resource "aws_iam_role_policy" "ses_send_email_access" {
+  name   = "${var.instance_name}-ses-send-email-access"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.ses_send_email_access.json
 }
 
 resource "aws_iam_role_policy_attachment" "ssm_managed_instance_core" {

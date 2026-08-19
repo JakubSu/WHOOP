@@ -15,7 +15,6 @@ from training.models import Exercise, Workout, WorkoutExercise
 from training.services.shared_exercise_bank import sync_shared_exercise_bank
 from whoop.models import WhoopConnection, WhoopSnapshot
 
-
 DEMO_WORKOUT_EXERCISES = (
     ("Back Squat", 4, 5, "185.00"),
     ("Deadlift", 3, 5, "225.00"),
@@ -59,7 +58,7 @@ class CreateDemoSessionService:
                 user_id="", name__in=[item[0] for item in DEMO_WORKOUT_EXERCISES]
             )
         }
-        missing = set(name for name, *_ in DEMO_WORKOUT_EXERCISES) - set(exercises)
+        missing = {name for name, *_ in DEMO_WORKOUT_EXERCISES} - set(exercises)
         if missing:
             raise RuntimeError(f"Demo exercise bank is missing: {', '.join(sorted(missing))}.")
 

@@ -155,6 +155,23 @@ variable "whoop_token_encryption_key" {
   sensitive   = true
 }
 
+variable "whoop_access_allowlist" {
+  description = "Comma-separated email addresses allowed to connect WHOOP without requesting access."
+  type        = string
+  default     = ""
+}
+
+variable "ses_from_email" {
+  description = "Verified SES email identity used as the sender for WHOOP access request notifications."
+  type        = string
+}
+
+variable "whoop_access_request_admin_email" {
+  description = "Email address that receives WHOOP access request notifications."
+  type        = string
+  default     = "kuba.suran.15@gmail.com"
+}
+
 variable "postgres_password" {
   description = "Production Postgres password written to SSM Parameter Store."
   type        = string

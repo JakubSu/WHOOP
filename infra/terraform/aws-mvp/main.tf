@@ -42,6 +42,10 @@ data "tls_certificate" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
 }
 
+resource "aws_ses_email_identity" "whoop_access_request_sender" {
+  email = var.ses_from_email
+}
+
 resource "aws_ssm_parameter" "django_secret_key" {
   name        = "${local.ssm_parameter_prefix}/django/secret-key"
   description = "Django SECRET_KEY for ${var.project_name} ${var.environment}."
@@ -101,6 +105,33 @@ resource "aws_ssm_parameter" "postgres_password" {
   description = "Postgres password for ${var.project_name} ${var.environment}."
   type        = "SecureString"
   value       = var.postgres_password
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "ses_from_email" {
+  name        = "${local.ssm_parameter_prefix}/ses/from-email"
+  description = "Verified SES sender email for ${var.project_name} ${var.environment}."
+  type        = "String"
+  value       = var.ses_from_email
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "whoop_access_allowlist" {
+  name        = "${local.ssm_parameter_prefix}/whoop/access-allowlist"
+  description = "Comma-separated WHOOP access allowlist for ${var.project_name} ${var.environment}."
+  type        = "String"
+  value       = var.whoop_access_allowlist
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "whoop_access_request_admin_email" {
+  name        = "${local.ssm_parameter_prefix}/whoop/access-request-admin-email"
+  description = "WHOOP access request notification recipient for ${var.project_name} ${var.environment}."
+  type        = "String"
+  value       = var.whoop_access_request_admin_email
 
   tags = local.common_tags
 }
@@ -171,6 +202,7 @@ module "backend" {
   instance_type                  = var.ec2_instance_type
   key_pair_name                  = local.ec2_key_pair_name
   root_volume_size_gb            = var.ec2_root_volume_size_gb
+  ses_identity_arn               = aws_ses_email_identity.whoop_access_request_sender.arn
   snapshot_retention_count       = var.ec2_snapshot_retention_count
   snapshot_time_utc              = local.snapshot_time_utc
   ssm_parameter_arns = [
@@ -181,6 +213,9 @@ module "backend" {
     aws_ssm_parameter.whoop_client_secret.arn,
     aws_ssm_parameter.whoop_token_encryption_key.arn,
     aws_ssm_parameter.postgres_password.arn,
+    aws_ssm_parameter.whoop_access_allowlist.arn,
+    aws_ssm_parameter.ses_from_email.arn,
+    aws_ssm_parameter.whoop_access_request_admin_email.arn,
   ]
   subnet_cidr_block = var.ec2_subnet_cidr_block
   tags              = local.common_tags

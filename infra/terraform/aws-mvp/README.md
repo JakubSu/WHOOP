@@ -8,6 +8,7 @@ This stack provisions the single-instance AWS deployment:
 - Production secrets and app parameters in SSM Parameter Store
 - Docker container logs in CloudWatch Logs
 - EC2 IAM role scoped to the app SSM parameters
+- Verified Amazon SES sender identity and least-privilege EC2 permission for WHOOP access request notifications
 - GitHub Actions OIDC role for building immutable ECR images and SSM-based app deployments without stored AWS keys
 - Daily EBS snapshots for the instance root volume
 
@@ -20,13 +21,14 @@ This stack provisions the single-instance AWS deployment:
 ## Apply Flow
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
-2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, secret values (including the Logfire write token), and GitHub repository/environment if they differ from the defaults.
+2. Replace placeholder values with the real domain, Cloudflare zone/record details, SSH CIDR, key pair, secret values (including the Logfire write token), verified `ses_from_email`, and GitHub repository/environment if they differ from the defaults.
 3. Run `terraform init`.
 4. Run `terraform plan`.
 5. Run `terraform apply`.
 6. Confirm the Cloudflare DNS record is proxied.
-7. Copy the `github_actions_role_arn` output into the GitHub `production` environment variable `AWS_ROLE_TO_ASSUME`.
-8. Configure the GitHub `production` environment variables listed below, then deploy with the GitHub Actions workflow.
+7. Confirm the SES verification email for `ses_from_email`, then verify the identity in the SES console.
+8. Copy the `github_actions_role_arn` output into the GitHub `production` environment variable `AWS_ROLE_TO_ASSUME`.
+9. Configure the GitHub `production` environment variables listed below, then deploy with the GitHub Actions workflow.
 
 ## Runtime
 

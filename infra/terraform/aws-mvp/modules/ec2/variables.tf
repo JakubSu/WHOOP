@@ -53,6 +53,11 @@ variable "ecr_repository_arns" {
   type        = list(string)
 }
 
+variable "ses_identity_arn" {
+  description = "SES identity ARN the EC2 role may use to send WHOOP access request emails."
+  type        = string
+}
+
 variable "cloudwatch_log_group_name" {
   description = "CloudWatch Logs group where Docker container logs are written."
   type        = string

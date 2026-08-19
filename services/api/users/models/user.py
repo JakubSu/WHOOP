@@ -1,5 +1,5 @@
 import uuid
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import (
@@ -7,8 +7,12 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
+
+if TYPE_CHECKING:
+    from whoop.models import WhoopAccessRequest
 
 
 class UserManager(BaseUserManager["User"]):
@@ -41,6 +45,9 @@ class UserManager(BaseUserManager["User"]):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    if TYPE_CHECKING:
+        whoop_access_request: WhoopAccessRequest
+
     class AccountType(models.TextChoices):
         NORMAL = "normal", "Normal"
         DEMO = "demo", "Demo"
@@ -75,10 +82,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def whoop_connection_allowed(self) -> bool:
-        return (
-            not self.is_demo
-            and self.email.strip().lower() in settings.WHOOP_ALLOWED_USER_EMAILS
-        )
+        if self.is_demo:
+            return False
+        if self.email.casefold() in {
+            email.casefold() for email in settings.WHOOP_ACCESS_ALLOWLIST
+        }:
+            return True
+        try:
+            return self.whoop_access_request.status == "approved"
+        except ObjectDoesNotExist:
+            return False
 
     @property
     def is_expired(self) -> bool:

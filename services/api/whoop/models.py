@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -44,6 +45,39 @@ class WhoopOAuthState(models.Model):
 
     def __str__(self) -> str:
         return f"WHOOP OAuth state for {self.user_id}"
+
+
+class WhoopAccessRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="whoop_access_request",
+    )
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.PENDING
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_whoop_access_requests",
+    )
+    admin_note = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["status", "-requested_at"]
+
+    def __str__(self) -> str:
+        return f"WHOOP access request for {self.user.email} ({self.status})"
 
 
 class WhoopSnapshot(models.Model):

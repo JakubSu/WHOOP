@@ -106,7 +106,7 @@ The collection is configured at the collection level for WHOOP's OAuth 2.0 autho
 - Authorization URL: `https://api.prod.whoop.com/oauth/oauth2/auth`
 - Token URL: `https://api.prod.whoop.com/oauth/oauth2/token`
 - Client authentication: send client credentials in the request body
-- Scopes: `read:recovery read:cycles read:workout read:sleep read:profile read:body_measurement offline`
+- Scopes: `read:recovery read:cycles read:workout read:sleep read:profile offline`
 
 The `offline` scope is included so the app can receive a refresh token for longer-running personal tracking workflows.
 

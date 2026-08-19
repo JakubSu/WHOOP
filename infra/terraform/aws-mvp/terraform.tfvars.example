@@ -19,7 +19,10 @@ logfire_token               = "replace-me"
 whoop_client_id             = "replace-me"
 whoop_client_secret         = "replace-me"
 whoop_token_encryption_key  = "replace-me"
+whoop_access_allowlist      = "friend1@example.com,friend2@example.com"
 postgres_password           = "replace-me"
+ses_from_email              = "verified-sender@example.com"
+whoop_access_request_admin_email = "kuba.suran.15@gmail.com"
 
 tags = {
   Owner = "platform"

@@ -126,8 +126,7 @@ WHOOP_REDIRECT_URI = os.environ.get(
 )
 WHOOP_SCOPES = os.environ.get(
     "WHOOP_SCOPES",
-    "read:recovery read:cycles read:workout read:sleep read:profile "
-    "read:body_measurement offline",
+    "read:recovery read:cycles read:workout read:sleep read:profile offline",
 )
 WHOOP_TOKEN_ENCRYPTION_KEY = os.environ.get("WHOOP_TOKEN_ENCRYPTION_KEY", "")
 WHOOP_FRONTEND_SUCCESS_URL = os.environ.get("WHOOP_FRONTEND_SUCCESS_URL", "")
@@ -135,24 +134,21 @@ WHOOP_FRONTEND_ALLOWED_ORIGINS = env_list(
     "WHOOP_FRONTEND_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
-WHOOP_ALLOWED_USER_EMAILS = {
-    email.lower()
-    for email in env_list("WHOOP_ALLOWED_USER_EMAILS", "")
-    if email
-}
+WHOOP_ACCESS_ALLOWLIST = env_list("WHOOP_ACCESS_ALLOWLIST", "")
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+SES_FROM_EMAIL = os.environ.get("SES_FROM_EMAIL", "jakub.suran@adinet.cz")
+WHOOP_ACCESS_REQUEST_ADMIN_EMAIL = os.environ.get(
+    "WHOOP_ACCESS_REQUEST_ADMIN_EMAIL", "kuba.suran.15@gmail.com"
+)
 WHOOP_OAUTH_STATE_TTL_SECONDS = int(
     os.environ.get("WHOOP_OAUTH_STATE_TTL_SECONDS", "600")
 )
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.6-luna")
-COACH_RUN_TIMEOUT_SECONDS = float(
-    os.environ.get("COACH_RUN_TIMEOUT_SECONDS", "45")
-)
+COACH_RUN_TIMEOUT_SECONDS = float(os.environ.get("COACH_RUN_TIMEOUT_SECONDS", "45"))
 COACH_CONTEXT_RECENT_TURNS = int(os.environ.get("COACH_CONTEXT_RECENT_TURNS", "3"))
-COACH_CONTEXT_TOKEN_RESERVE = int(
-    os.environ.get("COACH_CONTEXT_TOKEN_RESERVE", "4000")
-)
+COACH_CONTEXT_TOKEN_RESERVE = int(os.environ.get("COACH_CONTEXT_TOKEN_RESERVE", "4000"))
 COACH_MAX_MODEL_REQUESTS = int(os.environ.get("COACH_MAX_MODEL_REQUESTS", "6"))
 COACH_MAX_TOOL_CALLS = int(os.environ.get("COACH_MAX_TOOL_CALLS", "12"))
 COACH_MAX_INPUT_TOKENS = int(os.environ.get("COACH_MAX_INPUT_TOKENS", "40000"))
@@ -165,9 +161,7 @@ COACH_STREAM_KEEPALIVE_SECONDS = float(
     os.environ.get("COACH_STREAM_KEEPALIVE_SECONDS", "15")
 )
 COACH_MAX_COST_USD = os.environ.get("COACH_MAX_COST_USD", "0.05")
-COACH_USER_MONTHLY_BUDGET_USD = os.environ.get(
-    "COACH_USER_MONTHLY_BUDGET_USD", "2.00"
-)
+COACH_USER_MONTHLY_BUDGET_USD = os.environ.get("COACH_USER_MONTHLY_BUDGET_USD", "2.00")
 COACH_GLOBAL_MONTHLY_BUDGET_USD = os.environ.get(
     "COACH_GLOBAL_MONTHLY_BUDGET_USD", "20.00"
 )

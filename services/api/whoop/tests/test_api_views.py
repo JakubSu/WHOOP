@@ -10,13 +10,17 @@ from django.urls import reverse
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
+from whoop.models import WhoopAccessRequest
 
-@override_settings(WHOOP_ALLOWED_USER_EMAILS={"api@example.com"})
+
 class WhoopApiViewTests(TestCase):
     def setUp(self) -> None:
         User = cast(Any, get_user_model())
         self.user = User.objects.create_user(
             email="api@example.com", password="password"
+        )
+        WhoopAccessRequest.objects.create(
+            user=self.user, status=WhoopAccessRequest.Status.APPROVED
         )
         client = APIClient()
         client.force_authenticate(self.user)
@@ -69,7 +73,7 @@ class WhoopApiViewTests(TestCase):
         )
 
     @patch("whoop.api.views.services.create_build_connect_url_service")
-    def test_connect_url_rejects_user_outside_allow_list(
+    def test_connect_url_rejects_user_without_approval(
         self, factory: MagicMock
     ) -> None:
         User = cast(Any, get_user_model())
@@ -83,6 +87,36 @@ class WhoopApiViewTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         factory.assert_not_called()
+
+    @patch("whoop.workflows.access_requests.send_whoop_access_request_email")
+    def test_user_can_request_whoop_access(self, send_email: MagicMock) -> None:
+        User = cast(Any, get_user_model())
+        user = User.objects.create_user(
+            email="requester@example.com", password="password", display_name="Requester"
+        )
+        client = APIClient()
+        client.force_authenticate(user)
+
+        response = client.post(reverse("whoop-access-request"), {})
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["status"], "pending")
+        send_email.assert_called_once_with(
+            user_email="requester@example.com", display_name="Requester"
+        )
+
+    def test_access_request_status_is_none_when_not_requested(self) -> None:
+        User = cast(Any, get_user_model())
+        user = User.objects.create_user(
+            email="no-request@example.com", password="password"
+        )
+        client = APIClient()
+        client.force_authenticate(user)
+
+        response = client.get(reverse("whoop-access-request"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "none"})
 
     @patch("whoop.api.views.services.create_build_connect_url_service")
     def test_connect_url_returns_validation_error(self, factory: MagicMock) -> None:

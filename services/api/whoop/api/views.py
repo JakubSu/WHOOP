@@ -16,11 +16,17 @@ from rest_framework.views import APIView
 
 from whoop import services
 from whoop.api.serializers import (
+    WhoopAccessRequestSerializer,
     WhoopCallbackResultSerializer,
     WhoopConnectUrlSerializer,
     WhoopSummarySerializer,
 )
 from whoop.exceptions import WhoopConnectionNotFound
+from whoop.workflows.access_requests import (
+    RequestWhoopAccessService,
+    WhoopAccessRequestEmailError,
+    get_whoop_access_request_status,
+)
 from whoop.workflows.summary import disconnected_summary
 
 ErrorDetailSerializer = inline_serializer(
@@ -80,6 +86,54 @@ class WhoopConnectAPIView(APIView):
         except ValueError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(payload)
+
+
+class WhoopAccessRequestAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = WhoopAccessRequestSerializer
+
+    @extend_schema(
+        tags=["WHOOP"],
+        summary="Get WHOOP access request status",
+        responses={
+            200: WhoopAccessRequestSerializer,
+            404: OpenApiResponse(description="No request exists."),
+        },
+    )
+    def get(self, request: Request) -> Response:
+        access_request = get_whoop_access_request_status(user=request.user)
+        if access_request is None:
+            return Response({"status": "none"})
+        return Response(WhoopAccessRequestSerializer(access_request).data)
+
+    @extend_schema(
+        tags=["WHOOP"],
+        summary="Request WHOOP access",
+        responses={
+            201: WhoopAccessRequestSerializer,
+            200: WhoopAccessRequestSerializer,
+        },
+    )
+    def post(self, request: Request) -> Response:
+        try:
+            access_request = RequestWhoopAccessService().execute(user=request.user)
+        except ValueError as exc:
+            raise PermissionDenied(str(exc)) from exc
+        except WhoopAccessRequestEmailError as exc:
+            raise ValidationError(
+                {
+                    "detail": "Your request was saved, but the notification could not be sent."
+                }
+            ) from exc
+
+        response_status = (
+            status.HTTP_201_CREATED
+            if access_request.status == "pending"
+            else status.HTTP_200_OK
+        )
+        return Response(
+            WhoopAccessRequestSerializer(access_request).data, status=response_status
+        )
 
 
 class WhoopCallbackAPIView(APIView):

@@ -4,20 +4,30 @@ import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/errors'
 import { AuthShell } from '../../../shared/components/AuthShell'
 import { InlineError } from '../../../shared/components/InlineError'
-import { Button, Card } from '../../../shared/components/ui'
+import { Button, Card, Spinner } from '../../../shared/components/ui'
 import { ConnectWhoopButton } from '../components/ConnectWhoopButton'
-import { useConnectWhoop } from '../hooks/useConnectWhoop'
+import {
+  useConnectWhoop,
+  useRequestWhoopAccess,
+  useWhoopAccessRequest,
+} from '../hooks/useConnectWhoop'
 import { useAuthStore } from '../../auth/store/authStore'
 
 export function ConnectWhoopPage() {
   const user = useAuthStore((state) => state.user)
   const connectWhoop = useConnectWhoop()
+  const accessRequest = useWhoopAccessRequest()
+  const requestAccess = useRequestWhoopAccess()
   const [error, setError] = useState<string | null>(null)
   const [connectUrl, setConnectUrl] = useState<string | null>(null)
   const [isRedirecting, setIsRedirecting] = useState(false)
 
+  const accessStatus = user?.whoop_connection_allowed
+    ? 'approved'
+    : accessRequest.data?.status ?? 'none'
+
   async function handleConnect() {
-    if (!user?.whoop_connection_allowed) return
+    if (accessStatus !== 'approved') return
     setError(null)
     setConnectUrl(null)
 
@@ -41,6 +51,15 @@ export function ConnectWhoopPage() {
     }
   }
 
+  async function handleRequestAccess() {
+    setError(null)
+    try {
+      await requestAccess.mutateAsync()
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    }
+  }
+
   return (
     <AuthShell
       eyebrow="WHOOP connection"
@@ -56,14 +75,27 @@ export function ConnectWhoopPage() {
           </p>
           <p>If WHOOP is unavailable, you can continue and connect it later.</p>
         </Card>
-        {!user?.whoop_connection_allowed ? (
-          <p className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">WHOOP connection is currently available by invitation only.</p>
-        ) : (
+        {accessStatus === 'approved' ? (
           <ConnectWhoopButton
             isLoading={connectWhoop.isPending || isRedirecting}
             isRedirecting={isRedirecting}
             onClick={handleConnect}
           />
+        ) : accessStatus === 'pending' ? (
+          <p className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">Your WHOOP access request is pending approval.</p>
+        ) : (
+          <div className="grid gap-3">
+            <p className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">WHOOP connection is currently available by invitation only.</p>
+            <Button
+              className="w-full sm:w-auto"
+              type="button"
+              disabled={requestAccess.isPending || accessRequest.isLoading}
+              onClick={handleRequestAccess}
+            >
+              {requestAccess.isPending || accessRequest.isLoading ? <Spinner className="size-[18px]" /> : null}
+              {requestAccess.isPending ? 'Sending request…' : accessStatus === 'rejected' ? 'Request access again' : 'Request WHOOP access'}
+            </Button>
+          </div>
         )}
         {connectUrl ? (
           <Button asChild className="w-full sm:w-auto" variant="outline">

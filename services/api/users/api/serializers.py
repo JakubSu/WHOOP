@@ -1,4 +1,3 @@
-from django.conf import settings
 from rest_framework import serializers
 
 
@@ -62,11 +61,7 @@ class ProfileSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(read_only=True)
 
     def get_whoop_connection_allowed(self, user: object) -> bool:
-        email = getattr(user, "email", "")
-        return (
-            getattr(user, "account_type", "") != "demo"
-            and str(email).strip().lower() in settings.WHOOP_ALLOWED_USER_EMAILS
-        )
+        return bool(getattr(user, "whoop_connection_allowed", False))
 
 
 class AuthSessionSerializer(serializers.Serializer):

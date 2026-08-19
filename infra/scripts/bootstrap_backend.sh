@@ -65,6 +65,9 @@ read_ssm_secret LOGFIRE_TOKEN "logfire/token"
 read_ssm_secret WHOOP_CLIENT_ID "whoop/client-id"
 read_ssm_secret WHOOP_CLIENT_SECRET "whoop/client-secret"
 read_ssm_secret WHOOP_TOKEN_ENCRYPTION_KEY "whoop/token-encryption-key"
+read_ssm_secret WHOOP_ACCESS_ALLOWLIST "whoop/access-allowlist"
+read_ssm_secret SES_FROM_EMAIL "ses/from-email"
+read_ssm_secret WHOOP_ACCESS_REQUEST_ADMIN_EMAIL "whoop/access-request-admin-email"
 read_ssm_secret POSTGRES_PASSWORD "postgres/password"
 printf '%s' "$POSTGRES_PASSWORD" >"$APP_DIR/secrets/postgres_password"
 chmod 600 "$APP_DIR/secrets/postgres_password"
@@ -85,7 +88,7 @@ OPENAI_MODEL=${OPENAI_MODEL}
 WEB_IMAGE=${WEB_IMAGE}
 API_IMAGE=${API_IMAGE}
 EOF
-for secret_name in SECRET_KEY OPENAI_API_KEY LOGFIRE_TOKEN WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET WHOOP_TOKEN_ENCRYPTION_KEY POSTGRES_PASSWORD; do
+for secret_name in SECRET_KEY OPENAI_API_KEY LOGFIRE_TOKEN WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET WHOOP_TOKEN_ENCRYPTION_KEY WHOOP_ACCESS_ALLOWLIST SES_FROM_EMAIL WHOOP_ACCESS_REQUEST_ADMIN_EMAIL POSTGRES_PASSWORD; do
   secret_value="${!secret_name}"
   printf "%s='%s'\n" "$secret_name" "${secret_value//\'/\'\\\'\'}" >>"$APP_DIR/.env"
 done
