@@ -10,6 +10,7 @@ import {
   getWeekWindowRange,
   groupWorkoutsByDate,
 } from '../services/formatters'
+import { useAuthStore } from '../../auth/store/authStore'
 
 const WEEK_WINDOW_WEEKS_BEFORE = 2
 const WEEK_WINDOW_WEEKS_AFTER = 2
@@ -18,6 +19,7 @@ const WEEK_WINDOW_PAGE_SIZE = 200
 const weekdayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
 export function useWeekPage(anchorDate?: string | null) {
+  const userId = useAuthStore((state) => state.user?.id)
   const initialWeekStartDate = getWeekStartIso(anchorDate || getLocalDateIso())
   const [visibleWeekStartDate, setVisibleWeekStartDate] = useState(initialWeekStartDate)
   const [windowCenterWeekStartDate, setWindowCenterWeekStartDate] = useState(
@@ -34,14 +36,15 @@ export function useWeekPage(anchorDate?: string | null) {
     7 * WEEK_WINDOW_WEEKS_AFTER,
   )
   const workouts = useQuery({
-    queryKey: ['workouts', 'week-window', weekWindow.startDate, weekWindow.endDate],
+    queryKey: ['workouts', userId, 'week-window', weekWindow.startDate, weekWindow.endDate],
     queryFn: () =>
       listWorkouts({
         startDate: weekWindow.startDate,
         endDate: weekWindow.endDate,
         page: 1,
         pageSize: WEEK_WINDOW_PAGE_SIZE,
-      }),
+    }),
+    enabled: Boolean(userId),
   })
   const workoutsByDate = useMemo(
     () => groupWorkoutsByDate(workouts.data?.results ?? []),

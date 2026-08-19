@@ -14,6 +14,7 @@ import {
   getWorkoutNavigation,
   isDateToday,
 } from '../services/formatters'
+import { useAuthStore } from '../../auth/store/authStore'
 
 const WORKOUT_NAVIGATION_DAYS_BEFORE = 28
 const WORKOUT_NAVIGATION_DAYS_AFTER = 28
@@ -21,11 +22,12 @@ const WORKOUT_NAVIGATION_PAGE_SIZE = 100
 
 export function useWorkoutPage(workoutId: string | undefined) {
   const queryClient = useQueryClient()
+  const userId = useAuthStore((state) => state.user?.id)
   const today = getLocalDateIso()
   const landing = useQuery({
-    queryKey: ['workout-landing', today],
+    queryKey: ['workout-landing', userId, today],
     queryFn: () => getWorkoutLanding(today),
-    enabled: !workoutId,
+    enabled: Boolean(userId) && !workoutId,
   })
   const selectedWorkout = landing.data?.selected_workout ?? null
   const resolvedWorkoutId = workoutId ?? selectedWorkout?.id
@@ -54,7 +56,7 @@ export function useWorkoutPage(workoutId: string | undefined) {
     ? addDaysIso(navigationDate, WORKOUT_NAVIGATION_DAYS_AFTER)
     : null
   const workouts = useQuery({
-    queryKey: ['workouts', 'window', startDate, endDate],
+    queryKey: ['workouts', userId, 'window', startDate, endDate],
     queryFn: () =>
       listWorkouts({
         startDate: startDate ?? undefined,
@@ -62,7 +64,7 @@ export function useWorkoutPage(workoutId: string | undefined) {
         page: 1,
         pageSize: WORKOUT_NAVIGATION_PAGE_SIZE,
       }),
-    enabled: Boolean(startDate && endDate),
+    enabled: Boolean(userId && startDate && endDate),
   })
   const navigation = getWorkoutNavigation(
     workouts.data?.results ?? [],

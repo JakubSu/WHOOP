@@ -4,11 +4,17 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { getLocalDateIso } from '../services/formatters'
 import { getWorkoutLanding } from '../api/trainingApi'
 import { Spinner } from '../../../shared/components/ui'
+import { useAuthStore } from '../../auth/store/authStore'
 
 export function TrainingLandingPage() {
   const navigate = useNavigate()
+  const userId = useAuthStore((state) => state.user?.id)
   const today = getLocalDateIso()
-  const landing = useQuery({ queryKey: ['workout-landing', today], queryFn: () => getWorkoutLanding(today) })
+  const landing = useQuery({
+    queryKey: ['workout-landing', userId, today],
+    queryFn: () => getWorkoutLanding(today),
+    enabled: Boolean(userId),
+  })
 
   useEffect(() => {
     if (!landing.data) return

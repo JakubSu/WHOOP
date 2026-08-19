@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '../../../shared/api/errors'
 import { getWhoopSummary } from '../api/whoopApi'
+import { useAuthStore } from '../../auth/store/authStore'
 
 const disconnectedSummary = {
   connected: false,
@@ -10,8 +11,10 @@ const disconnectedSummary = {
 }
 
 export function useWhoopSummary() {
+  const userId = useAuthStore((state) => state.user?.id)
+
   return useQuery({
-    queryKey: ['whoop-summary'],
+    queryKey: ['whoop-summary', userId],
     queryFn: async () => {
       try {
         return await getWhoopSummary()
@@ -22,5 +25,6 @@ export function useWhoopSummary() {
         throw error
       }
     },
+    enabled: Boolean(userId),
   })
 }

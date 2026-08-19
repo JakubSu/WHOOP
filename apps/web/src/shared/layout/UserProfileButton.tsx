@@ -43,7 +43,7 @@ export function UserProfileButton() {
       if (user) {
         setUser({ ...user, whoop_user_id: '' })
       }
-      await queryClient.invalidateQueries({ queryKey: ['whoop-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['whoop-summary', user?.id] })
     },
   })
 

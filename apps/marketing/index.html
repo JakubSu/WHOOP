@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101a12" />
+    <meta
+      name="description"
+      content="AI Coach is a personal training coach for planned workouts, daily recommendations, and WHOOP recovery data."
+    />
+    <title>AI Coach — Personal training coach</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./hero-layout.css" />
+  </head>
+  <body class="min-h-screen bg-[#f4f7f2] text-[#213026] antialiased">
+    <header
+      class="topbar shell-wide mx-auto flex h-[88px] items-center justify-between font-mono max-[760px]:h-[68px]"
+    >
+      <a
+        class="brand inline-flex items-center gap-2 font-mono text-[15px] font-semibold tracking-[-.03em]"
+        href="#top"
+        ><img class="size-7" src="./favicon.svg" alt="" /><span
+          >AI Coach</span
+        ></a
+      >
+      <nav class="flex gap-8 max-[760px]:hidden" aria-label="Main navigation">
+        <a
+          class="text-[13px] font-medium text-[#68766b] transition-colors hover:text-[#237a4d]"
+          href="#features"
+          >Features</a
+        ><a
+          class="text-[13px] font-medium text-[#68766b] transition-colors hover:text-[#237a4d]"
+          href="#why"
+          >Why I built it</a
+        >
+      </nav>
+      <div class="header-actions flex items-center gap-3">
+        <a
+          class="header-login rounded-md border border-[#d9e3da] bg-white px-4 py-2.5 text-[12px] font-bold transition-colors hover:border-[#237a4d] hover:text-[#237a4d] max-[760px]:px-3 max-[760px]:py-2 max-[760px]:text-[11px]"
+          href="https://app.aicoach.jakubsuran.com/login"
+          target="_blank"
+          rel="noreferrer"
+          >Login</a
+        ><a
+          class="header-demo rounded-md bg-[#237a4d] px-4 py-2.5 text-[12px] font-bold text-white shadow-sm transition-colors hover:bg-[#1b633e] max-[760px]:px-3 max-[760px]:py-2 max-[760px]:text-[11px]"
+          href="https://app.aicoach.jakubsuran.com"
+          target="_blank"
+          rel="noreferrer"
+          >Open demo <span>↗</span></a
+        >
+      </div>
+    </header>
+
+    <main id="top">
+      <section
+        class="hero shell mx-auto grid max-w-[1160px] gap-14 max-[760px]:block"
+      >
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="live-dot"></span> Personal project · AI Agents
+          </p>
+          <h1 class="font-bold tracking-[-.1em] text-[#18251c]">
+            AI Coach for workouts<br /><em>that follow your plan.</em>
+          </h1>
+          <p class="hero-description text-[#68766b]">
+            I am building an AI Coach that uses your goals, workout plans, and
+            recovery data from your WHOOP to offer personalized training support
+            - <b>without making changes you didn’t ask for.</b>
+          </p>
+          <div class="hero-actions flex gap-2.5">
+            <a
+              class="button button-primary rounded-md bg-[#237a4d] px-4 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#1b633e]"
+              href="https://app.aicoach.jakubsuran.com/login"
+              target="_blank"
+              rel="noreferrer"
+              >Login <span>↗</span></a
+            ><a
+              class="button button-secondary rounded-md border border-[#d9e3da] bg-white px-4 py-3 font-bold transition-colors hover:border-[#237a4d] hover:text-[#237a4d]"
+              href="https://app.aicoach.jakubsuran.com"
+              target="_blank"
+              rel="noreferrer"
+              >Open demo <span>↗</span></a
+            >
+          </div>
+        </div>
+        <figure
+          class="hero-screenshot overflow-hidden rounded-xl bg-[#18251c] p-3.5 pb-0 shadow-xl"
+        >
+          <div class="screenshot-top">
+            <span>AI Coach / mobile</span><span>Coach chat</span>
+          </div>
+          <img
+            class="rounded-t-md"
+            src="./assets/mobile_chat.png"
+            alt="AI Coach mobile interface showing the coach conversation"
+          />
+          <figcaption>
+            Ask for a workout and review the coach proposal before applying it.
+          </figcaption>
+        </figure>
+        <figure
+          class="desktop-under overflow-hidden rounded-xl bg-[#18251c] p-3.5 pb-0 shadow-xl"
+        >
+          <div class="screenshot-top">
+            <span>AI Coach / desktop</span><span>Current build</span>
+          </div>
+          <img
+            class="rounded-t-md"
+            src="./assets/desktop.png"
+            alt="AI Coach desktop interface showing a workout, weekly schedule, and coach proposal"
+          />
+          <figcaption>
+            Workout planning, exercise details, and coach proposals in the
+            current web app.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="features shell mx-auto max-w-[1160px]" id="features">
+        <div class="section-heading border-t border-[#d9e3da] pt-5">
+          <p class="eyebrow">01 / Features</p>
+          <h2 class="font-bold tracking-[-.09em] text-[#18251c]">
+            What is available<br />and what is next.
+          </h2>
+        </div>
+        <div class="feature-columns">
+          <div
+            class="feature-column current rounded-xl border border-[#d9e3da] bg-white shadow-sm"
+          >
+            <div class="column-heading">
+              <span class="column-dot"></span>
+              <h3>Current features</h3>
+              <span class="column-status">Available</span>
+            </div>
+            <ul>
+              <li>
+                <span>01</span>
+                <div>
+                  <strong>Workout generation and weekly planning</strong>
+                  <p>
+                    Request workouts for specific dates, choose the exercises,
+                    duration, and structure, then see every session across your
+                    weekly plan.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span>02</span>
+                <div>
+                  <strong>Desktop and mobile web interface</strong>
+                  <p>
+                    Use the same training workspace across desktop and mobile
+                    browsers, wherever you plan or train.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span>03</span>
+                <div>
+                  <strong>Readiness context from WHOOP</strong>
+                  <p>
+                    View Sleep, Recovery, and Strain data alongside your
+                    training workspace so every session starts with the right
+                    context.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span>04</span>
+                <div>
+                  <strong>AI Coach workout proposals</strong>
+                  <p>
+                    Ask for a workout or a change, then review the Coach’s
+                    proposal before accepting or rejecting it.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div
+            class="feature-column planned rounded-xl border border-[#b9d3be] bg-[#e5f1e6] shadow-sm"
+          >
+            <div class="column-heading">
+              <span class="column-dot"></span>
+              <h3>Planned features</h3>
+              <span class="column-status">Next</span>
+            </div>
+            <ul>
+              <li>
+                <span>01</span>
+                <div>
+                  <strong>iOS and Android apps</strong>
+                  <p>
+                    A native mobile experience for your plan, workouts, and
+                    Coach conversation.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span>02</span>
+                <div>
+                  <strong>Daily workout recommendations</strong>
+                  <p>
+                    Recommendations based on recovery, recent training, and the
+                    current plan.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span>03</span>
+                <div>
+                  <strong>Guided training plans</strong>
+                  <p>
+                    A longer-term plan that guides your workouts as your
+                    training progresses.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="why shell" id="why">
+        <div class="why-label">
+          <p class="eyebrow">02 / Why I built it</p>
+          <span>01</span>
+        </div>
+        <div class="why-content">
+          <h2>
+            Because “close enough”<br /><em>isn’t the workout I asked for.</em>
+          </h2>
+          <div class="why-copy">
+            <p>
+              When I was using WHOOP Strength Trainer, I asked the coach to
+              create workouts with exercises that were not in its library. It
+              replaced them with unrelated exercises instead.
+            </p>
+            <p>
+              It also did not let me plan workouts in the future. I wanted a
+              coach that could follow a specific request and maintain a plan
+              beyond today.
+            </p>
+            <p>AI Coach is my project to build that workflow.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mobile-preview shell">
+        <div>
+          <p class="eyebrow">03 / Current screens</p>
+          <h2>The rest of the<br /><em>current interface.</em></h2>
+          <a
+            class="inline-link"
+            href="https://app.aicoach.jakubsuran.com"
+            target="_blank"
+            rel="noreferrer"
+            >Open demo <span>↗</span></a
+          >
+        </div>
+        <div class="mobile-shots">
+          <figure>
+            <img
+              src="./assets/mobile_chat.png"
+              alt="AI Coach mobile coach conversation"
+            />
+            <figcaption>Coach conversation</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="./assets/mobile_workout.png"
+              alt="AI Coach mobile workout screen"
+            />
+            <figcaption>Workout view</figcaption>
+          </figure>
+        </div>
+      </section>
+    </main>
+    <footer class="footer shell-wide border-t border-[#d9e3da] text-[#68766b]">
+      <a class="brand" href="#top"
+        ><img src="./favicon.svg" alt="" /><span>AI Coach</span></a
+      ><span>Built by Jakub Suran</span><span>2026</span>
+    </footer>
+  </body>
+</html>
