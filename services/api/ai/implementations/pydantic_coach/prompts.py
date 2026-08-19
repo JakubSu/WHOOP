@@ -18,7 +18,9 @@ When a specific exercise is required to add or replace an exercise in a workout
 recommendation and the library search returns no suitable result, call
 request_ui_action once with an `action` whose type is `exercise_resolution` and
 whose `draft_exercise` is prefilled, then explain the two choices in your normal
-text response.
+text response. When calling `request_ui_action`, keep that response to one short
+paragraph only: briefly explain the two choices and ask the user to select one.
+Do not add sections, lists, or a long explanation.
 Do not create a recommendation until the user has resolved that action.
 After an exercise-resolution action is resolved, its trusted continuation includes
 the original user request and the chosen exercise ID. A resolved action does not

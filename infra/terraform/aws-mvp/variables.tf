@@ -17,7 +17,7 @@ variable "environment" {
 }
 
 variable "domain_name" {
-  description = "Public application domain name, for example app.example.com."
+  description = "Public application domain name, for example app.aicoach.jakubsuran.com."
   type        = string
 }
 
@@ -33,7 +33,7 @@ variable "cloudflare_zone_name" {
 }
 
 variable "cloudflare_record_name" {
-  description = "Cloudflare DNS record name, for example app for app.example.com or @ for the zone apex."
+  description = "Cloudflare DNS record name, for example app.aicoach for app.aicoach.jakubsuran.com or @ for the zone apex."
   type        = string
 }
 
