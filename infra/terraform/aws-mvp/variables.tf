@@ -22,9 +22,14 @@ variable "domain_name" {
 }
 
 variable "cloudflare_api_token" {
-  description = "Cloudflare API token with permission to read the zone and manage DNS records."
+  description = "Cloudflare API token with Pages Read/Write and zone DNS permissions."
   type        = string
   sensitive   = true
+}
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID that owns the Pages project."
+  type        = string
 }
 
 variable "cloudflare_zone_name" {
@@ -35,6 +40,24 @@ variable "cloudflare_zone_name" {
 variable "cloudflare_record_name" {
   description = "Cloudflare DNS record name, for example app-aicoach for app-aicoach.jakubsuran.com or @ for the zone apex."
   type        = string
+}
+
+variable "marketing_pages_project_name" {
+  description = "Cloudflare Pages project name for the marketing site."
+  type        = string
+  default     = "whoop-ai-coach-marketing"
+}
+
+variable "marketing_site_domain" {
+  description = "Custom domain for the marketing site."
+  type        = string
+  default     = "aicoach.jakubsuran.com"
+}
+
+variable "marketing_dns_record_name" {
+  description = "Cloudflare DNS record name for the marketing site."
+  type        = string
+  default     = "aicoach"
 }
 
 variable "github_repository" {

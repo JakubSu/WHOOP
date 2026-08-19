@@ -13,6 +13,7 @@ cloudwatch_log_retention_days = 30
 # Store real values outside source control. These values are written to SSM
 # Parameter Store as SecureString parameters during terraform apply.
 cloudflare_api_token        = "replace-me"
+cloudflare_account_id       = "your-cloudflare-account-id"
 django_secret_key           = "replace-me"
 openai_api_key              = "replace-me"
 logfire_token               = "replace-me"

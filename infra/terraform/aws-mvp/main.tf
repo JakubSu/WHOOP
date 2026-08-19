@@ -424,6 +424,49 @@ resource "cloudflare_record" "app" {
   ttl     = 1
 }
 
+resource "cloudflare_pages_project" "marketing" {
+  account_id        = var.cloudflare_account_id
+  name              = var.marketing_pages_project_name
+  production_branch = "main"
+
+  source {
+    type = "github"
+
+    config {
+      owner                         = split("/", var.github_repository)[0]
+      repo_name                     = split("/", var.github_repository)[1]
+      production_branch             = "main"
+      deployments_enabled           = true
+      production_deployment_enabled = true
+      pr_comments_enabled           = true
+      preview_deployment_setting    = "all"
+    }
+  }
+
+  build_config {
+    build_command   = ""
+    destination_dir = "."
+    root_dir        = "apps/marketing"
+  }
+}
+
+resource "cloudflare_pages_domain" "marketing" {
+  account_id   = var.cloudflare_account_id
+  project_name = cloudflare_pages_project.marketing.name
+  domain       = var.marketing_site_domain
+}
+
+resource "cloudflare_record" "marketing" {
+  zone_id = data.cloudflare_zone.app.id
+  name    = var.marketing_dns_record_name
+  content = cloudflare_pages_project.marketing.subdomain
+  type    = "CNAME"
+  proxied = true
+  ttl     = 1
+
+  depends_on = [cloudflare_pages_domain.marketing]
+}
+
 resource "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
 

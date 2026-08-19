@@ -3,6 +3,16 @@ output "app_url" {
   value       = local.app_url
 }
 
+output "marketing_site_url" {
+  description = "HTTPS URL for the Cloudflare Pages marketing site."
+  value       = "https://${var.marketing_site_domain}"
+}
+
+output "marketing_pages_url" {
+  description = "Default Cloudflare Pages URL for the marketing project."
+  value       = "https://${cloudflare_pages_project.marketing.subdomain}"
+}
+
 output "cloudflare_zone_id" {
   description = "Cloudflare zone ID used for the proxied application DNS record."
   value       = data.cloudflare_zone.app.id
