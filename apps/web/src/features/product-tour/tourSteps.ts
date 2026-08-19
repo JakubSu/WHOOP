@@ -171,7 +171,7 @@ export function createProductTourSteps({
     {
       element: '[data-tour="coach-accept-all"]',
       waitForElement: COACH_RESPONSE_WAIT_MS,
-      onHighlighted: () => {
+      onHighlightStarted: () => {
         document
           .querySelector<HTMLElement>('[data-tour="coach-accept-all"]')
           ?.scrollIntoView({ behavior: 'auto', block: 'center' })
@@ -241,7 +241,7 @@ export function createProductTourSteps({
     {
       element: COACH_REPLACEMENT_ACCEPT_ALL_TARGET,
       waitForElement: COACH_RESPONSE_WAIT_MS,
-      onHighlighted: () => {
+      onHighlightStarted: () => {
         document
           .querySelector<HTMLElement>(COACH_REPLACEMENT_ACCEPT_ALL_TARGET)
           ?.scrollIntoView({ behavior: 'auto', block: 'center' })
