@@ -1,10 +1,11 @@
 from typing import Any, cast
 
+from cryptography.fernet import Fernet
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase
-from django.utils import timezone
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from coach.models import CoachConversation, CoachMessage, UiAction
@@ -33,6 +34,7 @@ class UsersApiTests(TestCase):
         self.assertIn("access", response.json())
         self.assertIn("refresh", response.json())
 
+    @override_settings(WHOOP_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode())
     def test_demo_session_creates_isolated_seeded_workspace_without_refresh(self) -> None:
         response = self.client.post(reverse("user-demo-session"), {}, format="json")
 
