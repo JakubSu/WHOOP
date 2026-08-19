@@ -202,7 +202,7 @@ module "backend" {
   instance_type                  = var.ec2_instance_type
   key_pair_name                  = local.ec2_key_pair_name
   root_volume_size_gb            = var.ec2_root_volume_size_gb
-  ses_identity_arn               = aws_ses_email_identity.whoop_access_request_sender.arn
+  ses_from_email                 = var.ses_from_email
   snapshot_retention_count       = var.ec2_snapshot_retention_count
   snapshot_time_utc              = local.snapshot_time_utc
   ssm_parameter_arns = [

@@ -107,7 +107,13 @@ data "aws_iam_policy_document" "ses_send_email_access" {
   statement {
     sid       = "SendWhoopAccessRequestEmail"
     actions   = ["ses:SendEmail"]
-    resources = [var.ses_identity_arn]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "ses:FromAddress"
+      values   = [var.ses_from_email]
+    }
   }
 }
 

@@ -53,8 +53,8 @@ variable "ecr_repository_arns" {
   type        = list(string)
 }
 
-variable "ses_identity_arn" {
-  description = "SES identity ARN the EC2 role may use to send WHOOP access request emails."
+variable "ses_from_email" {
+  description = "Verified SES sender email permitted by the EC2 role."
   type        = string
 }
 
