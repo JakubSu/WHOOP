@@ -8,6 +8,8 @@ from typing import Any, cast
 from django.db import transaction
 from django.http import StreamingHttpResponse
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import permissions
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -24,6 +26,12 @@ from training.models import Exercise
 class UiActionDismissAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
+    @extend_schema(
+        tags=["Coach"],
+        operation_id="coach_ui_actions_dismiss",
+        request=None,
+        responses={200: CoachMessageSerializer},
+    )
     def post(
         self, request: Request, conversation_id: uuid.UUID, action_id: uuid.UUID
     ) -> Response:
@@ -38,6 +46,18 @@ class UiActionResolveStreamAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     renderer_classes = (EventStreamRenderer,)
 
+    @extend_schema(
+        tags=["Coach"],
+        operation_id="coach_ui_actions_resolve_stream",
+        request=UiActionResolveSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=OpenApiTypes.BINARY,
+                description="Owned Coach SSE v1 event stream.",
+            ),
+            429: OpenApiResponse(description="Monthly Coach budget exceeded."),
+        },
+    )
     @transaction.atomic
     def post(
         self, request: Request, conversation_id: uuid.UUID, action_id: uuid.UUID

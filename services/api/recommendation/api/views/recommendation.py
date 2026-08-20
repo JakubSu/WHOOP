@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
@@ -20,6 +21,11 @@ class RecommendationDetailAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = RecommendationSerializer
 
+    @extend_schema(
+        tags=["Recommendation"],
+        operation_id="recommendation_retrieve",
+        responses={200: RecommendationSerializer},
+    )
     def get(self, request: Request, id: str) -> Response:
         recommendation = get_recommendation(request.user, str(id))
         if recommendation is None:
@@ -30,6 +36,12 @@ class RecommendationDetailAPIView(APIView):
 class RecommendationActionAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
+    @extend_schema(
+        tags=["Recommendation"],
+        operation_id="recommendation_action",
+        request=None,
+        responses={200: RecommendationSerializer},
+    )
     def post(self, request: Request, id: str, action: str) -> Response:
         if action not in {"accept", "reject"}:
             raise NotFound()
@@ -48,6 +60,12 @@ class RecommendationActionAPIView(APIView):
 class RecommendationOperationAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
+    @extend_schema(
+        tags=["Recommendation"],
+        operation_id="recommendation_operation_action",
+        request=None,
+        responses={200: RecommendationSerializer},
+    )
     def post(
         self, request: Request, id: str, operation_id: str, action: str
     ) -> Response:
