@@ -29,7 +29,7 @@ function TrainingWorkspace({ children, showWeekNavigator }: Required<TrainingLay
     <main className="min-h-screen bg-background p-0 lg:h-screen lg:p-6">
       <div className={cn('mx-auto grid min-h-screen w-full max-w-2xl bg-card text-card-foreground shadow-xl lg:h-[calc(100dvh-3rem)] lg:min-h-0 lg:max-w-[1600px] lg:overflow-hidden lg:rounded-3xl lg:border', coachColumn)}>
         {user?.account_type === 'demo' ? (
-          <div className="col-span-full flex items-center justify-center bg-primary px-4 py-1.5 text-center text-sm font-medium leading-5 text-primary-foreground">
+          <div className="col-span-full flex items-center justify-center bg-primary px-3 py-1 text-center text-xs font-medium leading-4 text-primary-foreground lg:px-4 lg:py-1 lg:text-sm lg:leading-5">
             You’re exploring a one-hour demo with fictional data. Create an account to save your progress.
           </div>
         ) : null}
