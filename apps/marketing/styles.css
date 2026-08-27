@@ -440,6 +440,23 @@ h2 em {
   font-size: 11px;
   text-transform: none;
 }
+.linkedin-link {
+  color: var(--muted-foreground);
+  font: 500 13px var(--sans);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+.linkedin-link:hover {
+  color: var(--primary);
+}
+.footer-author {
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+.footer-author:hover {
+  color: var(--primary);
+}
 .github-arrow {
   color: var(--primary);
   font-size: 12px;
