@@ -11,7 +11,7 @@ It deploys application code only. Terraform infrastructure changes are intention
 ## Required GitHub Variables
 
 - `EC2_INSTANCE_ID`: EC2 instance ID to target with AWS Systems Manager Run Command.
-- `APP_DOMAIN`: public application domain, for example `app.jakubsuran.com`.
+- `APP_DOMAIN`: public application domain, for example `app-aicoach.jakubsuran.com`.
 - `CADDY_ACME_EMAIL`: email passed to Caddy.
 
 ## Optional GitHub Variables

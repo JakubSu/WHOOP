@@ -136,16 +136,16 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
 }
 
 function displayNumber(value: number) {
-  return value > 0 ? String(value) : '—'
+  return value > 0 ? String(value) : '-'
 }
 
 function formatTime(seconds: number) {
-  return seconds > 0 ? `${seconds} sec` : '—'
+  return seconds > 0 ? `${seconds} sec` : '-'
 }
 
 function formatWeight(exercise: WorkoutExerciseDisplay) {
   if (!exercise.weight) {
-    return '—'
+    return '-'
   }
 
   const amount = Number(exercise.weight)

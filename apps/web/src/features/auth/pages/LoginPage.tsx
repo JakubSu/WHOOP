@@ -79,7 +79,7 @@ export function LoginPage() {
               Meet your AI Coach
             </p>
             <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              Explore the workspace with sample training data—no account needed.
+              Explore the workspace with sample training data - no account needed.
             </p>
           </div>
         </div>

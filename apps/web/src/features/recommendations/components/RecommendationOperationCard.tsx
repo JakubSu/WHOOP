@@ -226,7 +226,7 @@ function Update({
         <label key={field}>
           {labels[field] ?? field}
           <del>
-            {String(exercise?.[field as keyof WorkoutExerciseDisplay] ?? "—")}
+            {String(exercise?.[field as keyof WorkoutExerciseDisplay] ?? "-")}
           </del>
           {editing ? (
             <input
@@ -312,7 +312,7 @@ function PrescriptionView({
               }
             />
           ) : (
-            <span>{values[field] || "—"}</span>
+            <span>{values[field] || "-"}</span>
           )}
         </label>
       ))}
