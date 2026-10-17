@@ -112,8 +112,8 @@ def validate_frontend_success_url(
         raise ValueError("Missing frontend success URL.")
 
     parsed = urlparse(frontend_success_url)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ValueError("Frontend success URL must be an absolute http or https URL.")
+    if parsed.scheme not in {"http", "https", "whoopmobile"} or not parsed.netloc:
+        raise ValueError("Frontend success URL must use an allowed absolute URL scheme.")
 
     origin = f"{parsed.scheme}://{parsed.netloc}"
     if origin not in allowed_origins:
