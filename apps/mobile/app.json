@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "WHOOP",
+    "slug": "whoop-mobile",
+    "scheme": "whoopmobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.jakubsu.whoop"
+    },
+    "android": {
+      "package": "com.jakubsu.whoop"
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}

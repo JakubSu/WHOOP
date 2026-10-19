@@ -132,7 +132,7 @@ WHOOP_TOKEN_ENCRYPTION_KEY = os.environ.get("WHOOP_TOKEN_ENCRYPTION_KEY", "")
 WHOOP_FRONTEND_SUCCESS_URL = os.environ.get("WHOOP_FRONTEND_SUCCESS_URL", "")
 WHOOP_FRONTEND_ALLOWED_ORIGINS = env_list(
     "WHOOP_FRONTEND_ALLOWED_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173",
+    "http://localhost:5173,http://127.0.0.1:5173,whoopmobile://connect-whoop",
 )
 WHOOP_ACCESS_ALLOWLIST = env_list("WHOOP_ACCESS_ALLOWLIST", "")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
